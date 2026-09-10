@@ -1,0 +1,6 @@
+@ElectronicLive.Api_HostAddress = http://localhost:5275
+
+GET {{ElectronicLive.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
