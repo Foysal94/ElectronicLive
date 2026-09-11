@@ -8,6 +8,8 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <RestorePackagesPath Condition="'$(RestorePackagesPath)' == '' and '$(OS)' == 'Windows_NT'">$(UserProfile)\.nuget\packages</RestorePackagesPath>
+    <RestorePackagesPath Condition="'$(RestorePackagesPath)' == '' and '$(OS)' != 'Windows_NT'">$(HOME)/.nuget/packages</RestorePackagesPath>
   </PropertyGroup>
 
   <!-- Relax rules and disable treat warnings as errors for test projects -->
@@ -24,10 +26,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="SonarAnalyzer.CSharp" Version="10.34.0.3385">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="AsyncFixer" Version="2.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

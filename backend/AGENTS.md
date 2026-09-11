@@ -2,9 +2,10 @@
 
 ## Tech Stack
 - .NET 9 Web API (`ElectronicLive.sln`, `src/ElectronicLive.Api`)
+- Pattern: Minimal APIs organized by resource extension classes (`Endpoints/`) returning `TypedResults`
 - Architecture: Aggregator / BFF (No internal DB; pulls from external EDM/gig sources)
 - Resilience & Networking: `IHttpClientFactory` with Polly policies
-- Testing: xUnit, FluentAssertions, WireMock.NET (`tests/`)
+- Testing: xUnit, Shouldly,
 
 ## Commands
 - Build: `dotnet build backend/ElectronicLive.sln`
@@ -12,9 +13,11 @@
 - Run Tests: `dotnet test backend/ElectronicLive.sln`
 
 ## Architecture & Code Boundaries
-- **Encapsulated Clients**: Place external source calls under `src/ElectronicLive.Api/Infrastructure/Clients/`. Each external vendor/API gets its own typed client interface.
-- **DTOs**: Separate raw upstream models (`External/`) from exposed API contracts (`Contracts/` or `Responses/`). Never expose raw third-party schemas directly.
-- **Async Execution**: Use `Task.WhenAll` to fan-out and query independent gig sources concurrently. Always accept and forward `CancellationToken`.
+- **Endpoints Over Controllers:** Map endpoints using static extension methods on `IEndpointRouteBuilder` inside `Endpoints/` (e.g., `Endpoints/EventEndpoints.cs`). Never place full endpoint implementations in `Program.cs`.
+- **Unit-Testable Handlers:** Endpoint logic must reside in `internal static` handler methods so they can be unit-tested directly without spinning up HTTP test servers. `[InternalsVisibleTo]` must target `ElectronicLive.Api.UnitTests`.
+- **Encapsulated Clients:** Place external source calls under `src/ElectronicLive.Api/Infrastructure/Clients/` (or `Services/`). Each external vendor/API gets its own typed client interface (e.g., `ITicketmasterClient`).
+- **DTOs & Schema Separation:** Separate raw upstream third-party models (`External/`) from exposed API contracts (`Models/` or `Contracts/`). Never expose raw third-party schemas directly to callers.
+- **Async Execution:** Always accept and forward `CancellationToken`. Use `Task.WhenAll` when querying multiple independent gig providers concurrently.
 
 ## Guardrails
 - NEVER instantiate `new HttpClient()`. Use typed clients via dependency injection.
