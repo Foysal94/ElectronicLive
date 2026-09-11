@@ -20,7 +20,7 @@ public sealed partial class TicketmasterService : ITicketmasterService
         _apiKey = configuration["Ticketmaster:ApiKey"];
     }
 
-    public async Task<IReadOnlyList<EventDto>> SearchEventsAsync(
+    public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,
         string? city = "London",
         CancellationToken cancellationToken = default
@@ -59,14 +59,14 @@ public sealed partial class TicketmasterService : ITicketmasterService
                 return [];
             }
 
-            var result = new List<EventDto>(events.Count);
+            var result = new List<EventResponse>(events.Count);
             foreach (var ev in events)
             {
                 var venueName = ev.Embedded?.Venues?.FirstOrDefault()?.Name ?? "Unknown Venue";
                 var status = MapStatus(ev.Dates?.Status?.Code);
 
                 result.Add(
-                    new EventDto(
+                    new EventResponse(
                         ev.Id ?? string.Empty,
                         ev.Name ?? string.Empty,
                         venueName,

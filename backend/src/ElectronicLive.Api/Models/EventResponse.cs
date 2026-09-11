@@ -1,6 +1,6 @@
 namespace ElectronicLive.Api.Models;
 
-public sealed record EventDto(
+public sealed record EventResponse(
     string Id,
     string Name,
     string VenueName,

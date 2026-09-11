@@ -24,7 +24,7 @@ public class EventEndpointsTests
     [Fact]
     public async Task SearchEvents_ReturnsOk_WithEvents_WhenArtistIsValid()
     {
-        var expectedEvents = new List<EventDto>
+        var expectedEvents = new List<EventResponse>
         {
             new(
                 "ev-1",
@@ -40,7 +40,7 @@ public class EventEndpointsTests
 
         var result = await EventEndpoints.SearchEvents("Bicep", service);
 
-        var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventDto>>>();
+        var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
         service.LastCityPassed.ShouldBe("London");
     }
@@ -57,10 +57,10 @@ public class EventEndpointsTests
 
     private sealed class FakeTicketmasterService : ITicketmasterService
     {
-        public IReadOnlyList<EventDto> EventsToReturn { get; set; } = [];
+        public IReadOnlyList<EventResponse> EventsToReturn { get; set; } = [];
         public string? LastCityPassed { get; private set; }
 
-        public Task<IReadOnlyList<EventDto>> SearchEventsAsync(
+        public Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
             string artistName,
             string? city = "London",
             CancellationToken cancellationToken = default

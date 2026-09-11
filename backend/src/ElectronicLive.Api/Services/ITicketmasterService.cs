@@ -4,7 +4,7 @@ namespace ElectronicLive.Api.Services;
 
 public interface ITicketmasterService
 {
-    Task<IReadOnlyList<EventDto>> SearchEventsAsync(
+    Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,
         string? city = "London",
         CancellationToken cancellationToken = default

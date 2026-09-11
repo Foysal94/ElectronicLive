@@ -15,7 +15,7 @@ public static class EventEndpoints
         return group;
     }
 
-    internal static async Task<Results<Ok<IReadOnlyList<EventDto>>, BadRequest<string>>> SearchEvents(
+    internal static async Task<Results<Ok<IReadOnlyList<EventResponse>>, BadRequest<string>>> SearchEvents(
         string? artist,
         ITicketmasterService ticketmasterService,
         string? city = "London",
