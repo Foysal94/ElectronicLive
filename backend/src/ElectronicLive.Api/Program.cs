@@ -1,3 +1,4 @@
+using ElectronicLive.Api.Endpoints;
 using ElectronicLive.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
+
+app.MapEventEndpoints();
 
 await app.RunAsync();
 
