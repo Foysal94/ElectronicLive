@@ -1,8 +1,9 @@
 using System.Net;
+using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
 using ElectronicLive.Api.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace ElectronicLive.Api.UnitTests;
 
@@ -13,10 +14,10 @@ public class TicketmasterServiceTests
     [Fact]
     public async Task SearchEventsAsync_ReturnsEmpty_WhenApiKeyMissing()
     {
-        var config = new ConfigurationBuilder().Build();
+        var options = Options.Create(new TicketmasterOptions { ApiKey = string.Empty });
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, config, _logger);
+        var service = new TicketmasterService(httpClient, options, _logger);
 
         var result = await service.SearchEventsAsync("Bicep");
 
@@ -54,15 +55,13 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Ticketmaster:ApiKey"] = "test-key" })
-            .Build();
+        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
         });
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, config, _logger);
+        var service = new TicketmasterService(httpClient, options, _logger);
 
         var result = await service.SearchEventsAsync("Bicep");
 
@@ -88,15 +87,13 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Ticketmaster:ApiKey"] = "test-key" })
-            .Build();
+        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
         });
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, config, _logger);
+        var service = new TicketmasterService(httpClient, options, _logger);
 
         var result = await service.SearchEventsAsync("NonExistentArtist");
 
@@ -122,15 +119,13 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Ticketmaster:ApiKey"] = "test-key" })
-            .Build();
+        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
         });
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, config, _logger);
+        var service = new TicketmasterService(httpClient, options, _logger);
 
         var result = await service.SearchEventsAsync("Secret");
 
@@ -166,15 +161,13 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Ticketmaster:ApiKey"] = "test-key" })
-            .Build();
+        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
         });
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, config, _logger);
+        var service = new TicketmasterService(httpClient, options, _logger);
 
         var result = await service.SearchEventsAsync("Test");
 
@@ -185,12 +178,10 @@ public class TicketmasterServiceTests
     [Fact]
     public async Task SearchEventsAsync_ReturnsEmpty_WhenHttpFails()
     {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Ticketmaster:ApiKey"] = "test-key" })
-            .Build();
+        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
         var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, config, _logger);
+        var service = new TicketmasterService(httpClient, options, _logger);
 
         var result = await service.SearchEventsAsync("Bicep");
 

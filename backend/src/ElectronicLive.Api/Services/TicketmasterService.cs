@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
+using Microsoft.Extensions.Options;
 
 namespace ElectronicLive.Api.Services;
 
@@ -13,11 +15,15 @@ public sealed partial class TicketmasterService : ITicketmasterService
     private readonly string? _apiKey;
     private readonly ILogger<TicketmasterService> _logger;
 
-    public TicketmasterService(HttpClient httpClient, IConfiguration configuration, ILogger<TicketmasterService> logger)
+    public TicketmasterService(
+        HttpClient httpClient,
+        IOptions<TicketmasterOptions> options,
+        ILogger<TicketmasterService> logger
+    )
     {
         _httpClient = httpClient;
         _logger = logger;
-        _apiKey = configuration["Ticketmaster:ApiKey"];
+        _apiKey = options.Value.ApiKey;
     }
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(

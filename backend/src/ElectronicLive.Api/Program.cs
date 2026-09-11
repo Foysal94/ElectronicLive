@@ -1,5 +1,7 @@
+using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Endpoints;
 using ElectronicLive.Api.Services;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,12 +12,13 @@ builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: true, re
 builder.Services.AddOpenApi();
 builder.Services.AddHttpClient();
 
+builder.Services.Configure<TicketmasterOptions>(builder.Configuration.GetSection(TicketmasterOptions.SectionName));
+
 builder.Services.AddHttpClient<ITicketmasterService, TicketmasterService>(
     (sp, client) =>
     {
-        var config = sp.GetRequiredService<IConfiguration>();
-        var baseUrl = config["Ticketmaster:BaseUrl"] ?? "https://app.ticketmaster.com/discovery/v2/";
-        client.BaseAddress = new Uri(baseUrl);
+        var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;
+        client.BaseAddress = new Uri(options.BaseUrl);
     }
 );
 
