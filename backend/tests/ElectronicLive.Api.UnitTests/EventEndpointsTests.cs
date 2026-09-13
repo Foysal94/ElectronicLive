@@ -50,15 +50,28 @@ public class EventEndpointsTests
     {
         var service = new FakeTicketmasterService();
 
-        await EventEndpoints.SearchEvents("Bicep", service, "Manchester");
+        var result = await EventEndpoints.SearchEvents("Bicep", service, "Manchester");
 
+        result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         service.LastCityPassed.ShouldBe("Manchester");
+    }
+
+    [Fact]
+    public async Task SearchEvents_PropagatesCancellationToken()
+    {
+        using var cts = new CancellationTokenSource();
+        var service = new FakeTicketmasterService();
+
+        await EventEndpoints.SearchEvents("Bicep", service, cancellationToken: cts.Token);
+
+        service.LastCancellationTokenPassed.ShouldBe(cts.Token);
     }
 
     private sealed class FakeTicketmasterService : ITicketmasterService
     {
         public IReadOnlyList<EventResponse> EventsToReturn { get; set; } = [];
         public string? LastCityPassed { get; private set; }
+        public CancellationToken LastCancellationTokenPassed { get; private set; }
 
         public Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
             string artistName,
@@ -67,6 +80,7 @@ public class EventEndpointsTests
         )
         {
             LastCityPassed = city;
+            LastCancellationTokenPassed = cancellationToken;
             return Task.FromResult(EventsToReturn);
         }
     }

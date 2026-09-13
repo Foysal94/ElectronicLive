@@ -9,19 +9,58 @@ namespace ElectronicLive.Api.UnitTests;
 
 public class TicketmasterServiceTests
 {
-    private readonly NullLogger<TicketmasterService> _logger = NullLogger<TicketmasterService>.Instance;
-
     [Fact]
     public async Task SearchEventsAsync_ReturnsEmpty_WhenApiKeyMissing()
     {
-        var options = Options.Create(new TicketmasterOptions { ApiKey = string.Empty });
-        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, options, _logger);
+        var (service, handler) = CreateService(apiKey: string.Empty);
 
         var result = await service.SearchEventsAsync("Bicep");
 
         result.ShouldBeEmpty();
+        handler.LastRequest.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SearchEventsAsync_ConstructsExpectedRequestUrl()
+    {
+        var (service, handler) = CreateService();
+
+        await service.SearchEventsAsync("Bicep & Hammer", "London & South");
+
+        handler.LastRequest.ShouldNotBeNull();
+        handler.LastRequest.Method.ShouldBe(HttpMethod.Get);
+
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("apikey=test-key");
+        query.ShouldContain("keyword=Bicep%20%26%20Hammer");
+        query.ShouldContain("city=London%20%26%20South");
+        query.ShouldContain("countryCode=GB");
+        query.ShouldContain("classificationName=music");
+        query.ShouldContain("sort=date,asc");
+    }
+
+    [Fact]
+    public async Task SearchEventsAsync_DefaultsCityToLondon_WhenCityNullOrWhitespace()
+    {
+        var (service, handler) = CreateService();
+
+        await service.SearchEventsAsync("Bicep", "   ");
+
+        handler.LastRequest.ShouldNotBeNull();
+        handler.LastRequest.RequestUri!.ToString().ShouldContain("city=London");
+    }
+
+    [Fact]
+    public async Task SearchEventsAsync_ForwardsCancellationTokenToHttpHandler()
+    {
+        var (service, handler) = CreateService();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var result = await service.SearchEventsAsync("Bicep", cancellationToken: cts.Token);
+
+        result.ShouldBeEmpty();
+        handler.WasCanceledDuringSend.ShouldBeTrue();
     }
 
     [Fact]
@@ -55,13 +94,7 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
-        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
-        });
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, options, _logger);
+        var (service, _) = CreateService(responseBody: json);
 
         var result = await service.SearchEventsAsync("Bicep");
 
@@ -87,13 +120,7 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
-        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
-        });
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, options, _logger);
+        var (service, _) = CreateService(responseBody: json);
 
         var result = await service.SearchEventsAsync("NonExistentArtist");
 
@@ -119,18 +146,22 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
-        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
-        });
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, options, _logger);
+        var (service, _) = CreateService(responseBody: json);
 
         var result = await service.SearchEventsAsync("Secret");
 
         var ev = result.ShouldHaveSingleItem();
         ev.VenueName.ShouldBe("Unknown Venue");
+    }
+
+    [Fact]
+    public async Task SearchEventsAsync_ReturnsEmpty_WhenHttpFails()
+    {
+        var (service, _) = CreateService(statusCode: HttpStatusCode.InternalServerError);
+
+        var result = await service.SearchEventsAsync("Bicep");
+
+        result.ShouldBeEmpty();
     }
 
     [Theory]
@@ -142,60 +173,43 @@ public class TicketmasterServiceTests
     [InlineData("rescheduled", EventStatus.Postponed)]
     [InlineData("something_else", EventStatus.Unknown)]
     [InlineData(null, EventStatus.Unknown)]
-    public async Task SearchEventsAsync_MapsStatusCorrectly(string? statusCode, EventStatus expectedStatus)
+    public void MapStatus_MapsCorrectly(string? statusCode, EventStatus expectedStatus)
     {
-        var statusJson = statusCode is null ? "{}" : $"{{\"code\": \"{statusCode}\"}}";
-        var json = $$"""
-            {
-              "_embedded": {
-                "events": [
-                  {
-                    "id": "ev-status",
-                    "name": "Test Event",
-                    "dates": {
-                      "status": {{statusJson}}
-                    }
-                  }
-                ]
-              }
-            }
-            """;
+        TicketmasterService.MapStatus(statusCode).ShouldBe(expectedStatus);
+    }
 
-        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
-        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+    private static (TicketmasterService Service, CapturingHttpMessageHandler Handler) CreateService(
+        HttpStatusCode statusCode = HttpStatusCode.OK,
+        string responseBody = "{}",
+        string apiKey = "test-key"
+    )
+    {
+        var options = Options.Create(new TicketmasterOptions { ApiKey = apiKey });
+        var handler = new CapturingHttpMessageHandler(_ => new HttpResponseMessage(statusCode)
         {
-            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
+            Content = new StringContent(responseBody, System.Text.Encoding.UTF8, "application/json"),
         });
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, options, _logger);
-
-        var result = await service.SearchEventsAsync("Test");
-
-        var ev = result.ShouldHaveSingleItem();
-        ev.Status.ShouldBe(expectedStatus);
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://app.ticketmaster.com/discovery/v2/"),
+        };
+        var service = new TicketmasterService(httpClient, options, NullLogger<TicketmasterService>.Instance);
+        return (service, handler);
     }
 
-    [Fact]
-    public async Task SearchEventsAsync_ReturnsEmpty_WhenHttpFails()
-    {
-        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
-        var handler = new MockHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://example.com") };
-        var service = new TicketmasterService(httpClient, options, _logger);
-
-        var result = await service.SearchEventsAsync("Bicep");
-
-        result.ShouldBeEmpty();
-    }
-
-    private sealed class MockHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
+    private sealed class CapturingHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
         : HttpMessageHandler
     {
+        public HttpRequestMessage? LastRequest { get; private set; }
+        public bool WasCanceledDuringSend { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken
         )
         {
+            LastRequest = request;
+            WasCanceledDuringSend = cancellationToken.IsCancellationRequested;
             return Task.FromResult(handler(request));
         }
     }

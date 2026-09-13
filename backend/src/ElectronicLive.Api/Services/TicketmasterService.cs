@@ -93,7 +93,7 @@ public sealed partial class TicketmasterService : ITicketmasterService
         }
     }
 
-    private static EventStatus MapStatus(string? code) =>
+    internal static EventStatus MapStatus(string? code) =>
         code?.ToLowerInvariant() switch
         {
             "onsale" => EventStatus.OnSale,

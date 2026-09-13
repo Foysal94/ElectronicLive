@@ -19,7 +19,10 @@
 - **DTOs & Schema Separation:** Separate raw upstream third-party models (`External/`) from exposed API contracts (`Models/` or `Contracts/`). Never expose raw third-party schemas directly to callers.
 - **Async Execution:** Always accept and forward `CancellationToken`. Use `Task.WhenAll` when querying multiple independent gig providers concurrently.
 
+- Keep methods linear and focused: Prefer straightforward, top-to-bottom method flow that fits on one screen over premature extraction of small, single-use private helpers. Only extract private methods when logic is reused, has deep nesting, or represents complex mapping/parsing routines.
+
 ## Guardrails
 - NEVER instantiate `new HttpClient()`. Use typed clients via dependency injection.
 - NEVER create database migrations or introduce an ORM.
 - Handle external upstream failures gracefully; a failure from one gig provider should not crash the entire endpoint.
+- Keep methods linear and focused: Prefer straightforward, top-to-bottom method flow that fits on one screen over premature extraction of small, single-use private helpers. Only extract private methods when logic is reused, has deep nesting, or represents complex mapping/parsing routines.
