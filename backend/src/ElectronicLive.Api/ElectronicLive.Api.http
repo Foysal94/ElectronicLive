@@ -1,6 +1,11 @@
 @ElectronicLive.Api_HostAddress = http://localhost:5275
 
-GET {{ElectronicLive.Api_HostAddress}}/weatherforecast/
+GET {{ElectronicLive.Api_HostAddress}}/api/health
+Accept: application/json
+
+###
+
+GET {{ElectronicLive.Api_HostAddress}}/api/events/search?artist=Bicep
 Accept: application/json
 
 ###
