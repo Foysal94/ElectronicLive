@@ -43,7 +43,7 @@ internal sealed record TicketmasterEvent(
             time,
             Url,
             status,
-            "Ticketmaster"
+            EventProvider.Ticketmaster
         );
     }
 

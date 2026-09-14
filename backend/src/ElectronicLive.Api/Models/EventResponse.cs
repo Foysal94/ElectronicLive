@@ -8,5 +8,5 @@ public sealed record EventResponse(
     TimeOnly? Time,
     string? TicketUrl,
     EventStatus Status,
-    string Provider
+    EventProvider Provider
 );

@@ -21,26 +21,36 @@ public sealed class EventAggregatorService(
             return [];
         }
 
-        var tasks = providerList.Select(async provider =>
-        {
-            try
+        var tasks = providerList
+            .Select(async provider =>
             {
-                return await provider.SearchEventsAsync(artistName, city, cancellationToken);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogWarning(
-                    ex,
-                    "Provider {ProviderName} failed while searching for artist {ArtistName}",
-                    provider.ProviderName,
-                    artistName
-                );
-                return (IReadOnlyList<EventResponse>)[];
-            }
-        });
+                try
+                {
+                    return await provider.SearchEventsAsync(artistName, city, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(
+                        ex,
+                        "Provider {Provider} failed while searching for artist {ArtistName}",
+                        provider.Provider,
+                        artistName
+                    );
+                    return (IReadOnlyList<EventResponse>)[];
+                }
+            })
+            .ToArray();
 
         var results = await Task.WhenAll(tasks);
 
-        return results.SelectMany(events => events).OrderBy(e => e.Date).ThenBy(e => e.Time).ToList();
+        return results
+            .SelectMany(events => events ?? [])
+            .OrderBy(e => e.Date ?? DateOnly.MaxValue)
+            .ThenBy(e => e.Time ?? TimeOnly.MaxValue)
+            .ToList();
     }
 }

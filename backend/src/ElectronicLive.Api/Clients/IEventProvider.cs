@@ -4,7 +4,7 @@ namespace ElectronicLive.Api.Clients;
 
 public interface IEventProvider
 {
-    string ProviderName { get; }
+    EventProvider Provider { get; }
 
     Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,

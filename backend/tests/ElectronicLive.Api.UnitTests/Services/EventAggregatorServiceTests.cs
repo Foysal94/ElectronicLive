@@ -24,7 +24,7 @@ public class EventAggregatorServiceTests
     public async Task Should_QueryAllProvidersConcurrently_AndAggregateResults()
     {
         var provider1 = Substitute.For<IEventProvider>();
-        provider1.ProviderName.Returns("Provider1");
+        provider1.Provider.Returns(EventProvider.Ticketmaster);
         var event1 = new EventResponse(
             "p1-1",
             "Bicep Live",
@@ -33,12 +33,12 @@ public class EventAggregatorServiceTests
             new TimeOnly(20, 0),
             "https://p1.com/1",
             EventStatus.OnSale,
-            "Provider1"
+            EventProvider.Ticketmaster
         );
         provider1.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([event1]);
 
         var provider2 = Substitute.For<IEventProvider>();
-        provider2.ProviderName.Returns("Provider2");
+        provider2.Provider.Returns(EventProvider.Ticketmaster);
         var event2 = new EventResponse(
             "p2-1",
             "Bicep DJ Set",
@@ -47,7 +47,7 @@ public class EventAggregatorServiceTests
             new TimeOnly(22, 0),
             "https://p2.com/1",
             EventStatus.OnSale,
-            "Provider2"
+            EventProvider.Ticketmaster
         );
         provider2.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([event2]);
 
@@ -64,7 +64,7 @@ public class EventAggregatorServiceTests
     public async Task Should_OrderAggregatedEventsByDateThenTime()
     {
         var provider = Substitute.For<IEventProvider>();
-        provider.ProviderName.Returns("Provider1");
+        provider.Provider.Returns(EventProvider.Ticketmaster);
 
         var eventLaterDate = new EventResponse(
             "3",
@@ -74,7 +74,7 @@ public class EventAggregatorServiceTests
             new TimeOnly(20, 0),
             null,
             EventStatus.OnSale,
-            "Provider1"
+            EventProvider.Ticketmaster
         );
         var eventEarlierTime = new EventResponse(
             "1",
@@ -84,7 +84,7 @@ public class EventAggregatorServiceTests
             new TimeOnly(18, 0),
             null,
             EventStatus.OnSale,
-            "Provider1"
+            EventProvider.Ticketmaster
         );
         var eventLaterTime = new EventResponse(
             "2",
@@ -94,7 +94,7 @@ public class EventAggregatorServiceTests
             new TimeOnly(22, 0),
             null,
             EventStatus.OnSale,
-            "Provider1"
+            EventProvider.Ticketmaster
         );
 
         provider
@@ -112,16 +112,56 @@ public class EventAggregatorServiceTests
     }
 
     [Fact]
+    public async Task Should_SortNullDateAndNullTimeEventsToTheEnd()
+    {
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+
+        var eventNullDate = new EventResponse(
+            "null-date",
+            "TBA Date Event",
+            "Venue TBA",
+            null,
+            null,
+            null,
+            EventStatus.OnSale,
+            EventProvider.Ticketmaster
+        );
+        var eventConfirmed = new EventResponse(
+            "confirmed",
+            "Confirmed Show",
+            "Venue Confirmed",
+            new DateOnly(2026, 11, 20),
+            new TimeOnly(20, 0),
+            null,
+            EventStatus.OnSale,
+            EventProvider.Ticketmaster
+        );
+
+        provider
+            .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
+            .Returns([eventNullDate, eventConfirmed]);
+
+        var service = new EventAggregatorService([provider], _logger);
+
+        var result = await service.SearchEventsAsync("Bicep", "London");
+
+        result.Count.ShouldBe(2);
+        result[0].Id.ShouldBe("confirmed");
+        result[1].Id.ShouldBe("null-date");
+    }
+
+    [Fact]
     public async Task Should_IsolateProviderFailure_WhenOneProviderThrows()
     {
         var failingProvider = Substitute.For<IEventProvider>();
-        failingProvider.ProviderName.Returns("FailingProvider");
+        failingProvider.Provider.Returns(EventProvider.Ticketmaster);
         failingProvider
             .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("500 Internal Server Error"));
 
         var healthyProvider = Substitute.For<IEventProvider>();
-        healthyProvider.ProviderName.Returns("HealthyProvider");
+        healthyProvider.Provider.Returns(EventProvider.Ticketmaster);
         var healthyEvent = new EventResponse(
             "h-1",
             "Bicep Live",
@@ -130,7 +170,7 @@ public class EventAggregatorServiceTests
             new TimeOnly(20, 0),
             null,
             EventStatus.OnSale,
-            "HealthyProvider"
+            EventProvider.Ticketmaster
         );
         healthyProvider.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([healthyEvent]);
 
@@ -143,15 +183,64 @@ public class EventAggregatorServiceTests
     }
 
     [Fact]
+    public async Task Should_IsolateProviderTimeout_WhenCallerHasNotCancelled()
+    {
+        using var cts = new CancellationTokenSource();
+
+        var timingOutProvider = Substitute.For<IEventProvider>();
+        timingOutProvider.Provider.Returns(EventProvider.Ticketmaster);
+        timingOutProvider
+            .SearchEventsAsync("Bicep", "London", cts.Token)
+            .ThrowsAsync(new TaskCanceledException("HttpClient timeout"));
+
+        var healthyProvider = Substitute.For<IEventProvider>();
+        healthyProvider.Provider.Returns(EventProvider.Ticketmaster);
+        var healthyEvent = new EventResponse(
+            "h-1",
+            "Bicep Live",
+            "Venue H",
+            new DateOnly(2026, 11, 25),
+            new TimeOnly(20, 0),
+            null,
+            EventStatus.OnSale,
+            EventProvider.Ticketmaster
+        );
+        healthyProvider.SearchEventsAsync("Bicep", "London", cts.Token).Returns([healthyEvent]);
+
+        var service = new EventAggregatorService([timingOutProvider, healthyProvider], _logger);
+
+        var result = await service.SearchEventsAsync("Bicep", "London", cts.Token);
+
+        result.Count.ShouldBe(1);
+        result[0].ShouldBe(healthyEvent);
+    }
+
+    [Fact]
     public async Task Should_ReturnEmptyList_WhenAllProvidersFail()
     {
         var failingProvider = Substitute.For<IEventProvider>();
-        failingProvider.ProviderName.Returns("FailingProvider");
+        failingProvider.Provider.Returns(EventProvider.Ticketmaster);
         failingProvider
             .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Upstream exploded"));
 
         var service = new EventAggregatorService([failingProvider], _logger);
+
+        var result = await service.SearchEventsAsync("Bicep", "London");
+
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_HandleProviderReturningNullListGracefully()
+    {
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+        provider
+            .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
+            .Returns((IReadOnlyList<EventResponse>)null!);
+
+        var service = new EventAggregatorService([provider], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
