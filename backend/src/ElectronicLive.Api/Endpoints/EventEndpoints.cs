@@ -1,5 +1,5 @@
-using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Models;
+using ElectronicLive.Api.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ElectronicLive.Api.Endpoints;
@@ -17,7 +17,7 @@ public static class EventEndpoints
 
     internal static async Task<Results<Ok<IReadOnlyList<EventResponse>>, ValidationProblem>> SearchEvents(
         string? artist,
-        ITicketmasterClient ticketmasterClient,
+        IEventAggregatorService eventAggregatorService,
         string? city = "London",
         CancellationToken cancellationToken = default
     )
@@ -30,7 +30,7 @@ public static class EventEndpoints
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
-        var events = await ticketmasterClient.SearchEventsAsync(artist.Trim(), targetCity, cancellationToken);
+        var events = await eventAggregatorService.SearchEventsAsync(artist.Trim(), targetCity, cancellationToken);
         return TypedResults.Ok(events);
     }
 }
