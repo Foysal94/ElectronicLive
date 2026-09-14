@@ -24,6 +24,8 @@ public sealed class TicketmasterClient : ITicketmasterClient
         _apiKey = options.Value.ApiKey;
     }
 
+    public string ProviderName => "Ticketmaster";
+
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,
         string city = "London",
