@@ -13,13 +13,15 @@ builder.Services.AddOpenApi();
 
 builder.Services.Configure<TicketmasterOptions>(builder.Configuration.GetSection(TicketmasterOptions.SectionName));
 
-builder.Services.AddHttpClient<ITicketmasterService, TicketmasterService>(
-    (sp, client) =>
-    {
-        var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;
-        client.BaseAddress = new Uri(options.BaseUrl);
-    }
-);
+builder
+    .Services.AddHttpClient<ITicketmasterService, TicketmasterService>(
+        (sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+        }
+    )
+    .AddStandardResilienceHandler();
 
 var app = builder.Build();
 

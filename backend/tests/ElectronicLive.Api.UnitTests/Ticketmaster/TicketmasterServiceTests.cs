@@ -57,9 +57,9 @@ public class TicketmasterServiceTests
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        var result = await service.SearchEventsAsync("Bicep", cancellationToken: cts.Token);
-
-        result.ShouldBeEmpty();
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            service.SearchEventsAsync("Bicep", cancellationToken: cts.Token)
+        );
         handler.WasCanceledDuringSend.ShouldBeTrue();
     }
 

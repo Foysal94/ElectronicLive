@@ -59,7 +59,7 @@ public sealed class TicketmasterService : ITicketmasterService
 
             payload = await response.Content.ReadFromJsonAsync<TicketmasterResponse>(JsonOptions, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Error occurred while querying Ticketmaster API for artist {ArtistName}", artistName);
             return [];
