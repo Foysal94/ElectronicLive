@@ -10,7 +10,6 @@ builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: true, re
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddHttpClient();
 
 builder.Services.Configure<TicketmasterOptions>(builder.Configuration.GetSection(TicketmasterOptions.SectionName));
 

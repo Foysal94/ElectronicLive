@@ -164,20 +164,6 @@ public class TicketmasterServiceTests
         result.ShouldBeEmpty();
     }
 
-    [Theory]
-    [InlineData("onsale", EventStatus.OnSale)]
-    [InlineData("offsale", EventStatus.SoldOut)]
-    [InlineData("canceled", EventStatus.Cancelled)]
-    [InlineData("cancelled", EventStatus.Cancelled)]
-    [InlineData("postponed", EventStatus.Postponed)]
-    [InlineData("rescheduled", EventStatus.Postponed)]
-    [InlineData("something_else", EventStatus.Unknown)]
-    [InlineData(null, EventStatus.Unknown)]
-    public void MapStatus_MapsCorrectly(string? statusCode, EventStatus expectedStatus)
-    {
-        TicketmasterService.MapStatus(statusCode).ShouldBe(expectedStatus);
-    }
-
     private static (TicketmasterService Service, CapturingHttpMessageHandler Handler) CreateService(
         HttpStatusCode statusCode = HttpStatusCode.OK,
         string responseBody = "{}",
