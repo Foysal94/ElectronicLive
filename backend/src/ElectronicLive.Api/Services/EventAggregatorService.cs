@@ -28,6 +28,9 @@ public sealed class EventAggregatorService(
                 {
                     return await provider.SearchEventsAsync(artistName, city, cancellationToken);
                 }
+                // Re-throw only if the caller cancelled. Upstream timeouts throw TaskCanceledException
+                // (which inherits OperationCanceledException) while cancellationToken is untriggered,
+                // and must be caught and isolated.
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     throw;
@@ -49,6 +52,7 @@ public sealed class EventAggregatorService(
 
         return results
             .SelectMany(events => events ?? [])
+            // Push unannounced/TBA dates and times to the end of search results
             .OrderBy(e => e.Date ?? DateOnly.MaxValue)
             .ThenBy(e => e.Time ?? TimeOnly.MaxValue)
             .ToList();

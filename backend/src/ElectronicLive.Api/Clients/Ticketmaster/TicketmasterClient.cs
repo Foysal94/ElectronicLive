@@ -60,6 +60,9 @@ public sealed class TicketmasterClient : ITicketmasterClient
 
             payload = await response.Content.ReadFromJsonAsync<TicketmasterResponse>(JsonOptions, cancellationToken);
         }
+        // Re-throw only if the caller cancelled. Upstream timeouts throw TaskCanceledException
+        // (which inherits OperationCanceledException) while cancellationToken is untriggered,
+        // and must be isolated rather than escaping.
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
