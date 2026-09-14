@@ -2,7 +2,7 @@ namespace ElectronicLive.Api.Configuration;
 
 public sealed class SkiddleOptions
 {
-    public const string SectionName = "Skiddle";
+    public const string SectionName = "EventProviders:Skiddle";
 
     public string BaseUrl
     {

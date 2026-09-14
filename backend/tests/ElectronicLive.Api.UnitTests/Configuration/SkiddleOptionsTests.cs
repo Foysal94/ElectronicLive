@@ -27,4 +27,10 @@ public class SkiddleOptionsTests
 
         options.BaseUrl.ShouldBe("https://custom-skiddle.com/api/");
     }
+
+    [Fact]
+    public void Should_HaveExpectedSectionName()
+    {
+        SkiddleOptions.SectionName.ShouldBe("EventProviders:Skiddle");
+    }
 }

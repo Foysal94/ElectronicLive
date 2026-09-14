@@ -2,7 +2,7 @@ namespace ElectronicLive.Api.Configuration;
 
 public sealed class TicketmasterOptions
 {
-    public const string SectionName = "Ticketmaster";
+    public const string SectionName = "EventProviders:Ticketmaster";
 
     public string BaseUrl
     {

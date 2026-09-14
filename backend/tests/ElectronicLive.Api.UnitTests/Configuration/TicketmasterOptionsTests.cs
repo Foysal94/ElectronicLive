@@ -27,4 +27,10 @@ public class TicketmasterOptionsTests
 
         options.BaseUrl.ShouldBe("https://custom-url.com/api/");
     }
+
+    [Fact]
+    public void Should_HaveExpectedSectionName()
+    {
+        TicketmasterOptions.SectionName.ShouldBe("EventProviders:Ticketmaster");
+    }
 }
