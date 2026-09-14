@@ -1,13 +1,14 @@
 namespace ElectronicLive.Api.Configuration;
 
-public sealed class TicketmasterOptions
+public sealed class SkiddleOptions
 {
-    public const string SectionName = "EventProviders:Ticketmaster";
+    public const string SectionName = "EventProviders:Skiddle";
 
     public string BaseUrl
     {
         get => field;
         set => field = string.IsNullOrWhiteSpace(value) ? value : $"{value.TrimEnd('/')}/";
-    } = "https://app.ticketmaster.com/discovery/v2/";
+    } = "https://www.skiddle.com/api/v1/";
+
     public string ApiKey { get; set; } = string.Empty;
 }

@@ -13,6 +13,7 @@ builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: true, re
 builder.Services.AddOpenApi();
 
 builder.Services.Configure<TicketmasterOptions>(builder.Configuration.GetSection(TicketmasterOptions.SectionName));
+builder.Services.Configure<SkiddleOptions>(builder.Configuration.GetSection(SkiddleOptions.SectionName));
 
 builder
     .Services.AddHttpClient<ITicketmasterClient, TicketmasterClient>(
@@ -24,7 +25,19 @@ builder
     )
     .AddStandardResilienceHandler();
 
+builder
+    .Services.AddHttpClient<ISkiddleClient, SkiddleClient>(
+        (sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<SkiddleOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+        }
+    )
+    .AddStandardResilienceHandler();
+
 builder.Services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ITicketmasterClient>());
+builder.Services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ISkiddleClient>());
+builder.Services.AddSingleton<IEventDeduplicator, EventDeduplicator>();
 builder.Services.AddTransient<IEventAggregatorService, EventAggregatorService>();
 
 var app = builder.Build();

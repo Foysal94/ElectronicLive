@@ -8,5 +8,6 @@ public sealed record EventResponse(
     TimeOnly? Time,
     string? TicketUrl,
     EventStatus Status,
-    EventProvider Provider
+    EventProvider Provider,
+    IReadOnlyList<EventTicketOffer>? Offers = null
 );

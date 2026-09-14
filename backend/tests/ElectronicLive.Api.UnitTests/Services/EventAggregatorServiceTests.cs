@@ -9,11 +9,18 @@ namespace ElectronicLive.Api.UnitTests.Services;
 public class EventAggregatorServiceTests
 {
     private readonly ILogger<EventAggregatorService> _logger = Substitute.For<ILogger<EventAggregatorService>>();
+    private readonly IEventDeduplicator _deduplicator = new EventDeduplicator();
+
+    private EventAggregatorService CreateService(
+        IEnumerable<IEventProvider> providers,
+        ILogger<EventAggregatorService>? logger = null,
+        IEventDeduplicator? deduplicator = null
+    ) => new(providers, deduplicator ?? _deduplicator, logger ?? _logger);
 
     [Fact]
     public async Task Should_ReturnEmptyList_WhenNoProvidersRegistered()
     {
-        var service = new EventAggregatorService([], _logger);
+        var service = CreateService([]);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
@@ -51,13 +58,17 @@ public class EventAggregatorServiceTests
         );
         provider2.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([event2]);
 
-        var service = new EventAggregatorService([provider1, provider2], _logger);
+        var service = CreateService([provider1, provider2], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
         result.Count.ShouldBe(2);
-        result[0].ShouldBe(event1);
-        result[1].ShouldBe(event2);
+        result[0].Id.ShouldBe(event1.Id);
+        var offers0 = result[0].Offers.ShouldNotBeNull();
+        offers0.Count.ShouldBe(1);
+        result[1].Id.ShouldBe(event2.Id);
+        var offers1 = result[1].Offers.ShouldNotBeNull();
+        offers1.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -101,7 +112,7 @@ public class EventAggregatorServiceTests
             .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
             .Returns([eventLaterDate, eventLaterTime, eventEarlierTime]);
 
-        var service = new EventAggregatorService([provider], _logger);
+        var service = CreateService([provider], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
@@ -142,7 +153,7 @@ public class EventAggregatorServiceTests
             .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
             .Returns([eventNullDate, eventConfirmed]);
 
-        var service = new EventAggregatorService([provider], _logger);
+        var service = CreateService([provider], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
@@ -174,12 +185,14 @@ public class EventAggregatorServiceTests
         );
         healthyProvider.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([healthyEvent]);
 
-        var service = new EventAggregatorService([failingProvider, healthyProvider], _logger);
+        var service = CreateService([failingProvider, healthyProvider], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
         result.Count.ShouldBe(1);
-        result[0].ShouldBe(healthyEvent);
+        result[0].Id.ShouldBe(healthyEvent.Id);
+        var offers = result[0].Offers.ShouldNotBeNull();
+        offers.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -207,12 +220,14 @@ public class EventAggregatorServiceTests
         );
         healthyProvider.SearchEventsAsync("Bicep", "London", cts.Token).Returns([healthyEvent]);
 
-        var service = new EventAggregatorService([timingOutProvider, healthyProvider], _logger);
+        var service = CreateService([timingOutProvider, healthyProvider], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London", cts.Token);
 
         result.Count.ShouldBe(1);
-        result[0].ShouldBe(healthyEvent);
+        result[0].Id.ShouldBe(healthyEvent.Id);
+        var healthyOffers = result[0].Offers.ShouldNotBeNull();
+        healthyOffers.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -224,7 +239,7 @@ public class EventAggregatorServiceTests
             .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Upstream exploded"));
 
-        var service = new EventAggregatorService([failingProvider], _logger);
+        var service = CreateService([failingProvider], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
@@ -240,7 +255,7 @@ public class EventAggregatorServiceTests
             .SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>())
             .Returns((IReadOnlyList<EventResponse>)null!);
 
-        var service = new EventAggregatorService([provider], _logger);
+        var service = CreateService([provider], _logger);
 
         var result = await service.SearchEventsAsync("Bicep", "London");
 
@@ -256,7 +271,7 @@ public class EventAggregatorServiceTests
         var provider = Substitute.For<IEventProvider>();
         provider.SearchEventsAsync("Bicep", "London", cts.Token).ThrowsAsync(new OperationCanceledException(cts.Token));
 
-        var service = new EventAggregatorService([provider], _logger);
+        var service = CreateService([provider], _logger);
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
             service.SearchEventsAsync("Bicep", "London", cts.Token)
@@ -274,11 +289,40 @@ public class EventAggregatorServiceTests
         var provider2 = Substitute.For<IEventProvider>();
         provider2.SearchEventsAsync("Bicep", "London", cts.Token).Returns([]);
 
-        var service = new EventAggregatorService([provider1, provider2], _logger);
+        var service = CreateService([provider1, provider2], _logger);
 
         await service.SearchEventsAsync("Bicep", "London", cts.Token);
 
         await provider1.Received(1).SearchEventsAsync("Bicep", "London", cts.Token);
         await provider2.Received(1).SearchEventsAsync("Bicep", "London", cts.Token);
+    }
+
+    [Fact]
+    public async Task Should_DelegateToDeduplicator_WhenAggregatingResults()
+    {
+        var mockDeduplicator = Substitute.For<IEventDeduplicator>();
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+        var rawEvent = new EventResponse(
+            "1",
+            "Raw Name",
+            "Venue",
+            new DateOnly(2026, 11, 20),
+            null,
+            null,
+            EventStatus.OnSale,
+            EventProvider.Ticketmaster
+        );
+        provider.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([rawEvent]);
+
+        var deduplicatedEvent = rawEvent with { Name = "Deduplicated Name" };
+        mockDeduplicator.Deduplicate(Arg.Any<IEnumerable<EventResponse>>()).Returns([deduplicatedEvent]);
+
+        var service = CreateService([provider], deduplicator: mockDeduplicator);
+
+        var result = await service.SearchEventsAsync("Bicep", "London");
+
+        result.ShouldHaveSingleItem().Name.ShouldBe("Deduplicated Name");
+        mockDeduplicator.Received(1).Deduplicate(Arg.Is<IEnumerable<EventResponse>>(e => e.Contains(rawEvent)));
     }
 }
