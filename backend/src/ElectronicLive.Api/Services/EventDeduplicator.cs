@@ -49,7 +49,7 @@ public sealed class EventDeduplicator : IEventDeduplicator
         // so the primary ticket link provides immediate buying capability to the caller.
         var primary = duplicates
             .OrderByDescending(e => StatusPriority(e.Status))
-            .ThenBy(e => e.Provider == EventProvider.Ticketmaster ? 0 : 1)
+            .ThenBy(e => ProviderPriority(e.Provider))
             .First();
 
         // Prefer earlier start/door time if one provider specifies doors and another show start
@@ -86,6 +86,15 @@ public sealed class EventDeduplicator : IEventDeduplicator
             EventStatus.SoldOut => 2,
             EventStatus.Cancelled => 1,
             _ => 0,
+        };
+
+    private static int ProviderPriority(EventProvider provider) =>
+        provider switch
+        {
+            EventProvider.Ticketmaster => 0,
+            EventProvider.Skiddle => 1,
+            EventProvider.ResidentAdvisor => 2,
+            _ => 99,
         };
 
     // Normalizes venue names by stripping leading articles ("The "), common city suffixes,

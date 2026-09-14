@@ -7,4 +7,5 @@ public enum EventProvider
 {
     Ticketmaster,
     Skiddle,
+    ResidentAdvisor,
 }

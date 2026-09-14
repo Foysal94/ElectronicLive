@@ -227,4 +227,51 @@ public class EventDeduplicatorTests
 
         result.Count.ShouldBe(2);
     }
+
+    [Fact]
+    public void Should_MergeThreeProviders_IntoCompositeOffers()
+    {
+        var tmEvent = new EventResponse(
+            "tm-1",
+            "Bicep Live",
+            "The Drumsheds",
+            new DateOnly(2026, 11, 26),
+            new TimeOnly(19, 0),
+            "https://ticketmaster.com/bicep",
+            EventStatus.OnSale,
+            EventProvider.Ticketmaster
+        );
+        var skEvent = new EventResponse(
+            "sk-1",
+            "Bicep Live at Drumsheds",
+            "Drumsheds, London",
+            new DateOnly(2026, 11, 26),
+            new TimeOnly(18, 30),
+            "https://skiddle.com/bicep",
+            EventStatus.OnSale,
+            EventProvider.Skiddle
+        );
+        var raEvent = new EventResponse(
+            "ra-1",
+            "Bicep",
+            "Drumsheds",
+            new DateOnly(2026, 11, 26),
+            new TimeOnly(18, 0),
+            "https://ra.co/events/ra-1",
+            EventStatus.OnSale,
+            EventProvider.ResidentAdvisor
+        );
+
+        var result = _sut.Deduplicate([tmEvent, skEvent, raEvent]);
+
+        var ev = result.ShouldHaveSingleItem();
+        ev.Offers.ShouldNotBeNull();
+        ev.Offers.Count.ShouldBe(3);
+        ev.Time.ShouldBe(new TimeOnly(18, 0)); // Earliest door time chosen
+        ev.Offers.Select(o => o.Provider)
+            .ShouldBe(
+                [EventProvider.Ticketmaster, EventProvider.Skiddle, EventProvider.ResidentAdvisor],
+                ignoreOrder: true
+            );
+    }
 }
