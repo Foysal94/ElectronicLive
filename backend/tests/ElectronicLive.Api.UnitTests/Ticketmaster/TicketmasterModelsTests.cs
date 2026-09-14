@@ -25,6 +25,7 @@ public class TicketmasterModelsTests
         result.Time.ShouldBe(new TimeOnly(18, 0, 0));
         result.TicketUrl.ShouldBe("https://ticketmaster.co.uk/event1");
         result.Status.ShouldBe(EventStatus.OnSale);
+        result.Provider.ShouldBe("Ticketmaster");
     }
 
     [Theory]
@@ -68,6 +69,7 @@ public class TicketmasterModelsTests
         result.Time.ShouldBeNull();
         result.TicketUrl.ShouldBeNull();
         result.Status.ShouldBe(EventStatus.Unknown);
+        result.Provider.ShouldBe("Ticketmaster");
     }
 
     [Theory]

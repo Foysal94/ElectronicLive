@@ -35,7 +35,16 @@ internal sealed record TicketmasterEvent(
             ? parsedTime
             : null;
 
-        return new EventResponse(Id ?? string.Empty, Name ?? string.Empty, venueName, date, time, Url, status);
+        return new EventResponse(
+            Id ?? string.Empty,
+            Name ?? string.Empty,
+            venueName,
+            date,
+            time,
+            Url,
+            status,
+            "Ticketmaster"
+        );
     }
 
     private static EventStatus MapStatus(string? code) =>

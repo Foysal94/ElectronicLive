@@ -37,7 +37,8 @@ public class EventEndpointsTests
                 new DateOnly(2026, 11, 26),
                 new TimeOnly(18, 0, 0),
                 "https://ticketmaster.co.uk/event1",
-                EventStatus.OnSale
+                EventStatus.OnSale,
+                "Ticketmaster"
             ),
         };
         _ticketmasterClient.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns(expectedEvents);
