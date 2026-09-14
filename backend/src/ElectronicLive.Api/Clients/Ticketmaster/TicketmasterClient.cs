@@ -24,6 +24,8 @@ public sealed class TicketmasterClient : ITicketmasterClient
         _apiKey = options.Value.ApiKey;
     }
 
+    public EventProvider Provider => EventProvider.Ticketmaster;
+
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,
         string city = "London",
@@ -58,7 +60,14 @@ public sealed class TicketmasterClient : ITicketmasterClient
 
             payload = await response.Content.ReadFromJsonAsync<TicketmasterResponse>(JsonOptions, cancellationToken);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        // Re-throw only if the caller cancelled. Upstream timeouts throw TaskCanceledException
+        // (which inherits OperationCanceledException) while cancellationToken is untriggered,
+        // and must be isolated rather than escaping.
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while querying Ticketmaster API for artist {ArtistName}", artistName);
             return [];

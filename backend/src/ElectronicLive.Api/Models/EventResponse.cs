@@ -7,5 +7,6 @@ public sealed record EventResponse(
     DateOnly? Date,
     TimeOnly? Time,
     string? TicketUrl,
-    EventStatus Status
+    EventStatus Status,
+    EventProvider Provider
 );

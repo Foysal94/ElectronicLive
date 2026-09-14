@@ -1,6 +1,7 @@
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Endpoints;
+using ElectronicLive.Api.Services;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,9 @@ builder
         }
     )
     .AddStandardResilienceHandler();
+
+builder.Services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ITicketmasterClient>());
+builder.Services.AddTransient<IEventAggregatorService, EventAggregatorService>();
 
 var app = builder.Build();
 

@@ -106,6 +106,7 @@ public class TicketmasterClientTests
         ev.Time.ShouldBe(new TimeOnly(18, 0, 0));
         ev.TicketUrl.ShouldBe("https://ticketmaster.co.uk/event1");
         ev.Status.ShouldBe(EventStatus.OnSale);
+        ev.Provider.ShouldBe(EventProvider.Ticketmaster);
     }
 
     [Fact]
@@ -158,6 +159,22 @@ public class TicketmasterClientTests
     public async Task Should_ReturnEmpty_WhenHttpFails()
     {
         var (client, _) = CreateClient(statusCode: HttpStatusCode.InternalServerError);
+
+        var result = await client.SearchEventsAsync("Bicep");
+
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_ReturnEmpty_WhenHttpRequestTimesOut()
+    {
+        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
+        var handler = new CapturingHttpMessageHandler(_ => throw new TaskCanceledException("Timeout"));
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://app.ticketmaster.com/discovery/v2/"),
+        };
+        var client = new TicketmasterClient(httpClient, options, NullLogger<TicketmasterClient>.Instance);
 
         var result = await client.SearchEventsAsync("Bicep");
 
