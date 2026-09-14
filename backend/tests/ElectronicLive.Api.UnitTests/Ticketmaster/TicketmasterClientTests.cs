@@ -1,20 +1,20 @@
 using System.Net;
+using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace ElectronicLive.Api.UnitTests;
 
-public class TicketmasterServiceTests
+public class TicketmasterClientTests
 {
     [Fact]
     public async Task Should_ReturnEmpty_WhenApiKeyMissing()
     {
-        var (service, handler) = CreateService(apiKey: string.Empty);
+        var (client, handler) = CreateClient(apiKey: string.Empty);
 
-        var result = await service.SearchEventsAsync("Bicep");
+        var result = await client.SearchEventsAsync("Bicep");
 
         result.ShouldBeEmpty();
         handler.LastRequest.ShouldBeNull();
@@ -23,9 +23,9 @@ public class TicketmasterServiceTests
     [Fact]
     public async Task Should_ConstructExpectedRequestUrl()
     {
-        var (service, handler) = CreateService();
+        var (client, handler) = CreateClient();
 
-        await service.SearchEventsAsync("Bicep & Hammer", "London & South");
+        await client.SearchEventsAsync("Bicep & Hammer", "London & South");
 
         handler.LastRequest.ShouldNotBeNull();
         handler.LastRequest.Method.ShouldBe(HttpMethod.Get);
@@ -42,9 +42,9 @@ public class TicketmasterServiceTests
     [Fact]
     public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace()
     {
-        var (service, handler) = CreateService();
+        var (client, handler) = CreateClient();
 
-        await service.SearchEventsAsync("Bicep", "   ");
+        await client.SearchEventsAsync("Bicep", "   ");
 
         handler.LastRequest.ShouldNotBeNull();
         handler.LastRequest.RequestUri!.ToString().ShouldContain("city=London");
@@ -53,12 +53,12 @@ public class TicketmasterServiceTests
     [Fact]
     public async Task Should_ForwardCancellationTokenToHttpHandler()
     {
-        var (service, handler) = CreateService();
+        var (client, handler) = CreateClient();
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
-            service.SearchEventsAsync("Bicep", cancellationToken: cts.Token)
+            client.SearchEventsAsync("Bicep", cancellationToken: cts.Token)
         );
         handler.WasCanceledDuringSend.ShouldBeTrue();
     }
@@ -94,9 +94,9 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var (service, _) = CreateService(responseBody: json);
+        var (client, _) = CreateClient(responseBody: json);
 
-        var result = await service.SearchEventsAsync("Bicep");
+        var result = await client.SearchEventsAsync("Bicep");
 
         var ev = result.ShouldHaveSingleItem();
         ev.Id.ShouldBe("event-1");
@@ -120,9 +120,9 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var (service, _) = CreateService(responseBody: json);
+        var (client, _) = CreateClient(responseBody: json);
 
-        var result = await service.SearchEventsAsync("NonExistentArtist");
+        var result = await client.SearchEventsAsync("NonExistentArtist");
 
         result.ShouldBeEmpty();
     }
@@ -146,9 +146,9 @@ public class TicketmasterServiceTests
             }
             """;
 
-        var (service, _) = CreateService(responseBody: json);
+        var (client, _) = CreateClient(responseBody: json);
 
-        var result = await service.SearchEventsAsync("Secret");
+        var result = await client.SearchEventsAsync("Secret");
 
         var ev = result.ShouldHaveSingleItem();
         ev.VenueName.ShouldBe("Unknown Venue");
@@ -157,14 +157,14 @@ public class TicketmasterServiceTests
     [Fact]
     public async Task Should_ReturnEmpty_WhenHttpFails()
     {
-        var (service, _) = CreateService(statusCode: HttpStatusCode.InternalServerError);
+        var (client, _) = CreateClient(statusCode: HttpStatusCode.InternalServerError);
 
-        var result = await service.SearchEventsAsync("Bicep");
+        var result = await client.SearchEventsAsync("Bicep");
 
         result.ShouldBeEmpty();
     }
 
-    private static (TicketmasterService Service, CapturingHttpMessageHandler Handler) CreateService(
+    private static (TicketmasterClient Client, CapturingHttpMessageHandler Handler) CreateClient(
         HttpStatusCode statusCode = HttpStatusCode.OK,
         string responseBody = "{}",
         string apiKey = "test-key"
@@ -179,8 +179,8 @@ public class TicketmasterServiceTests
         {
             BaseAddress = new Uri("https://app.ticketmaster.com/discovery/v2/"),
         };
-        var service = new TicketmasterService(httpClient, options, NullLogger<TicketmasterService>.Instance);
-        return (service, handler);
+        var client = new TicketmasterClient(httpClient, options, NullLogger<TicketmasterClient>.Instance);
+        return (client, handler);
     }
 
     private sealed class CapturingHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)

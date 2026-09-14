@@ -29,6 +29,6 @@
 
 - **Pragmatic SOLID Design:** 
   - **Single Responsibility (SRP):** Classes and endpoints must have one clear reason to change (e.g., separate HTTP routing from external third-party integration).
-  - **Dependency Inversion (DIP):** Depend on abstractions (`ITicketmasterService`) for external boundaries rather than concrete implementations.
+  - **Dependency Inversion (DIP):** Depend on abstractions (`ITicketmasterClient`) for external boundaries rather than concrete implementations.
   - **Interface Segregation (ISP):** Keep service interfaces focused on specific capabilities rather than monolithic "catch-all" contracts.
   - **Pragmatic Methods:** Prefer clear, linear, top-to-bottom method flow that fits on a single screen over premature extraction of single-use private helpers. Only extract private methods for reused logic, deep nesting, or isolated, branch-heavy mappings.

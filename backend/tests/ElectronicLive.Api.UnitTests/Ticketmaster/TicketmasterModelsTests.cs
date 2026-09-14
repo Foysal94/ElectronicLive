@@ -1,5 +1,5 @@
+using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
 
 namespace ElectronicLive.Api.UnitTests;
 

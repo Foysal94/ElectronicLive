@@ -3,20 +3,20 @@ using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
 using Microsoft.Extensions.Options;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Clients;
 
-public sealed class TicketmasterService : ITicketmasterService
+public sealed class TicketmasterClient : ITicketmasterClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     private readonly HttpClient _httpClient;
     private readonly string? _apiKey;
-    private readonly ILogger<TicketmasterService> _logger;
+    private readonly ILogger<TicketmasterClient> _logger;
 
-    public TicketmasterService(
+    public TicketmasterClient(
         HttpClient httpClient,
         IOptions<TicketmasterOptions> options,
-        ILogger<TicketmasterService> logger
+        ILogger<TicketmasterClient> logger
     )
     {
         _httpClient = httpClient;

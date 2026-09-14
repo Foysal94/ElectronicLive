@@ -1,6 +1,6 @@
+using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Endpoints;
-using ElectronicLive.Api.Services;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,7 +14,7 @@ builder.Services.AddOpenApi();
 builder.Services.Configure<TicketmasterOptions>(builder.Configuration.GetSection(TicketmasterOptions.SectionName));
 
 builder
-    .Services.AddHttpClient<ITicketmasterService, TicketmasterService>(
+    .Services.AddHttpClient<ITicketmasterClient, TicketmasterClient>(
         (sp, client) =>
         {
             var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;

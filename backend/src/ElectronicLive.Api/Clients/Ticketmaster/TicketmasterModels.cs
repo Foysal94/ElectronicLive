@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using ElectronicLive.Api.Models;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Clients;
 
 internal sealed record TicketmasterResponse([property: JsonPropertyName("_embedded")] TicketmasterEmbedded? Embedded);
 

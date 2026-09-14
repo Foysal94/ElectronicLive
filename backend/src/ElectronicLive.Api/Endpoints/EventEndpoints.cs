@@ -1,5 +1,5 @@
+using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ElectronicLive.Api.Endpoints;
@@ -15,20 +15,22 @@ public static class EventEndpoints
         return group;
     }
 
-    internal static async Task<Results<Ok<IReadOnlyList<EventResponse>>, BadRequest<string>>> SearchEvents(
+    internal static async Task<Results<Ok<IReadOnlyList<EventResponse>>, ValidationProblem>> SearchEvents(
         string? artist,
-        ITicketmasterService ticketmasterService,
+        ITicketmasterClient ticketmasterClient,
         string? city = "London",
         CancellationToken cancellationToken = default
     )
     {
         if (string.IsNullOrWhiteSpace(artist))
         {
-            return TypedResults.BadRequest("Artist query parameter is required.");
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["artist"] = ["Artist query parameter is required."] }
+            );
         }
 
         var effectiveCity = string.IsNullOrWhiteSpace(city) ? "London" : city;
-        var events = await ticketmasterService.SearchEventsAsync(artist, effectiveCity, cancellationToken);
+        var events = await ticketmasterClient.SearchEventsAsync(artist, effectiveCity, cancellationToken);
         return TypedResults.Ok(events);
     }
 }

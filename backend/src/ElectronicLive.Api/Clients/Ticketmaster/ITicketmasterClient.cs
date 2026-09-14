@@ -1,8 +1,8 @@
 using ElectronicLive.Api.Models;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Clients;
 
-public interface ITicketmasterService
+public interface ITicketmasterClient
 {
     Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,
