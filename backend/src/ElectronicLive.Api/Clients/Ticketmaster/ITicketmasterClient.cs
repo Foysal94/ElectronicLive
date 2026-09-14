@@ -6,7 +6,7 @@ public interface ITicketmasterClient
 {
     Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,
-        string? city = "London",
+        string city = "London",
         CancellationToken cancellationToken = default
     );
 }

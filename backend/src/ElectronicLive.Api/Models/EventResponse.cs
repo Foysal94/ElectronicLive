@@ -4,8 +4,8 @@ public sealed record EventResponse(
     string Id,
     string Name,
     string VenueName,
-    string? Date,
-    string? Time,
+    DateOnly? Date,
+    TimeOnly? Time,
     string? TicketUrl,
     EventStatus Status
 );

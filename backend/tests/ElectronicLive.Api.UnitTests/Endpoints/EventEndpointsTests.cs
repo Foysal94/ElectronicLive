@@ -34,8 +34,8 @@ public class EventEndpointsTests
                 "ev-1",
                 "Bicep Live",
                 "Royal Albert Hall",
-                "2026-11-26",
-                "18:00:00",
+                new DateOnly(2026, 11, 26),
+                new TimeOnly(18, 0, 0),
                 "https://ticketmaster.co.uk/event1",
                 EventStatus.OnSale
             ),
@@ -56,6 +56,30 @@ public class EventEndpointsTests
         var result = await EventEndpoints.SearchEvents("Bicep", _ticketmasterClient, "Manchester");
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
+        await _ticketmasterClient.Received(1).SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace(string? city)
+    {
+        _ticketmasterClient.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await EventEndpoints.SearchEvents("Bicep", _ticketmasterClient, city);
+
+        result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
+        await _ticketmasterClient.Received(1).SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_TrimArtistAndCity_WhenWhitespacePresent()
+    {
+        _ticketmasterClient.SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
+
+        await EventEndpoints.SearchEvents("  Bicep  ", _ticketmasterClient, "  Manchester  ");
+
         await _ticketmasterClient.Received(1).SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>());
     }
 

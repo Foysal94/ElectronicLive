@@ -17,18 +17,25 @@ internal sealed record TicketmasterEvent(
 {
     public EventResponse ToEventResponse()
     {
-        var venueName = Embedded?.Venues?.FirstOrDefault()?.Name ?? "Unknown Venue";
+        var rawVenue = Embedded?.Venues?.FirstOrDefault()?.Name;
+        var venueName = string.IsNullOrWhiteSpace(rawVenue) ? "Unknown Venue" : rawVenue;
         var status = MapStatus(Dates?.Status?.Code);
-
-        return new EventResponse(
-            Id ?? string.Empty,
-            Name ?? string.Empty,
-            venueName,
+        DateOnly? date = DateOnly.TryParse(
             Dates?.Start?.LocalDate,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var parsedDate
+        )
+            ? parsedDate
+            : null;
+        TimeOnly? time = TimeOnly.TryParse(
             Dates?.Start?.LocalTime,
-            Url,
-            status
-        );
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var parsedTime
+        )
+            ? parsedTime
+            : null;
+
+        return new EventResponse(Id ?? string.Empty, Name ?? string.Empty, venueName, date, time, Url, status);
     }
 
     private static EventStatus MapStatus(string? code) =>

@@ -29,8 +29,8 @@ public static class EventEndpoints
             );
         }
 
-        var effectiveCity = string.IsNullOrWhiteSpace(city) ? "London" : city;
-        var events = await ticketmasterClient.SearchEventsAsync(artist, effectiveCity, cancellationToken);
+        var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
+        var events = await ticketmasterClient.SearchEventsAsync(artist.Trim(), targetCity, cancellationToken);
         return TypedResults.Ok(events);
     }
 }

@@ -1,11 +1,11 @@
 # Backend Directives: ElectronicLive .NET API
 
 ## Tech Stack
-- .NET 9 Web API (`ElectronicLive.sln`, `src/ElectronicLive.Api`)
+- .NET 10 Web API (`ElectronicLive.sln`, `src/ElectronicLive.Api`)
 - Pattern: Minimal APIs organized by resource extension classes (`Endpoints/`) returning `TypedResults`
 - Architecture: Aggregator / BFF (No internal DB; pulls from external EDM/gig sources)
 - Resilience & Networking: `IHttpClientFactory` with Polly policies
-- Testing: xUnit, Shouldly, NSubsitiutte 
+- Testing: xUnit, Shouldly, NSubstitute 
 
 ## Commands
 - Build: `dotnet build backend/ElectronicLive.sln`
@@ -25,7 +25,6 @@
 - NEVER instantiate `new HttpClient()`. Use typed clients via dependency injection.
 - NEVER create database migrations or introduce an ORM.
 - Handle external upstream failures gracefully; a failure from one gig provider should not crash the entire endpoint.
-- Keep methods linear and focused: Prefer straightforward, top-to-bottom method flow that fits on one screen over premature extraction of small, single-use private helpers. Only extract private methods when logic is reused, has deep nesting, or represents complex mapping/parsing routines.
 
 - **Pragmatic SOLID Design:** 
   - **Single Responsibility (SRP):** Classes and endpoints must have one clear reason to change (e.g., separate HTTP routing from external third-party integration).

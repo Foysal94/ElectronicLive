@@ -21,8 +21,8 @@ public class TicketmasterModelsTests
         result.Id.ShouldBe("event-1");
         result.Name.ShouldBe("Bicep Live");
         result.VenueName.ShouldBe("Royal Albert Hall");
-        result.Date.ShouldBe("2026-11-26");
-        result.Time.ShouldBe("18:00:00");
+        result.Date.ShouldBe(new DateOnly(2026, 11, 26));
+        result.Time.ShouldBe(new TimeOnly(18, 0, 0));
         result.TicketUrl.ShouldBe("https://ticketmaster.co.uk/event1");
         result.Status.ShouldBe(EventStatus.OnSale);
     }
@@ -33,6 +33,20 @@ public class TicketmasterModelsTests
     public void Should_FallbackToUnknownVenue_WhenVenuesEmptyOrNull(bool includeEmptyList)
     {
         var embedded = includeEmptyList ? new TicketmasterEventEmbedded([]) : null;
+        var ev = new TicketmasterEvent("id", "name", null, null, embedded);
+
+        var result = ev.ToEventResponse();
+
+        result.VenueName.ShouldBe("Unknown Venue");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Should_FallbackToUnknownVenue_WhenVenueNameIsEmptyOrWhitespace(string? venueName)
+    {
+        var embedded = new TicketmasterEventEmbedded([new TicketmasterVenue(venueName)]);
         var ev = new TicketmasterEvent("id", "name", null, null, embedded);
 
         var result = ev.ToEventResponse();

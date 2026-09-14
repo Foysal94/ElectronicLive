@@ -40,11 +40,11 @@ public class TicketmasterClientTests
     }
 
     [Fact]
-    public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace()
+    public async Task Should_DefaultCityToLondon_WhenCityOmitted()
     {
         var (client, handler) = CreateClient();
 
-        await client.SearchEventsAsync("Bicep", "   ");
+        await client.SearchEventsAsync("Bicep");
 
         handler.LastRequest.ShouldNotBeNull();
         handler.LastRequest.RequestUri!.ToString().ShouldContain("city=London");
@@ -102,8 +102,8 @@ public class TicketmasterClientTests
         ev.Id.ShouldBe("event-1");
         ev.Name.ShouldBe("Bicep Live");
         ev.VenueName.ShouldBe("Royal Albert Hall");
-        ev.Date.ShouldBe("2026-11-26");
-        ev.Time.ShouldBe("18:00:00");
+        ev.Date.ShouldBe(new DateOnly(2026, 11, 26));
+        ev.Time.ShouldBe(new TimeOnly(18, 0, 0));
         ev.TicketUrl.ShouldBe("https://ticketmaster.co.uk/event1");
         ev.Status.ShouldBe(EventStatus.OnSale);
     }

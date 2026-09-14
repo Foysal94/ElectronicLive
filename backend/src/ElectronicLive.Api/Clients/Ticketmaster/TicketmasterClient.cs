@@ -26,7 +26,7 @@ public sealed class TicketmasterClient : ITicketmasterClient
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string artistName,
-        string? city = "London",
+        string city = "London",
         CancellationToken cancellationToken = default
     )
     {
@@ -36,11 +36,10 @@ public sealed class TicketmasterClient : ITicketmasterClient
             return [];
         }
 
-        var effectiveCity = string.IsNullOrWhiteSpace(city) ? "London" : city;
         var requestUri =
             $"events.json?apikey={Uri.EscapeDataString(_apiKey)}"
             + $"&keyword={Uri.EscapeDataString(artistName)}"
-            + $"&city={Uri.EscapeDataString(effectiveCity)}"
+            + $"&city={Uri.EscapeDataString(city)}"
             + "&countryCode=GB&classificationName=music&sort=date,asc";
 
         TicketmasterResponse? payload;
