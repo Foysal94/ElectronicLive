@@ -37,6 +37,7 @@ public class SkiddleClientTests
         query.ShouldContain("latitude=51.5074");
         query.ShouldContain("longitude=-0.1278");
         query.ShouldContain("radius=25");
+        query.ShouldContain("eventcode=LIVE,CLUB,FEST");
         query.ShouldContain("order=date");
     }
 
@@ -145,6 +146,74 @@ public class SkiddleClientTests
         var (client, _) = CreateClient(responseBody: json);
 
         var result = await client.SearchEventsAsync("NonExistentArtist");
+
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_OmitGeoCoordinates_AndFilterByVenueTown_WhenCityIsUnmapped()
+    {
+        const string json = """
+            {
+              "error": 0,
+              "results": [
+                {
+                  "id": "1",
+                  "eventname": "Inverness Gig",
+                  "venue": { "name": "Ironworks", "town": "Inverness" }
+                },
+                {
+                  "id": "2",
+                  "eventname": "Edinburgh Gig",
+                  "venue": { "name": "Liquid Room", "town": "Edinburgh" }
+                }
+              ]
+            }
+            """;
+
+        var (client, handler) = CreateClient(responseBody: json);
+
+        var result = await client.SearchEventsAsync("Bicep", "Inverness");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldNotContain("latitude=");
+        query.ShouldNotContain("longitude=");
+
+        var ev = result.ShouldHaveSingleItem();
+        ev.Id.ShouldBe("1");
+        ev.Name.ShouldBe("Inverness Gig");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Should_DefaultToLondon_WhenCityNullOrWhitespace(string? city)
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync("Bicep", city!);
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("latitude=51.5074");
+        query.ShouldContain("longitude=-0.1278");
+    }
+
+    [Fact]
+    public async Task Should_ReturnEmpty_WhenSkiddleReturnsHttp200ErrorPayload()
+    {
+        const string json = """
+            {
+              "error": 1,
+              "description": "Invalid API key provided"
+            }
+            """;
+
+        var (client, _) = CreateClient(responseBody: json);
+
+        var result = await client.SearchEventsAsync("Bicep");
 
         result.ShouldBeEmpty();
     }

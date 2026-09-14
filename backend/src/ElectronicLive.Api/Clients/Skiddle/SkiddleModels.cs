@@ -4,7 +4,14 @@ using ElectronicLive.Api.Models;
 
 namespace ElectronicLive.Api.Clients;
 
-internal sealed record SkiddleResponse([property: JsonPropertyName("results")] List<SkiddleEvent>? Results);
+internal sealed record SkiddleResponse(
+    [property: JsonPropertyName("error")] object? Error,
+    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("results")] List<SkiddleEvent>? Results
+)
+{
+    public bool HasError => SkiddleTypeCoercion.IsTruthy(Error);
+}
 
 internal sealed record SkiddleEvent(
     string? Id,
@@ -49,25 +56,28 @@ internal sealed record SkiddleEvent(
 
     private static EventStatus MapStatus(object? cancelled, object? tickets)
     {
-        if (IsTruthy(cancelled))
+        if (SkiddleTypeCoercion.IsTruthy(cancelled))
         {
             return EventStatus.Cancelled;
         }
 
-        if (IsFalsey(tickets))
+        if (SkiddleTypeCoercion.IsFalsey(tickets))
         {
             return EventStatus.SoldOut;
         }
 
-        if (IsTruthy(tickets))
+        if (SkiddleTypeCoercion.IsTruthy(tickets))
         {
             return EventStatus.OnSale;
         }
 
         return EventStatus.Unknown;
     }
+}
 
-    private static bool IsTruthy(object? value) =>
+file static class SkiddleTypeCoercion
+{
+    public static bool IsTruthy(object? value) =>
         value switch
         {
             bool b => b,
@@ -79,7 +89,7 @@ internal sealed record SkiddleEvent(
             _ => false,
         };
 
-    private static bool IsFalsey(object? value) =>
+    public static bool IsFalsey(object? value) =>
         value switch
         {
             bool b => !b,
