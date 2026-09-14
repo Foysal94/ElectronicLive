@@ -5,6 +5,7 @@ namespace ElectronicLive.Api.Services;
 
 public sealed class EventAggregatorService(
     IEnumerable<IEventProvider> providers,
+    IEventDeduplicator deduplicator,
     ILogger<EventAggregatorService> logger
 ) : IEventAggregatorService
 {
@@ -50,8 +51,10 @@ public sealed class EventAggregatorService(
 
         var results = await Task.WhenAll(tasks);
 
-        return results
-            .SelectMany(events => events ?? [])
+        var allEvents = results.SelectMany(events => events ?? []);
+        var deduplicated = deduplicator.Deduplicate(allEvents);
+
+        return deduplicated
             // Push unannounced/TBA dates and times to the end of search results
             .OrderBy(e => e.Date ?? DateOnly.MaxValue)
             .ThenBy(e => e.Time ?? TimeOnly.MaxValue)

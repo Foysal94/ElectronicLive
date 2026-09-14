@@ -37,6 +37,7 @@ builder
 
 builder.Services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ITicketmasterClient>());
 builder.Services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ISkiddleClient>());
+builder.Services.AddSingleton<IEventDeduplicator, EventDeduplicator>();
 builder.Services.AddTransient<IEventAggregatorService, EventAggregatorService>();
 
 var app = builder.Build();
