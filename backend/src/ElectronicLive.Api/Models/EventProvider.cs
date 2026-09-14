@@ -6,4 +6,5 @@ namespace ElectronicLive.Api.Models;
 public enum EventProvider
 {
     Ticketmaster,
+    Skiddle,
 }
