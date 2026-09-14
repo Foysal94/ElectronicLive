@@ -2,6 +2,7 @@ using System.Net;
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
+using ElectronicLive.Api.UnitTests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -198,22 +199,5 @@ public class TicketmasterClientTests
         };
         var client = new TicketmasterClient(httpClient, options, NullLogger<TicketmasterClient>.Instance);
         return (client, handler);
-    }
-
-    private sealed class CapturingHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
-        : HttpMessageHandler
-    {
-        public HttpRequestMessage? LastRequest { get; private set; }
-        public bool WasCanceledDuringSend { get; private set; }
-
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken
-        )
-        {
-            LastRequest = request;
-            WasCanceledDuringSend = cancellationToken.IsCancellationRequested;
-            return Task.FromResult(handler(request));
-        }
     }
 }
