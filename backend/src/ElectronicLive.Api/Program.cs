@@ -1,9 +1,27 @@
+using ElectronicLive.Api.Clients;
+using ElectronicLive.Api.Configuration;
+using ElectronicLive.Api.Endpoints;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: true, reloadOnChange: true);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddHttpClient();
+
+builder.Services.Configure<TicketmasterOptions>(builder.Configuration.GetSection(TicketmasterOptions.SectionName));
+
+builder
+    .Services.AddHttpClient<ITicketmasterClient, TicketmasterClient>(
+        (sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+        }
+    )
+    .AddStandardResilienceHandler();
 
 var app = builder.Build();
 
@@ -17,43 +35,9 @@ app.UseHttpsRedirection();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
 
-var summaries = new[]
-{
-    "Freezing",
-    "Bracing",
-    "Chilly",
-    "Cool",
-    "Mild",
-    "Warm",
-    "Balmy",
-    "Hot",
-    "Sweltering",
-    "Scorching",
-};
-
-app.MapGet(
-        "/weatherforecast",
-        () =>
-        {
-            var forecast = Enumerable
-                .Range(1, 5)
-                .Select(index => new WeatherForecast(
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-                .ToArray();
-            return forecast;
-        }
-    )
-    .WithName("GetWeatherForecast");
+app.MapEventEndpoints();
 
 await app.RunAsync();
-
-internal sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
 
 public partial class Program
 {
