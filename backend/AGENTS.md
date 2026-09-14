@@ -5,7 +5,7 @@
 - Pattern: Minimal APIs organized by resource extension classes (`Endpoints/`) returning `TypedResults`
 - Architecture: Aggregator / BFF (No internal DB; pulls from external EDM/gig sources)
 - Resilience & Networking: `IHttpClientFactory` with Polly policies
-- Testing: xUnit, Shouldly,
+- Testing: xUnit, Shouldly, NSubsitiutte 
 
 ## Commands
 - Build: `dotnet build backend/ElectronicLive.sln`
@@ -20,16 +20,15 @@
 - **Async Execution:** Always accept and forward `CancellationToken`. Use `Task.WhenAll` when querying multiple independent gig providers concurrently.
 - When writing tests, please follow the naming pattern of `Should_....`
 
-- Write interfaces in the same file as the implementation. not seperate `IFiles.cs`
-
-- **Pragmatic SOLID Design:** 
-  - **Single Responsibility (SRP):** Classes and endpoints must have one clear reason to change (e.g., separate HTTP routing from external third-party integration).
-  - **Dependency Inversion (DIP):** Depend on abstractions (`ITicketmasterService`) for external boundaries rather than concrete implementations.
-  - **Interface Segregation (ISP):** Keep service interfaces focused on specific capabilities rather than monolithic "catch-all" contracts.
-  - **Pragmatic Methods:** Prefer clear, linear, top-to-bottom method flow that fits on a single screen over premature extraction of single-use private helpers. Only extract private methods for reused logic, deep nesting, or isolated, branch-heavy mappings.
 
 ## Guardrails
 - NEVER instantiate `new HttpClient()`. Use typed clients via dependency injection.
 - NEVER create database migrations or introduce an ORM.
 - Handle external upstream failures gracefully; a failure from one gig provider should not crash the entire endpoint.
 - Keep methods linear and focused: Prefer straightforward, top-to-bottom method flow that fits on one screen over premature extraction of small, single-use private helpers. Only extract private methods when logic is reused, has deep nesting, or represents complex mapping/parsing routines.
+
+- **Pragmatic SOLID Design:** 
+  - **Single Responsibility (SRP):** Classes and endpoints must have one clear reason to change (e.g., separate HTTP routing from external third-party integration).
+  - **Dependency Inversion (DIP):** Depend on abstractions (`ITicketmasterService`) for external boundaries rather than concrete implementations.
+  - **Interface Segregation (ISP):** Keep service interfaces focused on specific capabilities rather than monolithic "catch-all" contracts.
+  - **Pragmatic Methods:** Prefer clear, linear, top-to-bottom method flow that fits on a single screen over premature extraction of single-use private helpers. Only extract private methods for reused logic, deep nesting, or isolated, branch-heavy mappings.

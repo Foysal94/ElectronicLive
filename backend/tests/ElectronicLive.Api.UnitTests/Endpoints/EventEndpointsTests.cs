@@ -7,22 +7,23 @@ namespace ElectronicLive.Api.UnitTests;
 
 public class EventEndpointsTests
 {
+    private readonly ITicketmasterService _ticketmasterService = Substitute.For<ITicketmasterService>();
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task SearchEvents_ReturnsBadRequest_WhenArtistIsInvalid(string? artist)
+    public async Task Should_ReturnBadRequest_WhenArtistIsInvalid(string? artist)
     {
-        var service = new FakeTicketmasterService();
-
-        var result = await EventEndpoints.SearchEvents(artist, service);
+        var result = await EventEndpoints.SearchEvents(artist, _ticketmasterService);
 
         var badRequest = result.Result.ShouldBeOfType<BadRequest<string>>();
         badRequest.Value.ShouldBe("Artist query parameter is required.");
+        await _ticketmasterService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default!);
     }
 
     [Fact]
-    public async Task SearchEvents_ReturnsOk_WithEvents_WhenArtistIsValid()
+    public async Task Should_ReturnOkWithEvents_WhenArtistIsValid()
     {
         var expectedEvents = new List<EventResponse>
         {
@@ -36,52 +37,33 @@ public class EventEndpointsTests
                 EventStatus.OnSale
             ),
         };
-        var service = new FakeTicketmasterService { EventsToReturn = expectedEvents };
+        _ticketmasterService.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("Bicep", service);
+        var result = await EventEndpoints.SearchEvents("Bicep", _ticketmasterService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
-        service.LastCityPassed.ShouldBe("London");
     }
 
     [Fact]
-    public async Task SearchEvents_PassesCustomCity_WhenSpecified()
+    public async Task Should_PassCustomCity_WhenSpecified()
     {
-        var service = new FakeTicketmasterService();
+        _ticketmasterService.SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
 
-        var result = await EventEndpoints.SearchEvents("Bicep", service, "Manchester");
+        var result = await EventEndpoints.SearchEvents("Bicep", _ticketmasterService, "Manchester");
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
-        service.LastCityPassed.ShouldBe("Manchester");
+        await _ticketmasterService.Received(1).SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task SearchEvents_PropagatesCancellationToken()
+    public async Task Should_PropagateCancellationToken()
     {
         using var cts = new CancellationTokenSource();
-        var service = new FakeTicketmasterService();
+        _ticketmasterService.SearchEventsAsync("Bicep", "London", cts.Token).Returns([]);
 
-        await EventEndpoints.SearchEvents("Bicep", service, cancellationToken: cts.Token);
+        await EventEndpoints.SearchEvents("Bicep", _ticketmasterService, cancellationToken: cts.Token);
 
-        service.LastCancellationTokenPassed.ShouldBe(cts.Token);
-    }
-
-    private sealed class FakeTicketmasterService : ITicketmasterService
-    {
-        public IReadOnlyList<EventResponse> EventsToReturn { get; set; } = [];
-        public string? LastCityPassed { get; private set; }
-        public CancellationToken LastCancellationTokenPassed { get; private set; }
-
-        public Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-            string artistName,
-            string? city = "London",
-            CancellationToken cancellationToken = default
-        )
-        {
-            LastCityPassed = city;
-            LastCancellationTokenPassed = cancellationToken;
-            return Task.FromResult(EventsToReturn);
-        }
+        await _ticketmasterService.Received(1).SearchEventsAsync("Bicep", "London", cts.Token);
     }
 }

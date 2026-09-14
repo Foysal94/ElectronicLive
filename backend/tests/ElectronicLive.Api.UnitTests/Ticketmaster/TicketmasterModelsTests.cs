@@ -6,7 +6,7 @@ namespace ElectronicLive.Api.UnitTests;
 public class TicketmasterModelsTests
 {
     [Fact]
-    public void ToEventResponse_MapsAllPropertiesCorrectly()
+    public void Should_MapAllPropertiesCorrectly()
     {
         var ev = new TicketmasterEvent(
             "event-1",
@@ -30,7 +30,7 @@ public class TicketmasterModelsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ToEventResponse_FallsBackToUnknownVenue_WhenVenuesEmptyOrNull(bool includeEmptyList)
+    public void Should_FallbackToUnknownVenue_WhenVenuesEmptyOrNull(bool includeEmptyList)
     {
         var embedded = includeEmptyList ? new TicketmasterEventEmbedded([]) : null;
         var ev = new TicketmasterEvent("id", "name", null, null, embedded);
@@ -41,7 +41,7 @@ public class TicketmasterModelsTests
     }
 
     [Fact]
-    public void ToEventResponse_HandlesNullFieldsGracefully()
+    public void Should_HandleNullFieldsGracefully()
     {
         var ev = new TicketmasterEvent(null, null, null, null, null);
 
@@ -65,7 +65,7 @@ public class TicketmasterModelsTests
     [InlineData("rescheduled", EventStatus.Postponed)]
     [InlineData("something_else", EventStatus.Unknown)]
     [InlineData(null, EventStatus.Unknown)]
-    public void ToEventResponse_MapsStatusCorrectly(string? statusCode, EventStatus expectedStatus)
+    public void Should_MapStatusCorrectly(string? statusCode, EventStatus expectedStatus)
     {
         var ev = new TicketmasterEvent(
             "id",

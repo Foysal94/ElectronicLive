@@ -10,7 +10,7 @@ namespace ElectronicLive.Api.UnitTests;
 public class TicketmasterServiceTests
 {
     [Fact]
-    public async Task SearchEventsAsync_ReturnsEmpty_WhenApiKeyMissing()
+    public async Task Should_ReturnEmpty_WhenApiKeyMissing()
     {
         var (service, handler) = CreateService(apiKey: string.Empty);
 
@@ -21,7 +21,7 @@ public class TicketmasterServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_ConstructsExpectedRequestUrl()
+    public async Task Should_ConstructExpectedRequestUrl()
     {
         var (service, handler) = CreateService();
 
@@ -40,7 +40,7 @@ public class TicketmasterServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_DefaultsCityToLondon_WhenCityNullOrWhitespace()
+    public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace()
     {
         var (service, handler) = CreateService();
 
@@ -51,7 +51,7 @@ public class TicketmasterServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_ForwardsCancellationTokenToHttpHandler()
+    public async Task Should_ForwardCancellationTokenToHttpHandler()
     {
         var (service, handler) = CreateService();
         using var cts = new CancellationTokenSource();
@@ -64,7 +64,7 @@ public class TicketmasterServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_ParsesHalJson_AndMapsPropertiesCorrectly()
+    public async Task Should_ParseHalJson_AndMapPropertiesCorrectly()
     {
         const string json = """
             {
@@ -109,7 +109,7 @@ public class TicketmasterServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_ReturnsEmpty_WhenEmbeddedOmitted()
+    public async Task Should_ReturnEmpty_WhenEmbeddedOmitted()
     {
         const string json = """
             {
@@ -128,7 +128,7 @@ public class TicketmasterServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_FallsBackToUnknownVenue_WhenVenuesEmpty()
+    public async Task Should_FallbackToUnknownVenue_WhenVenuesEmpty()
     {
         const string json = """
             {
@@ -155,7 +155,7 @@ public class TicketmasterServiceTests
     }
 
     [Fact]
-    public async Task SearchEventsAsync_ReturnsEmpty_WhenHttpFails()
+    public async Task Should_ReturnEmpty_WhenHttpFails()
     {
         var (service, _) = CreateService(statusCode: HttpStatusCode.InternalServerError);
 
