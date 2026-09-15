@@ -7,7 +7,7 @@ public interface IEventProvider
     EventProvider Provider { get; }
 
     Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string artistName,
+        string query,
         string city = "London",
         CancellationToken cancellationToken = default
     );

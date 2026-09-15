@@ -5,7 +5,17 @@ Accept: application/json
 
 ###
 
-GET {{ElectronicLive.Api_HostAddress}}/api/events/search?artist=Bicep
+GET {{ElectronicLive.Api_HostAddress}}/api/events/search?query=fabric
+Accept: application/json
+
+###
+
+GET {{ElectronicLive.Api_HostAddress}}/api/events/search?query=Drumsheds
+Accept: application/json
+
+###
+
+GET {{ElectronicLive.Api_HostAddress}}/api/events/search?query=Bicep
 Accept: application/json
 
 ###

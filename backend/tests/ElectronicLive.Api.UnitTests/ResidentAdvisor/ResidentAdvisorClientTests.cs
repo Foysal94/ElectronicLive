@@ -13,11 +13,11 @@ public class ResidentAdvisorClientTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task Should_ReturnEmpty_WhenArtistNameNullOrWhitespace(string? artistName)
+    public async Task Should_ReturnEmpty_WhenQueryNullOrWhitespace(string? query)
     {
         var (client, handler) = CreateClient();
 
-        var result = await client.SearchEventsAsync(artistName!);
+        var result = await client.SearchEventsAsync(query!);
 
         result.ShouldBeEmpty();
         handler.LastRequest.ShouldBeNull();

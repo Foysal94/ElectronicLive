@@ -16,21 +16,21 @@ public static class EventEndpoints
     }
 
     internal static async Task<Results<Ok<IReadOnlyList<EventResponse>>, ValidationProblem>> SearchEvents(
-        string? artist,
+        string? query,
         IEventAggregatorService eventAggregatorService,
         string? city = "London",
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(artist))
+        if (string.IsNullOrWhiteSpace(query))
         {
             return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]> { ["artist"] = ["Artist query parameter is required."] }
+                new Dictionary<string, string[]> { ["query"] = ["Search query parameter is required."] }
             );
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
-        var events = await eventAggregatorService.SearchEventsAsync(artist.Trim(), targetCity, cancellationToken);
+        var events = await eventAggregatorService.SearchEventsAsync(query.Trim(), targetCity, cancellationToken);
         return TypedResults.Ok(events);
     }
 }
