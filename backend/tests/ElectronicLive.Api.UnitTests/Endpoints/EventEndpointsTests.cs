@@ -11,53 +11,104 @@ public class EventEndpointsTests
     private readonly IEventAggregatorService _aggregatorService = Substitute.For<IEventAggregatorService>();
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task Should_ReturnValidationProblem_WhenArtistIsInvalid(string? artist)
+    [InlineData(null, null, null)]
+    [InlineData("", "", "")]
+    [InlineData("   ", "   ", "   ")]
+    public async Task Should_ReturnValidationProblem_WhenQueryAndArtistAreEmpty(
+        string? query,
+        string? artist,
+        string? q
+    )
     {
-        var result = await EventEndpoints.SearchEvents(artist, _aggregatorService);
+        var result = await EventEndpoints.SearchEvents(query, artist, _aggregatorService, q: q);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
-        validationProblem.ProblemDetails.Errors.ShouldContainKey("artist");
-        validationProblem.ProblemDetails.Errors["artist"].ShouldContain("Artist query parameter is required.");
+        validationProblem.ProblemDetails.Errors.ShouldContainKey("query");
+        validationProblem.ProblemDetails.Errors["query"].ShouldContain("Search query parameter is required.");
         await _aggregatorService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default!);
     }
 
     [Fact]
-    public async Task Should_ReturnOkWithEvents_WhenArtistIsValid()
+    public async Task Should_ReturnOkWithEvents_WhenQueryIsValid()
     {
         var expectedEvents = new List<EventResponse>
         {
             new(
                 "ev-1",
-                "Bicep Live",
-                "Royal Albert Hall",
-                new DateOnly(2026, 11, 26),
-                new TimeOnly(18, 0, 0),
-                "https://ticketmaster.co.uk/event1",
+                "fabric Saturdays",
+                "fabric",
+                new DateOnly(2026, 11, 28),
+                new TimeOnly(23, 0, 0),
+                "https://fabriclondon.com/event1",
                 EventStatus.OnSale,
                 EventProvider.Ticketmaster
             ),
         };
-        _aggregatorService.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns(expectedEvents);
+        _aggregatorService.SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>()).Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("Bicep", _aggregatorService);
+        var result = await EventEndpoints.SearchEvents("fabric", null, _aggregatorService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
     }
 
     [Fact]
-    public async Task Should_PassCustomCity_WhenSpecified()
+    public async Task Should_SupportArtistParameter_ForBackwardCompatibility()
     {
-        _aggregatorService.SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
+        var expectedEvents = new List<EventResponse>
+        {
+            new(
+                "ev-2",
+                "Bicep Live",
+                "Royal Albert Hall",
+                new DateOnly(2026, 11, 26),
+                new TimeOnly(18, 0, 0),
+                "https://ticketmaster.co.uk/event2",
+                EventStatus.OnSale,
+                EventProvider.Ticketmaster
+            ),
+        };
+        _aggregatorService.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("Bicep", _aggregatorService, "Manchester");
+        var result = await EventEndpoints.SearchEvents(null, "Bicep", _aggregatorService);
+
+        var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
+        okResult.Value.ShouldBe(expectedEvents);
+        await _aggregatorService.Received(1).SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_SupportQAlias_WhenQueryAndArtistNotProvided()
+    {
+        _aggregatorService.SearchEventsAsync("Drumsheds", "London", Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await EventEndpoints.SearchEvents(null, null, _aggregatorService, q: "Drumsheds");
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
-        await _aggregatorService.Received(1).SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>());
+        await _aggregatorService.Received(1).SearchEventsAsync("Drumsheds", "London", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_PrioritizeQueryOverArtist_WhenBothProvided()
+    {
+        _aggregatorService.SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await EventEndpoints.SearchEvents("fabric", "Bicep", _aggregatorService);
+
+        result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
+        await _aggregatorService.Received(1).SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_PassCustomCity_WhenSpecified()
+    {
+        _aggregatorService.SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
+
+        var result = await EventEndpoints.SearchEvents("fabric", null, _aggregatorService, city: "Manchester");
+
+        result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
+        await _aggregatorService.Received(1).SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -66,32 +117,32 @@ public class EventEndpointsTests
     [InlineData("   ")]
     public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace(string? city)
     {
-        _aggregatorService.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns([]);
+        _aggregatorService.SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>()).Returns([]);
 
-        var result = await EventEndpoints.SearchEvents("Bicep", _aggregatorService, city);
+        var result = await EventEndpoints.SearchEvents("fabric", null, _aggregatorService, city: city);
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
-        await _aggregatorService.Received(1).SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>());
+        await _aggregatorService.Received(1).SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Should_TrimArtistAndCity_WhenWhitespacePresent()
+    public async Task Should_TrimSearchTermAndCity_WhenWhitespacePresent()
     {
-        _aggregatorService.SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
+        _aggregatorService.SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
 
-        await EventEndpoints.SearchEvents("  Bicep  ", _aggregatorService, "  Manchester  ");
+        await EventEndpoints.SearchEvents("  fabric  ", null, _aggregatorService, city: "  Manchester  ");
 
-        await _aggregatorService.Received(1).SearchEventsAsync("Bicep", "Manchester", Arg.Any<CancellationToken>());
+        await _aggregatorService.Received(1).SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Should_PropagateCancellationToken()
     {
         using var cts = new CancellationTokenSource();
-        _aggregatorService.SearchEventsAsync("Bicep", "London", cts.Token).Returns([]);
+        _aggregatorService.SearchEventsAsync("fabric", "London", cts.Token).Returns([]);
 
-        await EventEndpoints.SearchEvents("Bicep", _aggregatorService, cancellationToken: cts.Token);
+        await EventEndpoints.SearchEvents("fabric", null, _aggregatorService, cancellationToken: cts.Token);
 
-        await _aggregatorService.Received(1).SearchEventsAsync("Bicep", "London", cts.Token);
+        await _aggregatorService.Received(1).SearchEventsAsync("fabric", "London", cts.Token);
     }
 }
