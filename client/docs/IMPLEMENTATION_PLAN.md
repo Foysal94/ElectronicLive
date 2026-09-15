@@ -26,35 +26,20 @@ graph TD
 
 ---
 
-### Chunk 1: Scaffolding, Tooling & Configuration
+### Chunk 1: Scaffolding, Tooling & Configuration (COMPLETED - PR #13)
 **Objective:** Initialize the React 19 + TypeScript + Tailwind + Vitest + ESLint project inside `client/`.
 
 1. **Scaffold Vite Project:**
-   - Initialize template: `npm create vite@latest . -- --template react-ts`.
-2. **Install Core & Dev Dependencies:**
+   - Initialized template: `npm create vite@latest . -- --template react-ts`.
+2. **Dependencies & ESLint Flat Config:**
    - Production: `react@19`, `react-dom@19`, `@tanstack/react-query@5`.
    - Styling: `tailwindcss`, `@tailwindcss/vite`.
-   - TypeScript: `typescript`, `@types/react`, `@types/react-dom`.
    - Testing: `vitest`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `jsdom`, `msw@2`.
-   - ESLint Plugins (Flat Config):
-     - `typescript-eslint`
-     - `eslint-plugin-react-hooks`
-     - `eslint-plugin-react-refresh`
-     - `@tanstack/eslint-plugin-query`
-3. **Configure `package.json` Scripts:**
-   - `"dev"`: `"vite"`
-   - `"build"`: `"tsc -b && vite build"`
-   - `"lint"`: `"eslint ."`
-   - `"typecheck"`: `"tsc --noEmit"`
-   - `"test"`: `"vitest run"`
-   - `"test:watch"`: `"vitest"`
-4. **Configure Environments:**
-   - `vite.config.ts`: Tailwind plugin, Vitest `jsdom` setup, dev server proxy (`/api` $\rightarrow$ `http://localhost:5275`).
-   - `tsconfig.json`: `strict: true`, `noImplicitAny: true`.
-   - `eslint.config.js`: Integrated plugins enforcing hook rules, TanStack Query best practices, and TypeScript hygiene.
-5. **Verification:**
-   - Automated: `npm run lint && npm run typecheck && npm run test`
-   - Visual: Run `npm run dev` and confirm Vite default page loads on `http://localhost:5173`.
+   - ESLint Plugins: `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `@tanstack/eslint-plugin-query`.
+3. **Configured `package.json` Scripts:**
+   - `"dev"`, `"build"`, `"lint"`, `"typecheck"`, `"test"`, `"test:watch"`.
+4. **Verification:**
+   - Automated: Verified via CI/PR #13.
 
 ---
 
@@ -64,8 +49,8 @@ graph TD
 1. **Contract Types (`src/api/types.ts`):**
    - Define `EventProvider` union (`'Ticketmaster' | 'Skiddle' | 'ResidentAdvisor'`).
    - Define `EventStatus` union (`'OnSale' | 'SoldOut' | 'Postponed' | 'Cancelled' | 'Unknown'`).
-   - Define `EventTicketOffer` interface (`provider`, `ticketUrl`, `status`).
-   - Define `EventResponse` interface (`id`, `name`, `venueName`, `date`, `time`, `ticketUrl`, `status`, `provider`, `offers`).
+   - Define `EventTicketOffer` interface (`provider`, `ticketUrl: string | null`, `status`).
+   - Define `EventResponse` interface (`id`, `name`, `venueName`, `date`, `time`, `ticketUrl: string | null`, `status`, `provider`, `offers`).
 2. **Base API Client (`src/api/client.ts`):**
    - Export `fetchEvents(query: string, city?: string, signal?: AbortSignal): Promise<EventResponse[]>`.
    - Targets `/api/events/search?query=...&city=...`.
@@ -80,7 +65,7 @@ graph TD
 
 1. **MSW Handlers (`src/test/mocks/handlers.ts`):**
    - Mock `GET /api/events/search`:
-     - Default success fixture returning multi-provider offers (RA + Skiddle + TM).
+     - Default success fixture returning multi-provider offers (RA + Skiddle + TM) and null ticketUrl edge case.
      - Handlers for empty results (`query=empty`) and server error (`query=error`).
 2. **Test Setup (`src/test/setup.ts`):**
    - Initialize MSW server (`beforeAll`, `afterEach`, `afterAll`).
@@ -98,10 +83,14 @@ graph TD
    - Query key: `['events', 'search', query.trim().toLowerCase()]`.
    - `enabled: Boolean(query.trim())`.
    - Caching: `staleTime: 5 * 60 * 1000` (5 minutes), `gcTime: 10 * 60 * 1000`.
-   - Exposes: `{ events, isPending, isError, error, refetch, isIdle }`.
+   - **TanStack Query v5 Status Handling:**
+     - Explicitly derive idle state: `const isIdle = !query.trim();`.
+     - Expose active network status: `const isFetching = queryResult.isFetching;`.
+     - In consumers, gate loading skeleton strictly on `isFetching`. Never check `isPending` alone when query is disabled.
+   - Exposes: `{ events: data ?? [], isPending, isFetching, isError, error, refetch, isIdle }`.
 2. **Unit Tests (`src/hooks/useEventsSearch.test.ts`):**
    - `Should_fetch_and_cache_events_for_valid_query`
-   - `Should_remain_idle_when_query_is_empty`
+   - `Should_remain_idle_and_not_fetch_when_query_is_empty`
    - `Should_handle_api_errors_gracefully`
 3. **Verification:**
    - Automated: `npm run test` (all hook tests pass).
@@ -154,45 +143,53 @@ graph TD
 **Objective:** Build the chronological results list, mobile card adaptation, and resilience states.
 
 1. **Components:**
-   - `src/components/events/DateBlock.tsx`: High-contrast Day, Date, Month box. Falls back to `TBA` if date is null.
-   - `src/components/events/ProviderButton.tsx`: Outbound ticket button with availability badge (`target="_blank"`).
+   - `src/components/events/DateBlock.tsx`:
+     - High-contrast Day, Date, Month box.
+     - **Timezone-Safe Parsing:** Parse `"YYYY-MM-DD"` via string split or UTC getters (`getUTCDate()`, `getUTCMonth()`).
+     - Falls back gracefully to `TBA` when date is missing.
+   - `src/components/events/ProviderButton.tsx`:
+     - Outbound ticket button with availability badge (`target="_blank"`).
+     - **Null Link Handling:** Renders unclickable disabled state (`Tickets TBA`) when `ticketUrl` is null/empty.
    - `src/components/events/EventRow.tsx`:
-     - Desktop: 3-column row (Date $\rightarrow$ Title & Venue $\rightarrow$ Ticket Buttons).
-     - Mobile: Stacked card (Date & Title on top; full-width provider buttons on bottom).
-     - Multi-Provider Scaling Matrix ([`SPECIFICATION.md#5.2`](./SPECIFICATION.md)):
-       - 1 provider: full-width.
-       - 2 providers: 50/50 split (`grid-cols-2`).
-       - 3 providers: 2-row wrap.
-       - 4 providers: 2x2 grid.
-       - 5+ providers: top 2 + overflow drawer.
+     - Desktop (`>= 640px`): Horizontal row with intermediate viewport wrapping (`flex-wrap gap-2`).
+     - Mobile (`< 640px`): Stacked card with thumb-friendly buttons.
+     - Multi-Provider Scaling Matrix (1, 2, or 3 providers per `SPECIFICATION.md#5.2`).
    - `src/components/events/EventSkeleton.tsx`: Animated loading rows matching timetable dimensions.
-   - `src/components/events/EmptyState.tsx`: Zero-results card informing user that no events were found across RA, TM, and Skiddle.
-   - `src/components/events/EventList.tsx`: Orchestrates `isIdle`, `isPending`, `isError`, and data rendering.
+   - `src/components/events/EmptyState.tsx`:
+     - Idle mode: Renders prompt *"Select a London artist or club above, or search to view upcoming shows."*
+     - Zero-results mode: Informs user that no events were found across RA, TM, and Skiddle.
+   - `src/components/events/EventList.tsx`: Orchestrates `isIdle`, `isFetching`, `isError`, and data rendering.
 2. **Unit Tests:**
    - `Should_render_timetable_rows_chronologically`
-   - `Should_render_skeleton_state_while_loading`
+   - `Should_parse_dates_without_timezone_day_shift`
+   - `Should_render_disabled_button_when_ticket_url_is_null`
+   - `Should_render_skeleton_state_while_fetching`
+   - `Should_render_idle_prompt_when_no_query_entered`
    - `Should_render_empty_state_when_zero_results`
    - `Should_render_multiple_providers_according_to_scaling_matrix`
 3. **Verification:**
    - Automated: `npm run test`
-   - Visual: Run `npm run dev` and verify responsive row layout on desktop and stacked layout on mobile viewport (< 640px).
+   - Visual: Run `npm run dev` and verify responsive row layout on desktop, tablet (768px), and mobile viewport (< 640px).
 
 ---
 
 ### Chunk 8: Full App Assembly & Integration Suite
-**Objective:** Wire all components into `App.tsx` and verify the full user journey.
+**Objective:** Wire all components into `App.tsx`, synchronize URL deep-linking, and verify full user journey.
 
 1. **Integration (`src/App.tsx`):**
    - Header $\rightarrow$ SearchBar $\rightarrow$ QuickPills $\rightarrow$ EventList.
-   - Connect `selectedQuery` state between `SearchBar` / `QuickPills` and `useEventsSearch`.
+   - **URL Synchronization:**
+     - Initialize query state from `new URLSearchParams(window.location.search).get('q') || ''`.
+     - Update browser URL via `window.history.replaceState` when query changes.
 2. **End-to-End Component Tests (`src/App.test.tsx`):**
-   - `Should_display_idle_landing_state_on_initial_load`
+   - `Should_display_idle_prompt_on_initial_load`
+   - `Should_initialize_search_from_url_query_parameter`
    - `Should_execute_search_and_render_events_when_pill_is_clicked`
    - `Should_display_empty_state_when_no_events_found`
    - `Should_display_error_banner_and_retry_when_backend_fails`
 3. **Verification:**
    - Automated: `npm run test`
-   - Visual: Run `npm run dev` and execute full search journeys in browser.
+   - Visual: Run `npm run dev` and test browser refresh with `?q=fabric` preserving search state.
 
 ---
 
