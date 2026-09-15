@@ -22,63 +22,50 @@ The visual design utilizes a mid-tone slate grey palette with high-contrast typo
 ### Mobile Layout
 ![ElectronicLive Mobile UI Mockup](./docs/ui-mockup-mobile.jpg)
 
-### Palette & Visual Tokens
+### Palette & Visual Design Tokens
 - **Base Background:** `#181b1f` (Dark slate grey, avoiding pitch black)
-- **Elevated Surfaces / Rows:** `#22262d` (Zinc/charcoal container surface)
-- **Row Hover State:** `#2b3039`
+- **Elevated Surfaces / Cards:** `#22262d` (Zinc/charcoal container surface)
+- **Hover State:** `#2b3039`
 - **Border Lines:** `rgba(255, 255, 255, 0.08)` (Subtle 1px outlines for depth)
 - **Primary Typography:** High-contrast neutral white (`#f3f4f6`)
 - **Muted Typography / Meta:** Slate grey (`#9ca3af`)
-- **Status Indicator (On Sale):** Emerald / mint green pill (`bg-emerald-950 text-emerald-400 border-emerald-800`)
-- **Status Indicator (Sold Out):** Rose / red pill (`bg-rose-950 text-rose-400 border-rose-800`)
+- **Status Indicator (On Sale):** Emerald green pill (`bg-emerald-950 text-emerald-400 border-emerald-800`)
+- **Status Indicator (Sold Out):** Rose red pill (`bg-rose-950 text-rose-400 border-rose-800`)
 
 ---
 
-## 3. Component Architecture & Design Rationale
-
-### Proposed Hierarchy
+## 3. Final Component Architecture & Hierarchy
 
 ```
 client/src/
 ├── api/
-│   ├── client.ts                 # Typed fetch client targeting local .NET backend
-│   └── types.ts                  # Domain contracts (EventResponse, EventTicketOffer, EventStatus, EventProvider)
+│   ├── client.ts                 # Typed fetch client targeting /api/events/search
+│   └── types.ts                  # Domain models (EventResponse, EventTicketOffer, EventStatus, EventProvider)
 ├── components/
-│   ├── common/
-│   │   ├── Badge.tsx             # Reusable pill badge (Status, City, Provider)
-│   │   ├── BrandLogo.tsx         # Inline SVG audio soundwave mark + typography
-│   │   └── ErrorBoundary.tsx     # React error boundary with fallback banner
-│   ├── layout/
-│   │   ├── Header.tsx            # Brand mark, City scope badge, and Provider attribution
-│   │   └── Container.tsx         # Responsive max-width wrapper
-│   ├── search/
-│   │   ├── SearchBar.tsx         # Text input with submit button and clear action
-│   │   ├── QuickPillGroup.tsx    # Accessible horizontal pill container
-│   │   └── QuickPills.tsx        # Pre-configured Artists & Venues pill rows
-│   └── events/
-│       ├── EventList.tsx         # Container rendering event rows or empty/skeleton states
-│       ├── EventRow.tsx          # Chronological timetable row item
+│   ├── common/                   # Reusable UI primitives
+│   │   ├── Badge.tsx             # Status badge (On Sale, Sold Out)
+│   │   └── ErrorBoundary.tsx     # Network and runtime error boundary banner
+│   ├── layout/                   # Global page frame
+│   │   └── Header.tsx            # Soundwave SVG logo, London chip, and Provider attribution
+│   ├── search/                   # Search controls
+│   │   ├── SearchBar.tsx         # Text input with submit/clear buttons
+│   │   └── QuickPills.tsx        # Quick Search Artists & Quick Search Venues pill rows
+│   └── events/                   # Timetable display
+│       ├── EventList.tsx         # Results container (orchestrates loading, empty, and data states)
+│       ├── EventRow.tsx          # Timetable row item (responsive desktop row / mobile card)
 │       ├── DateBlock.tsx         # High-contrast calendar badge (Day, Date, Month)
-│       ├── ProviderButton.tsx    # Direct outbound vendor ticket button
-│       ├── EventSkeleton.tsx     # Pulsing skeleton rows for loading state
+│       ├── ProviderButton.tsx    # Direct outbound vendor ticket button with availability badge
+│       ├── EventSkeleton.tsx     # Pulsing skeleton rows during network fetch
 │       └── EmptyState.tsx        # Zero-results feedback card
-├── features/
-│   └── events/
-│       ├── useEventsSearch.ts    # TanStack Query custom hook for search execution & caching
-│       └── eventUtils.ts         # Date formatting, provider sorting, and URL helpers
-├── App.tsx                       # Root view orchestrator
-└── main.tsx                      # QueryClientProvider and DOM mount
+├── hooks/
+│   └── useEventsSearch.ts        # TanStack useQuery hook for searching and caching
+├── App.tsx                       # Main view orchestrator
+└── main.tsx                      # QueryClientProvider & React root mount
 ```
 
-### Architectural Rationale & Trade-offs
-
-#### Why Domain & Feature Slicing?
-- **Pros:**
-  - **Single Responsibility (SRP):** Pure presentational components (`DateBlock`, `ProviderButton`, `Badge`) have zero knowledge of API fetching or React Query. They can be unit-tested in isolation in milliseconds without mocking HTTP calls.
-  - **Encapsulated State via Custom Hooks (`useEventsSearch`):** All TanStack Query lifecycle logic (`isPending`, `isError`, caching, error handling) resides inside `src/features/events/useEventsSearch.ts`. UI components (`SearchBar`, `EventList`) merely call the hook and render states.
-  - **Future Extensibility:** Replacing or augmenting the timetable list with a poster grid or adding date range filters only requires modifying `EventList` or `useEventsSearch` without touching the rest of the application.
-- **Cons / Trade-offs:**
-  - Slightly higher initial file count than grouping everything into a monolithic `App.tsx` and `EventCard.tsx`. However, for pair programming and multi-agent workflows, isolated files dramatically prevent merge conflicts and reduce cognitive load.
+### Architectural Rationale
+- **Domain-Organized Components:** Categorizing UI components by domain (`layout/`, `search/`, `events/`, `common/`) keeps files easily discoverable and prevents merge conflicts across agents.
+- **Dedicated Data Hook (`hooks/useEventsSearch.ts`):** Encapsulates TanStack Query's caching (`staleTime: 5 mins`), race condition handling, and query key management. Presentational components remain pure and receive plain props.
 
 ---
 
@@ -89,7 +76,7 @@ client/src/
 - **Scope Chip:** Distinct pill reading `📍 London, UK`.
 - **Provider Attribution:** Subtitle located directly beneath the title:
   > `Aggregating live events from Resident Advisor · Ticketmaster · Skiddle`
-  - Explains the data perimeter upfront so users understand why closed platforms (such as DICE) are omitted.
+  - Explains data scope upfront so users understand why proprietary or closed platforms (such as DICE) are omitted.
 
 ### 4.2. Unified Search Section
 - **Unified Query:** Single search input accepting artist names (e.g., *"Amelie Lens"*), event titles (e.g., *"A State Of Trance"*), or venue names (e.g., *"Drumsheds"*).
@@ -99,37 +86,69 @@ client/src/
 - **Categorized Quick-Search Pills:**
   - **Quick Search Artists:** `Hardwell`, `Armin van Buuren`, `Amelie Lens`, `Charlotte de Witte`, `Bicep`, `Eric Prydz`.
   - **Quick Search Venues:** `Drumsheds`, `Fabric`, `FOLD`, `Ministry of Sound`, `Studio 338`.
+  - Pills are styled as distinct clickable buttons with rounded borders and dark container fills.
   - Clicking any pill immediately populates the search input and executes the query.
 
-### 4.3. Results Timetable (Desktop & Mobile Responsiveness)
+### 4.3. Results Timetable & Multi-Provider Desktop/Mobile Layout
 - **Chronological Sorting:** Gigs are ordered ascending by date and door time. Unannounced dates appear at the end.
-- **Desktop Anatomy (Horizontal Row):**
-  1. **Date Block (Left):** Prominent day-of-week abbreviation (`SAT`), numerical date (`14`), and uppercase month (`NOV`).
-  2. **Event & Venue Details (Center):** Artist / Event title in bold white; Venue name prefixed with map pin icon `📍`.
-  3. **Direct Ticketing Actions (Right):** Side-by-side buttons (`[ Resident Advisor ↗ ]`, `[ Skiddle ↗ ]`) with `"On Sale"` indicators.
-- **Mobile Anatomy (Stacked Card Layout):**
-  1. **Top Sub-row:** Date Block alongside the Artist & Venue title.
-  2. **Bottom Sub-row:** Full-width thumb-friendly ticket buttons spanning the width of the card side by side.
-
-### 4.4. State Machine & Resilience UI
-1. **Initial / Idle State:** Search bar and quick-search pills displayed cleanly; timetable list remains unrendered until a query is executed.
-2. **Loading State:** 4–6 animated skeleton rows ([`EventSkeleton`](file:///Users/foysalahmed/Code/ElectronicLive/client/src/components/events/EventSkeleton.tsx)) mirroring the row layout to eliminate layout shift.
-3. **Zero-Results State:** Centered card stating no upcoming London gigs were found across RA, Ticketmaster, or Skiddle.
-4. **Network / Server Error State:** Error banner indicating connection failure with a `"Retry"` button.
+- **Desktop Layout (`>= 640px`):**
+  - Full-width horizontal row layout.
+  - Left column: High-contrast date block (`SAT 14 NOV`).
+  - Center column: Artist / Event title in bold white; Venue name with location pin `📍`.
+  - Right column: Direct side-by-side ticket provider buttons (`[ Resident Advisor ↗ ]`, `[ Skiddle ↗ ]`) with availability status pills.
+  - Single-click checkout opening in a new tab (`target="_blank"`, `rel="noopener noreferrer"`).
 
 ---
 
-## 5. Points of Concern, Trade-offs & Edge Cases
+## 5. Mobile Responsive Design & Multi-Provider Scaling
+
+Mobile viewports (`< 640px`) present unique ergonomic constraints that must be adhered to:
+
+### 5.1. Touch Targets & Card Layout
+- **Minimum Touch Target:** All interactive pill buttons and ticket buttons must have a minimum tap height of **44px** (`min-h-[44px]`).
+- **Stacked Card Anatomy:**
+  - **Top Row:** Compact date block positioned immediately beside the Event and Venue title.
+  - **Bottom Row:** Ticket provider buttons span across the bottom of the card for easy thumb access.
+
+### 5.2. Multi-Provider Scaling Matrix (Mobile)
+Upstream deduplication combines duplicate listings for the same gig into multiple ticket offers. The mobile UI must handle anywhere from 1 to 5+ providers without breaking layout:
+
+| Provider Count | Mobile Layout Rule | Visual Representation |
+| :--- | :--- | :--- |
+| **1 Provider** (~85% of gigs) | Single full-width button (`w-full`) | `[ Get Tickets on Resident Advisor ↗ (On Sale) ]` |
+| **2 Providers** (~12% of gigs) | 50/50 side-by-side split (`grid grid-cols-2 gap-2`) | `[ Resident Advisor ↗ ]` `[ Skiddle ↗ ]` |
+| **3 Providers** (Rare) | 2-row wrap: Row 1 has 2 buttons (50/50); Row 2 has 1 full-width button | Row 1: `[ RA ↗ ]` `[ Skiddle ↗ ]`<br>Row 2: `[ Ticketmaster ↗ (Full Width) ]` |
+| **4 Providers** | Symmetric 2x2 grid (`grid grid-cols-2 gap-2`) | Row 1: `[ RA ↗ ]` `[ Skiddle ↗ ]`<br>Row 2: `[ TM ↗ ]` `[ Provider 4 ↗ ]` |
+| **5+ Providers** | Top 2 providers displayed directly; remaining tucked into an expandable drawer | Row 1: `[ RA ↗ ]` `[ Skiddle ↗ ]`<br>Row 2: `[ +3 More Ticket Offers ▾ ]` |
+
+---
+
+## 6. State Machine & Resilience UI
+
+1. **Initial / Idle State:**
+   - Search bar and quick-search pills displayed cleanly; timetable list remains unrendered until a query is executed.
+2. **Loading State:**
+   - 4–6 animated skeleton rows ([`EventSkeleton`](file:///Users/foysalahmed/Code/ElectronicLive/client/src/components/events/EventSkeleton.tsx)) mirroring the row layout to eliminate layout shift.
+3. **Zero-Results State:**
+   - Centered feedback card stating:
+     > *"No upcoming London gigs found for '[query]' across Resident Advisor, Ticketmaster, or Skiddle."*
+   - Includes suggestions to try one of the curated artist or venue pills.
+4. **Network / Server Error State:**
+   - Warning banner indicating connection failure with a `"Retry"` button:
+     > *"Unable to reach the London events service. Please ensure the backend API is running or try again."*
+
+---
+
+## 7. Points of Concern, Trade-offs & Edge Cases
 
 1. **Third-Party Upstream Latency:** Aggregator queries 3 APIs concurrently. Caching with TanStack Query (`staleTime: 5 * 60 * 1000`) avoids redundant requests when toggling between pills.
-2. **Mobile Touch Targets:** All clickable pills and ticket buttons must have minimum 44px touch targets on mobile viewports.
-3. **Missing Start Times:** Date block gracefully renders `TBA` when an event lacks a confirmed date or time.
-4. **Venue Name Truncation:** Long venue strings truncate with ellipsis to prevent breaking card boundaries on narrow screens.
-5. **CORS in Development:** Local Vite dev server proxies `/api` calls directly to the .NET API port.
+2. **Missing Start Times:** Date block gracefully renders `TBA` when an event lacks a confirmed date or time.
+3. **Venue Name Truncation:** Long venue strings truncate with ellipsis (`truncate`) to prevent breaking card boundaries on narrow screens.
+4. **CORS in Development:** Local Vite dev server proxies `/api` calls directly to `http://localhost:5247`.
 
 ---
 
-## 6. Post-MVP Extensibility Roadmap
+## 8. Post-MVP Extensibility Roadmap
 
 - **Filter Toolbar Seam:** Slot reserved between Quick Pills and Results for date range chips (*"This Weekend"*, *"Next 30 Days"*).
 - **Personal Watchlist:** Header slot reserved for `[ Watchlist (count) ]` drawer trigger; [`EventRow`](file:///Users/foysalahmed/Code/ElectronicLive/client/) has reserved action slot for a bookmark icon.
