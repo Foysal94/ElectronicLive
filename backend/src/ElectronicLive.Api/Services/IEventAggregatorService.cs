@@ -5,7 +5,7 @@ namespace ElectronicLive.Api.Services;
 public interface IEventAggregatorService
 {
     Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string artistName,
+        string query,
         string city = "London",
         CancellationToken cancellationToken = default
     );

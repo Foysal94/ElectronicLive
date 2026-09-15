@@ -13,11 +13,11 @@ public class ResidentAdvisorClientTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task Should_ReturnEmpty_WhenArtistNameNullOrWhitespace(string? artistName)
+    public async Task Should_ReturnEmpty_WhenQueryNullOrWhitespace(string? query)
     {
         var (client, handler) = CreateClient();
 
-        var result = await client.SearchEventsAsync(artistName!);
+        var result = await client.SearchEventsAsync(query!);
 
         result.ShouldBeEmpty();
         handler.LastRequest.ShouldBeNull();
@@ -37,6 +37,18 @@ public class ResidentAdvisorClientTests
         var requestBody = await handler.LastRequest.Content!.ReadAsStringAsync();
         requestBody.ShouldContain("Bicep");
         requestBody.ShouldContain("SearchEvents");
+    }
+
+    [Fact]
+    public async Task Should_PostToGraphQLEndpoint_WithVenueQuery()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync("fabric");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var requestBody = await handler.LastRequest.Content!.ReadAsStringAsync();
+        requestBody.ShouldContain("fabric");
     }
 
     [Fact]

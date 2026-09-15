@@ -10,7 +10,7 @@ public sealed class EventAggregatorService(
 ) : IEventAggregatorService
 {
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string artistName,
+        string query,
         string city = "London",
         CancellationToken cancellationToken = default
     )
@@ -27,7 +27,7 @@ public sealed class EventAggregatorService(
             {
                 try
                 {
-                    return await provider.SearchEventsAsync(artistName, city, cancellationToken);
+                    return await provider.SearchEventsAsync(query, city, cancellationToken);
                 }
                 // Re-throw only if the caller cancelled. Upstream timeouts throw TaskCanceledException
                 // (which inherits OperationCanceledException) while cancellationToken is untriggered,
@@ -40,9 +40,9 @@ public sealed class EventAggregatorService(
                 {
                     logger.LogWarning(
                         ex,
-                        "Provider {Provider} failed while searching for artist {ArtistName}",
+                        "Provider {Provider} failed while searching for query {Query}",
                         provider.Provider,
-                        artistName
+                        query
                     );
                     return (IReadOnlyList<EventResponse>)[];
                 }

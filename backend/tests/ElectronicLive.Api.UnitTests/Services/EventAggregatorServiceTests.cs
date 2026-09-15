@@ -72,6 +72,31 @@ public class EventAggregatorServiceTests
     }
 
     [Fact]
+    public async Task Should_AggregateResults_WhenQueryingByVenue()
+    {
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+        var venueEvent = new EventResponse(
+            "v-1",
+            "Saturday Night Session",
+            "fabric",
+            new DateOnly(2026, 11, 28),
+            new TimeOnly(23, 0),
+            "https://fabriclondon.com/event",
+            EventStatus.OnSale,
+            EventProvider.Ticketmaster
+        );
+        provider.SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>()).Returns([venueEvent]);
+
+        var service = CreateService([provider], _logger);
+
+        var result = await service.SearchEventsAsync("fabric", "London");
+
+        result.ShouldHaveSingleItem().VenueName.ShouldBe("fabric");
+        await provider.Received(1).SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Should_OrderAggregatedEventsByDateThenTime()
     {
         var provider = Substitute.For<IEventProvider>();

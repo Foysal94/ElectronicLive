@@ -27,7 +27,7 @@ public sealed class TicketmasterClient : ITicketmasterClient
     public EventProvider Provider => EventProvider.Ticketmaster;
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string artistName,
+        string query,
         string city = "London",
         CancellationToken cancellationToken = default
     )
@@ -38,9 +38,10 @@ public sealed class TicketmasterClient : ITicketmasterClient
             return [];
         }
 
+        // Ticketmaster's keyword parameter indexes across artists/attractions, venues, and event titles
         var requestUri =
             $"events.json?apikey={Uri.EscapeDataString(_apiKey)}"
-            + $"&keyword={Uri.EscapeDataString(artistName)}"
+            + $"&keyword={Uri.EscapeDataString(query)}"
             + $"&city={Uri.EscapeDataString(city)}"
             + "&countryCode=GB&classificationName=music&sort=date,asc";
 
@@ -69,7 +70,7 @@ public sealed class TicketmasterClient : ITicketmasterClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while querying Ticketmaster API for artist {ArtistName}", artistName);
+            _logger.LogError(ex, "Error occurred while querying Ticketmaster API for query {Query}", query);
             return [];
         }
 

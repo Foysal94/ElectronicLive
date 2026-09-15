@@ -41,6 +41,17 @@ public class TicketmasterClientTests
     }
 
     [Fact]
+    public async Task Should_QueryVenue_WhenQueryIsVenueName()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync("fabric");
+
+        handler.LastRequest.ShouldNotBeNull();
+        handler.LastRequest.RequestUri!.PathAndQuery.ShouldContain("keyword=fabric");
+    }
+
+    [Fact]
     public async Task Should_DefaultCityToLondon_WhenCityOmitted()
     {
         var (client, handler) = CreateClient();

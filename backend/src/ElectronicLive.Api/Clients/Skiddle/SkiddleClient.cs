@@ -24,7 +24,7 @@ public sealed class SkiddleClient : ISkiddleClient
     public EventProvider Provider => EventProvider.Skiddle;
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string artistName,
+        string query,
         string city = "London",
         CancellationToken cancellationToken = default
     )
@@ -41,9 +41,10 @@ public sealed class SkiddleClient : ISkiddleClient
             ? $"&latitude={coordinates.Value.Latitude.ToString(CultureInfo.InvariantCulture)}&longitude={coordinates.Value.Longitude.ToString(CultureInfo.InvariantCulture)}&radius=25"
             : string.Empty;
 
+        // Skiddle's keyword parameter indexes across event titles, line-up artists, and venues
         var requestUri =
             $"events/search/?api_key={Uri.EscapeDataString(_apiKey)}"
-            + $"&keyword={Uri.EscapeDataString(artistName)}"
+            + $"&keyword={Uri.EscapeDataString(query)}"
             + geoQuery
             + "&eventcode=LIVE,CLUB,FEST&order=date";
 
@@ -72,7 +73,7 @@ public sealed class SkiddleClient : ISkiddleClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while querying Skiddle API for artist {ArtistName}", artistName);
+            _logger.LogError(ex, "Error occurred while querying Skiddle API for query {Query}", query);
             return [];
         }
 

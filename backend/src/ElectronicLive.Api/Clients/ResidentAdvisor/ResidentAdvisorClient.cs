@@ -9,6 +9,7 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
+    // RA's GraphQL EVENT index matches searchTerm against event names, line-up artists, and club/venue names
     private const string SearchQuery = """
         query SearchEvents($searchTerm: String!, $limit: Int!) {
           search(searchTerm: $searchTerm, indices: [EVENT], limit: $limit) {
@@ -42,18 +43,18 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
     public EventProvider Provider => EventProvider.ResidentAdvisor;
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string artistName,
+        string query,
         string city = "London",
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(artistName))
+        if (string.IsNullOrWhiteSpace(query))
         {
             return [];
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
-        var requestPayload = new RaGraphQLRequest(SearchQuery, new { searchTerm = artistName, limit = _options.Limit });
+        var requestPayload = new RaGraphQLRequest(SearchQuery, new { searchTerm = query, limit = _options.Limit });
 
         RaGraphQLResponse? payload;
         try
@@ -86,11 +87,7 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Error occurred while querying Resident Advisor API for artist {ArtistName}",
-                artistName
-            );
+            _logger.LogError(ex, "Error occurred while querying Resident Advisor API for query {Query}", query);
             return [];
         }
 
