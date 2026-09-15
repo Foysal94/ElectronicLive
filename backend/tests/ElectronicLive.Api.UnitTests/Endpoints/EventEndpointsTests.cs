@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute.ExceptionExtensions;
 
-namespace ElectronicLive.Api.UnitTests;
+namespace ElectronicLive.Api.UnitTests.Endpoints;
 
 public class EventEndpointsTests
 {

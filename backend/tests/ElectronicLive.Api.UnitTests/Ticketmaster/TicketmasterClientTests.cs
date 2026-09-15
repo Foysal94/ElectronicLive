@@ -6,7 +6,7 @@ using ElectronicLive.Api.UnitTests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-namespace ElectronicLive.Api.UnitTests;
+namespace ElectronicLive.Api.UnitTests.Ticketmaster;
 
 public class TicketmasterClientTests
 {

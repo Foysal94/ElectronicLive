@@ -1,6 +1,6 @@
 using ElectronicLive.Api.Configuration;
 
-namespace ElectronicLive.Api.UnitTests;
+namespace ElectronicLive.Api.UnitTests.Configuration;
 
 public class TicketmasterOptionsTests
 {
