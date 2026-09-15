@@ -1,5 +1,8 @@
 import type { EventResponse } from '../../api/types'
 
+// Upstream C# DateOnly strings ("YYYY-MM-DD") evaluated via naive `new Date("YYYY-MM-DD")`
+// default to UTC midnight, causing negative timezone offsets (e.g. UTC-5) to roll
+// backward by one calendar day. We manually split components to construct UTC Date objects.
 export function parseDateOnly(dateStr: string | null): {
   dayOfWeek: string
   day: string

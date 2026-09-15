@@ -27,6 +27,8 @@ export function useEventsSearch(query: string, city = 'London'): UseEventsSearch
 
   return {
     events: data ?? [],
+    // In TanStack Query v5, disabled queries retain status: 'pending' when no cached data exists.
+    // Explicitly negate isPending when idle to prevent views from flashing premature loading skeletons.
     isPending: !isIdle && isPending,
     isFetching,
     isError,

@@ -15,6 +15,9 @@ export function EventRow({ event, className = '' }: EventRowProps) {
 
   const providerCount = resolvedOffers.length
 
+  // Responsive mobile scaling matrix: Upstream deduplication merges up to 3 distinct vendors
+  // (RA, TM, Skiddle). Renders 1 provider full-width, 2 providers as a 50/50 split,
+  // and 3 providers as a 2+1 wrap to ensure minimum 44px tap targets on narrow screens.
   const renderMobileOffers = () => {
     if (providerCount === 1) {
       const offer = resolvedOffers[0]

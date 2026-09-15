@@ -3,6 +3,9 @@ interface EventSkeletonProps {
   className?: string
 }
 
+// Renders pulsing placeholder wireframes during active network fetches.
+// Mirrors the exact structural dimensions and layout geometry of EventRow
+// (date box, multi-line titles, button bounds) to eliminate Cumulative Layout Shift (CLS).
 export function EventSkeleton({ count = 4, className = '' }: EventSkeletonProps) {
   const items = Array.from({ length: count }, (_, index) => index)
 

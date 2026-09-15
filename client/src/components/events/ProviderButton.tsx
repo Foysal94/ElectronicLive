@@ -25,6 +25,9 @@ export function ProviderButton({
   const providerName = PROVIDER_NAMES[provider] ?? provider
   const hasValidUrl = typeof ticketUrl === 'string' && ticketUrl.trim().length > 0
 
+  // Upstream vendors occasionally report announced festival dates before ticketing opens,
+  // returning null/empty ticketUrl. Renders an unclickable disabled state to avoid
+  // emitting empty href attributes or triggering browser popup blocker anomalies.
   if (!hasValidUrl) {
     return (
       <button
