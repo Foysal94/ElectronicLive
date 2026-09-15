@@ -17,10 +17,10 @@
 The visual design utilizes a mid-tone slate grey palette with high-contrast typography, interactive quick-search pills, and a chronological timetable row list.
 
 ### Desktop Layout
-![ElectronicLive Desktop UI Mockup](./docs/ui-mockup.jpg)
+![ElectronicLive Desktop UI Mockup](./ui-mockup.jpg)
 
 ### Mobile Layout
-![ElectronicLive Mobile UI Mockup](./docs/ui-mockup-mobile.jpg)
+![ElectronicLive Mobile UI Mockup](./ui-mockup-mobile.jpg)
 
 ### Palette & Visual Design Tokens
 - **Base Background:** `#181b1f` (Dark slate grey, avoiding pitch black)
@@ -144,7 +144,7 @@ Upstream deduplication combines duplicate listings for the same gig into multipl
 1. **Third-Party Upstream Latency:** Aggregator queries 3 APIs concurrently. Caching with TanStack Query (`staleTime: 5 * 60 * 1000`) avoids redundant requests when toggling between pills.
 2. **Missing Start Times:** Date block gracefully renders `TBA` when an event lacks a confirmed date or time.
 3. **Venue Name Truncation:** Long venue strings truncate with ellipsis (`truncate`) to prevent breaking card boundaries on narrow screens.
-4. **CORS in Development:** Local Vite dev server proxies `/api` calls directly to `http://localhost:5247`.
+4. **CORS in Development:** Local Vite dev server proxies `/api` calls directly to `http://localhost:5275`.
 
 ---
 

@@ -1,5 +1,8 @@
 # Frontend Directives: ElectronicLive React Client
 
+> [!NOTE]
+> For UI mockups, layout rules, and phased execution steps, reference `docs/SPECIFICATION.md` and `docs/IMPLEMENTATION_PLAN.md` only when needed for implementation context.
+
 ## Tech Stack
 - **Framework:** React 19, TypeScript (Strict Mode)
 - **Build Tool:** Vite (configured with dev server proxy to local .NET API)
@@ -49,7 +52,7 @@
 - **Contract Mocks via MSW:** Test data fetching hooks against MSW network handlers. Do not manually mock `fetch` using `vi.fn()`.
 
 ## Guardrails
-- DO NOT add unapproved third-party UI component libraries (e.g., MUI, AntD, Chakra); build clean primitives with Tailwind CSS.
+- Build UI controls directly using Tailwind CSS primitives to avoid runtime CSS-in-JS bloat. For complex accessible widgets, prefer headless primitives (Radix UI) styled with Tailwind rather than monolithic opinionated suites (MUI, Chakra, AntD).
 - DO NOT use raw `fetch()` or `axios` inside `useEffect`.
 
 ## Comment Policy (Why, Never What)
