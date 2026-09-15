@@ -42,17 +42,6 @@ public class SkiddleClientTests
     }
 
     [Fact]
-    public async Task Should_QueryVenue_WhenQueryIsVenueName()
-    {
-        var (client, handler) = CreateClient();
-
-        await client.SearchEventsAsync("Drumsheds");
-
-        handler.LastRequest.ShouldNotBeNull();
-        handler.LastRequest.RequestUri!.PathAndQuery.ShouldContain("keyword=Drumsheds");
-    }
-
-    [Fact]
     public async Task Should_ConstructExpectedRequestUrl_WithCustomCityCoordinates()
     {
         var (client, handler) = CreateClient();

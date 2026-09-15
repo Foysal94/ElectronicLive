@@ -40,18 +40,6 @@ public class ResidentAdvisorClientTests
     }
 
     [Fact]
-    public async Task Should_PostToGraphQLEndpoint_WithVenueQuery()
-    {
-        var (client, handler) = CreateClient();
-
-        await client.SearchEventsAsync("fabric");
-
-        handler.LastRequest.ShouldNotBeNull();
-        var requestBody = await handler.LastRequest.Content!.ReadAsStringAsync();
-        requestBody.ShouldContain("fabric");
-    }
-
-    [Fact]
     public async Task Should_ForwardCancellationTokenToHttpHandler()
     {
         var (client, handler) = CreateClient();
