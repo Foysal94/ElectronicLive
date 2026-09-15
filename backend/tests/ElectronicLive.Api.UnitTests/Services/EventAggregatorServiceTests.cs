@@ -256,7 +256,7 @@ public class EventAggregatorServiceTests
     }
 
     [Fact]
-    public async Task Should_ReturnEmptyList_WhenAllProvidersFail()
+    public async Task Should_ThrowAllProvidersUnavailableException_WhenAllProvidersFail()
     {
         var failingProvider = Substitute.For<IEventProvider>();
         failingProvider.Provider.Returns(EventProvider.Ticketmaster);
@@ -266,9 +266,11 @@ public class EventAggregatorServiceTests
 
         var service = CreateService([failingProvider], _logger);
 
-        var result = await service.SearchEventsAsync("Bicep", "London");
-
-        result.ShouldBeEmpty();
+        var exception = await Should.ThrowAsync<AllProvidersUnavailableException>(() =>
+            service.SearchEventsAsync("Bicep", "London")
+        );
+        exception.Query.ShouldBe("Bicep");
+        exception.ProviderCount.ShouldBe(1);
     }
 
     [Fact]

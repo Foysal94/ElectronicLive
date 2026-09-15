@@ -27,31 +27,52 @@ public sealed class EventAggregatorService(
             {
                 try
                 {
-                    return await provider.SearchEventsAsync(query, city, cancellationToken);
+                    var events = await provider.SearchEventsAsync(query, city, cancellationToken);
+                    return (Success: true, Events: events, Provider: provider.Provider, Exception: (Exception?)null);
                 }
                 // Re-throw only if the caller cancelled. Upstream timeouts throw TaskCanceledException
                 // (which inherits OperationCanceledException) while cancellationToken is untriggered,
-                // and must be caught and isolated.
+                // and must be isolated.
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(
-                        ex,
-                        "Provider {Provider} failed while searching for query {Query}",
-                        provider.Provider,
-                        query
+                    return (
+                        Success: false,
+                        Events: (IReadOnlyList<EventResponse>)[],
+                        Provider: provider.Provider,
+                        Exception: (Exception?)ex
                     );
-                    return (IReadOnlyList<EventResponse>)[];
                 }
             })
             .ToArray();
 
         var results = await Task.WhenAll(tasks);
 
-        var allEvents = results.SelectMany(events => events ?? []);
+        var failedCount = results.Count(r => !r.Success);
+        if (failedCount == providerList.Count)
+        {
+            logger.LogError(
+                "All {ProviderCount} event providers failed while searching for query {Query}",
+                providerList.Count,
+                query
+            );
+            throw new AllProvidersUnavailableException(query, providerList.Count);
+        }
+
+        foreach (var failed in results.Where(r => !r.Success))
+        {
+            logger.LogWarning(
+                failed.Exception,
+                "Provider {Provider} failed while searching for query {Query}",
+                failed.Provider,
+                query
+            );
+        }
+
+        var allEvents = results.Where(r => r.Success).SelectMany(r => r.Events ?? []);
         var deduplicated = deduplicator.Deduplicate(allEvents);
 
         return deduplicated
