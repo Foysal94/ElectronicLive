@@ -58,3 +58,9 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 backend/src/ElectronicLive.Api/appsettings.secrets.json
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+
