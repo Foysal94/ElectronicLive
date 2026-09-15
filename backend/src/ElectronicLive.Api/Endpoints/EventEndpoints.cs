@@ -1,3 +1,4 @@
+using ElectronicLive.Api.Exceptions;
 using ElectronicLive.Api.Models;
 using ElectronicLive.Api.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -15,7 +16,9 @@ public static class EventEndpoints
         return group;
     }
 
-    internal static async Task<Results<Ok<IReadOnlyList<EventResponse>>, ValidationProblem>> SearchEvents(
+    internal static async Task<
+        Results<Ok<IReadOnlyList<EventResponse>>, ValidationProblem, ProblemHttpResult>
+    > SearchEvents(
         string? query,
         IEventAggregatorService eventAggregatorService,
         string? city = "London",
@@ -30,7 +33,18 @@ public static class EventEndpoints
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
-        var events = await eventAggregatorService.SearchEventsAsync(query.Trim(), targetCity, cancellationToken);
-        return TypedResults.Ok(events);
+        try
+        {
+            var events = await eventAggregatorService.SearchEventsAsync(query.Trim(), targetCity, cancellationToken);
+            return TypedResults.Ok(events);
+        }
+        catch (AllProvidersUnavailableException)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status502BadGateway,
+                title: "Upstream Providers Unavailable",
+                detail: "All external event providers failed to respond."
+            );
+        }
     }
 }

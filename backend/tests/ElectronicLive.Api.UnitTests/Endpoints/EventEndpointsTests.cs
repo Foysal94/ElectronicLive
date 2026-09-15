@@ -1,8 +1,10 @@
 using ElectronicLive.Api.Endpoints;
+using ElectronicLive.Api.Exceptions;
 using ElectronicLive.Api.Models;
 using ElectronicLive.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using NSubstitute.ExceptionExtensions;
 
 namespace ElectronicLive.Api.UnitTests;
 
@@ -93,5 +95,20 @@ public class EventEndpointsTests
         await EventEndpoints.SearchEvents("fabric", _aggregatorService, cancellationToken: cts.Token);
 
         await _aggregatorService.Received(1).SearchEventsAsync("fabric", "London", cts.Token);
+    }
+
+    [Fact]
+    public async Task Should_Return502BadGateway_WhenAllProvidersFail()
+    {
+        _aggregatorService
+            .SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new AllProvidersUnavailableException("fabric", 3));
+
+        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService);
+
+        var problemResult = result.Result.ShouldBeOfType<ProblemHttpResult>();
+        problemResult.StatusCode.ShouldBe(StatusCodes.Status502BadGateway);
+        problemResult.ProblemDetails.Title.ShouldBe("Upstream Providers Unavailable");
+        problemResult.ProblemDetails.Detail.ShouldBe("All external event providers failed to respond.");
     }
 }
