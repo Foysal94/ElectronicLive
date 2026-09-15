@@ -31,3 +31,5 @@
   - **Dependency Inversion (DIP):** Depend on abstractions (`ITicketmasterClient`) for external boundaries rather than concrete implementations.
   - **Interface Segregation (ISP):** Keep service interfaces focused on specific capabilities rather than monolithic "catch-all" contracts.
   - **Pragmatic Methods:** Prefer clear, linear, top-to-bottom method flow that fits on a single screen over premature extraction of single-use private helpers. Only extract private methods for reused logic, deep nesting, or isolated, branch-heavy mappings.
+
+- **Comment Policy (Why, Never What):** Write clean, self-documenting code with expressive naming so comments are rarely needed. Strictly forbid tautological comments (e.g., `// call api`, `// set variable`). Comments are only permitted to explain the "why"—such as workarounds for third-party API quirks, non-obvious framework traps (e.g., .NET URI path stripping), or regulatory/RFC specifications. Delete boilerplate framework comments immediately.
