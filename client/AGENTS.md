@@ -22,9 +22,10 @@
 - **Domain-Organized Components:** Organize UI components by feature domain under `components/<domain>/`, with shared primitives under `components/common/` and global chrome under `components/layout/`.
 - **Pure Leaf Components:** Presentational components must remain pure, deterministic functions (props in -> JSX out). Keep server state, caching, and query orchestration isolated in parent views or custom hooks.
 - **Resilience UI:** Views consuming asynchronous data must cleanly render:
-  1. Loading skeleton states
-  2. Partial or empty data states
-  3. Network error boundaries with user-friendly retry actions
+  1. Loading skeleton states gated strictly on active network fetching (`fetchStatus === 'fetching'` or `isFetching`). Never gate skeletons on `isPending` when `enabled` can be false (in TanStack Query v5, `isPending` is true for unexecuted queries).
+  2. Partial or empty data states with an explicit idle state (`const isIdle = !query.trim()`).
+  3. Network error boundaries with user-friendly retry actions.
+- **Timezone-Safe Date Parsing:** Never parse `"YYYY-MM-DD"` date strings using `new Date(...)` with local getters (`getDate()`, `getDay()`), which causes day-shifts in non-UTC timezones. Parse components directly (`dateStr.split('-')`) or use UTC getters (`getUTCDate()`, `getUTCMonth()`).
 
 ## React 19 & TypeScript Conventions
 - **No `React.FC`:** Define components using standard function syntax with explicit typed interfaces:
@@ -54,6 +55,7 @@
 ## Guardrails
 - Build UI controls directly using Tailwind CSS primitives to avoid runtime CSS-in-JS bloat. For complex accessible widgets, prefer headless primitives (Radix UI) styled with Tailwind rather than monolithic opinionated suites (MUI, Chakra, AntD).
 - DO NOT use raw `fetch()` or `axios` inside `useEffect`.
+- NEVER render empty or null `href` on ticket buttons; if `ticketUrl` is missing or empty, render an unclickable disabled state (`Tickets TBA`).
 
 ## Comment Policy (Why, Never What)
 - Write clean, self-documenting code with expressive naming so comments are rarely needed. Strictly forbid tautological comments (e.g., `// render row`, `// call api`, `// set state`). Comments are only permitted to explain the "why"—such as workarounds for third-party browser quirks (e.g., popup blocker behavior on external ticket links), non-obvious date formatting edge cases, or upstream vendor payload anomalies. Delete boilerplate comments immediately.
