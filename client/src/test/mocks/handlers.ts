@@ -45,8 +45,8 @@ export const handlers = [
       return HttpResponse.json({ unexpected: 'malformed_payload' })
     }
 
-    if (trimmed === 'empty' || trimmed === 'nonexistent') {
-      return HttpResponse.json([])
+    if (trimmed === 'all' || trimmed === '*') {
+      return HttpResponse.json(mockDefaultEvents)
     }
 
     const matchingEvents = mockDefaultEvents.filter(
@@ -55,6 +55,6 @@ export const handlers = [
         ev.venueName.toLowerCase().includes(trimmed)
     )
 
-    return HttpResponse.json(matchingEvents.length > 0 ? matchingEvents : mockDefaultEvents)
+    return HttpResponse.json(matchingEvents)
   }),
 ]

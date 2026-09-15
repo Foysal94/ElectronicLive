@@ -19,6 +19,12 @@ describe('fetchEvents Client', () => {
     expect(results).toEqual([])
   })
 
+  it('Should_return_empty_array_when_query_yields_no_keyword_matches', async () => {
+    const results = await fetchEvents('NonexistentArtist')
+
+    expect(results).toEqual([])
+  })
+
   it('Should_throw_ApiError_with_details_when_server_returns_502_bad_gateway', async () => {
     const errorPromise = fetchEvents('error-502')
 
