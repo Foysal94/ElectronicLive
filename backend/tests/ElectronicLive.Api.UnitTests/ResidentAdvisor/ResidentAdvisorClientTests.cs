@@ -154,6 +154,49 @@ public class ResidentAdvisorClientTests
         result.ShouldHaveSingleItem().Id.ShouldBe("1");
     }
 
+    [Fact]
+    public async Task Should_FilterOutPastEvents_WhenSearchTypeIsPastEvent_OrDateInPast()
+    {
+        const string json = """
+            {
+              "data": {
+                "search": [
+                  { "id": "1", "areaName": "London", "searchType": "PASTEVENT", "date": "2030-01-01" },
+                  { "id": "2", "areaName": "London", "searchType": "UPCOMINGEVENT", "date": "2020-01-01" },
+                  { "id": "3", "areaName": "London", "searchType": "UPCOMINGEVENT", "date": "2030-01-01" }
+                ]
+              }
+            }
+            """;
+
+        var (client, _) = CreateClient(responseBody: json);
+
+        var result = await client.SearchEventsAsync("Bicep", "London");
+
+        result.ShouldHaveSingleItem().Id.ShouldBe("3");
+    }
+
+    [Fact]
+    public async Task Should_FilterOutEvents_WhenCountryIsNotUnitedKingdom()
+    {
+        const string json = """
+            {
+              "data": {
+                "search": [
+                  { "id": "1", "areaName": "London", "countryName": "Canada" },
+                  { "id": "2", "areaName": "London", "countryName": "United Kingdom" }
+                ]
+              }
+            }
+            """;
+
+        var (client, _) = CreateClient(responseBody: json);
+
+        var result = await client.SearchEventsAsync("Bicep", "London");
+
+        result.ShouldHaveSingleItem().Id.ShouldBe("2");
+    }
+
     private static (ResidentAdvisorClient Client, CapturingHttpMessageHandler Handler) CreateClient(
         HttpStatusCode statusCode = HttpStatusCode.OK,
         string responseBody = "{\"data\":{\"search\":[]}}",

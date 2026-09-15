@@ -77,14 +77,15 @@ public sealed class EventDeduplicator : IEventDeduplicator
     private static EventResponse EnsureOffers(EventResponse ev) =>
         ev.Offers is not null ? ev : ev with { Offers = [new EventTicketOffer(ev.Provider, ev.TicketUrl, ev.Status)] };
 
+    // Prioritize confirmed statuses over Unknown so unverified provider data does not overwrite verified SoldOut or Cancelled states
     private static int StatusPriority(EventStatus status) =>
         status switch
         {
             EventStatus.OnSale => 5,
-            EventStatus.Unknown => 4,
+            EventStatus.SoldOut => 4,
             EventStatus.Postponed => 3,
-            EventStatus.SoldOut => 2,
-            EventStatus.Cancelled => 1,
+            EventStatus.Cancelled => 2,
+            EventStatus.Unknown => 1,
             _ => 0,
         };
 

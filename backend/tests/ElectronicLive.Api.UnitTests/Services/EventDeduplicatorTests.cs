@@ -274,4 +274,35 @@ public class EventDeduplicatorTests
                 ignoreOrder: true
             );
     }
+
+    [Fact]
+    public void Should_PrioritizeVerifiedSoldOut_OverUnverifiedUnknown()
+    {
+        var tmEvent = new EventResponse(
+            "tm-1",
+            "Bicep Live",
+            "Drumsheds",
+            new DateOnly(2026, 11, 26),
+            new TimeOnly(19, 0),
+            "https://ticketmaster.com/bicep",
+            EventStatus.SoldOut,
+            EventProvider.Ticketmaster
+        );
+        var raEvent = new EventResponse(
+            "ra-1",
+            "Bicep Live",
+            "Drumsheds",
+            new DateOnly(2026, 11, 26),
+            new TimeOnly(19, 0),
+            "https://ra.co/events/ra-1",
+            EventStatus.Unknown,
+            EventProvider.ResidentAdvisor
+        );
+
+        var result = _sut.Deduplicate([tmEvent, raEvent]);
+
+        var ev = result.ShouldHaveSingleItem();
+        ev.Status.ShouldBe(EventStatus.SoldOut);
+        ev.Provider.ShouldBe(EventProvider.Ticketmaster);
+    }
 }

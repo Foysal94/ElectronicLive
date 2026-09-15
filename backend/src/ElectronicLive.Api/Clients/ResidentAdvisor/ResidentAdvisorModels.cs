@@ -47,7 +47,8 @@ internal sealed record RaSearchItem(
         )
         {
             date = DateOnly.FromDateTime(dt);
-            if (Date.Contains('T') || Date.Contains(':'))
+            // RA serializes date-only timestamps as midnight (T00:00:00.000); ignore midnight so deduplication does not pick 00:00 over real door times
+            if ((Date.Contains('T') || Date.Contains(':')) && dt.TimeOfDay != TimeSpan.Zero)
             {
                 time = TimeOnly.FromDateTime(dt);
             }
@@ -87,9 +88,10 @@ internal sealed record RaSearchItem(
 
     private static EventStatus ResolveStatus(string? title)
     {
+        // RA search results do not expose ticketing availability; default unverified titles to Unknown so verified statuses take priority
         if (string.IsNullOrWhiteSpace(title))
         {
-            return EventStatus.OnSale;
+            return EventStatus.Unknown;
         }
 
         if (title.Contains("sold out", StringComparison.OrdinalIgnoreCase))
@@ -110,6 +112,6 @@ internal sealed record RaSearchItem(
             return EventStatus.Postponed;
         }
 
-        return EventStatus.OnSale;
+        return EventStatus.Unknown;
     }
 }

@@ -27,7 +27,7 @@ public class ResidentAdvisorModelsTests
         result.Date.ShouldBe(new DateOnly(2026, 11, 26));
         result.Time.ShouldBe(new TimeOnly(20, 0, 0));
         result.TicketUrl.ShouldBe("https://ra.co/events/ra-1");
-        result.Status.ShouldBe(EventStatus.OnSale);
+        result.Status.ShouldBe(EventStatus.Unknown);
         result.Provider.ShouldBe(EventProvider.ResidentAdvisor);
     }
 
@@ -57,7 +57,7 @@ public class ResidentAdvisorModelsTests
         result.Date.ShouldBeNull();
         result.Time.ShouldBeNull();
         result.TicketUrl.ShouldBeNull();
-        result.Status.ShouldBe(EventStatus.OnSale);
+        result.Status.ShouldBe(EventStatus.Unknown);
         result.Provider.ShouldBe(EventProvider.ResidentAdvisor);
     }
 
@@ -67,7 +67,7 @@ public class ResidentAdvisorModelsTests
     [InlineData("Floating Points - Cancelled", EventStatus.Cancelled)]
     [InlineData("Overmono (Canceled)", EventStatus.Cancelled)]
     [InlineData("Bonobo (Postponed)", EventStatus.Postponed)]
-    [InlineData("Barry Can't Swim Live", EventStatus.OnSale)]
+    [InlineData("Barry Can't Swim Live", EventStatus.Unknown)]
     public void Should_DetectStatusFromTitle(string title, EventStatus expected)
     {
         var item = new RaSearchItem("1", title, "UPCOMINGEVENT", null, null, "Venue", "London", "UK");
@@ -98,6 +98,26 @@ public class ResidentAdvisorModelsTests
     public void Should_HandleDateWithoutTime_Correctly()
     {
         var item = new RaSearchItem("1", "Event", "UPCOMINGEVENT", null, "2026-11-20", "Venue", "London", "UK");
+
+        var result = item.ToEventResponse();
+
+        result.Date.ShouldBe(new DateOnly(2026, 11, 20));
+        result.Time.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Should_IgnoreMidnightTime_WhenTimestampTimeIsZero()
+    {
+        var item = new RaSearchItem(
+            "1",
+            "Event",
+            "UPCOMINGEVENT",
+            null,
+            "2026-11-20T00:00:00.000",
+            "Venue",
+            "London",
+            "UK"
+        );
 
         var result = item.ToEventResponse();
 

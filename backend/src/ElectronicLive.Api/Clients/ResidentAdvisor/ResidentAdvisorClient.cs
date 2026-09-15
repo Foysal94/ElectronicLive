@@ -108,27 +108,48 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
         }
 
         var result = new List<EventResponse>(items.Count);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
         foreach (var item in items)
         {
-            if (!MatchesCity(item.AreaName, targetCity))
+            // RA's global search index returns historical events (PASTEVENT); ignore them so they do not sort to the top of ascending feeds
+            if (string.Equals(item.SearchType, "PASTEVENT", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            result.Add(item.ToEventResponse());
+            if (!MatchesCity(item.AreaName, item.CountryName, targetCity))
+            {
+                continue;
+            }
+
+            var ev = item.ToEventResponse();
+            if (ev.Date.HasValue && ev.Date.Value < today)
+            {
+                continue;
+            }
+
+            result.Add(ev);
         }
 
         return result;
     }
 
-    private static bool MatchesCity(string? areaName, string targetCity)
+    private static bool MatchesCity(string? areaName, string? countryName, string targetCity)
     {
         if (string.IsNullOrWhiteSpace(areaName))
         {
             return false;
         }
 
-        return string.Equals(areaName, targetCity, StringComparison.OrdinalIgnoreCase)
-            || areaName.Contains(targetCity, StringComparison.OrdinalIgnoreCase);
+        if (!string.Equals(areaName.Trim(), targetCity, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // Restrict to UK to prevent global namesake collisions (e.g. London, Canada or Newcastle, Australia)
+        return string.IsNullOrWhiteSpace(countryName)
+            || string.Equals(countryName.Trim(), "United Kingdom", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(countryName.Trim(), "UK", StringComparison.OrdinalIgnoreCase);
     }
 }
