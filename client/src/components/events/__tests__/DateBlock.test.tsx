@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { DateBlock } from './DateBlock'
-import { parseDateOnly } from './utils'
+import { DateBlock } from '../DateBlock'
+import { parseDateOnly } from '../utils'
 
 describe('DateBlock Component', () => {
   it('Should_parse_dates_without_timezone_day_shift', () => {

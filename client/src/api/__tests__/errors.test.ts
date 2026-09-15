@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError, extractProblemDetails } from './errors'
+import { ApiError, extractProblemDetails } from '../errors'
 
 describe('ApiError and Problem Details Extraction', () => {
   it('Should_instantiate_ApiError_with_default_message_from_status', () => {

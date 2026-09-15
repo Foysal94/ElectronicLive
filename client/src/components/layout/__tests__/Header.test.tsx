@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Header } from './Header'
+import { Header } from '../Header'
 
 describe('Header Component', () => {
   it('Should_render_header_with_branding_and_attribution', () => {

@@ -4,8 +4,8 @@ import {
   mockMultiProviderEvent,
   mockSingleProviderEvent,
   mockTwoProviderEvent,
-} from '../../test/mocks/fixtures'
-import { EventRow } from './EventRow'
+} from '../../../test/mocks/fixtures'
+import { EventRow } from '../EventRow'
 
 describe('EventRow Component', () => {
   it('Should_render_event_with_single_provider', () => {

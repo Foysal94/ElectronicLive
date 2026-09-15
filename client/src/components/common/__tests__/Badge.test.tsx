@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Badge } from './Badge'
+import { Badge } from '../Badge'
 
 describe('Badge Component', () => {
   it('Should_render_on_sale_badge_with_correct_label_and_styles', () => {

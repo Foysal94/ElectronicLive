@@ -46,6 +46,7 @@
 - **Semantic HTML & A11y:** Use semantic elements (`<header>`, `<main>`, `<section>`, `<article>`, `<button type="button">`, `<input type="search">`). All icon-only interactive controls must declare an explicit `aria-label`.
 
 ## Testing Standards
+- **Test Structure (Pattern B):** All unit and component tests must be placed in dedicated `__tests__/` subdirectories within their corresponding domain or component folders (e.g., `src/components/events/__tests__/EventRow.test.tsx`). Keep component directory listings clean and free of spec files.
 - **Test Naming:** All test cases in Vitest must strictly follow the naming pattern of `Should_...` (e.g., `it('Should_render_results_when_query_succeeds', ...)`).
 - **Tooling:** Use Vitest + React Testing Library + `@testing-library/user-event`. Enzyme is strictly forbidden.
 - **User-Centric Queries:** Always query the DOM via Testing Library user-facing roles (`getByRole`, `getByLabelText`). Never query by CSS class names, element IDs, or DOM hierarchy.
