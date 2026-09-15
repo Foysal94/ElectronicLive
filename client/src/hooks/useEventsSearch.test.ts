@@ -27,6 +27,7 @@ describe('useEventsSearch Hook', () => {
     })
 
     expect(result.current.isIdle).toBe(true)
+    expect(result.current.isPending).toBe(false)
     expect(result.current.isFetching).toBe(false)
     expect(result.current.events).toEqual([])
     expect(result.current.isError).toBe(false)

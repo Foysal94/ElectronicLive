@@ -27,7 +27,7 @@ export function useEventsSearch(query: string, city = 'London'): UseEventsSearch
 
   return {
     events: data ?? [],
-    isPending,
+    isPending: !isIdle && isPending,
     isFetching,
     isError,
     error: error ?? null,
