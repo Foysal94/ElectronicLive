@@ -1,4 +1,4 @@
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Exceptions;
 
 public sealed class AllProvidersUnavailableException : Exception
 {

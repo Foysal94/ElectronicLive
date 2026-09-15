@@ -1,4 +1,5 @@
 using ElectronicLive.Api.Clients;
+using ElectronicLive.Api.Exceptions;
 using ElectronicLive.Api.Models;
 
 namespace ElectronicLive.Api.Services;

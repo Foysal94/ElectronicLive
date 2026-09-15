@@ -1,3 +1,4 @@
+using ElectronicLive.Api.Exceptions;
 using ElectronicLive.Api.Models;
 using ElectronicLive.Api.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
