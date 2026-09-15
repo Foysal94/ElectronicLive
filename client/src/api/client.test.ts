@@ -1,7 +1,8 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { ApiError, fetchEvents } from './client'
+import { fetchEvents } from './client'
+import { ApiError } from './errors'
 import type { EventResponse } from './types'
 
 const sampleEvents: EventResponse[] = [
