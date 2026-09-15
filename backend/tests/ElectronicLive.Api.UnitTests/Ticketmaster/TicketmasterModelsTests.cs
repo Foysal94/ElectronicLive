@@ -1,7 +1,7 @@
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Models;
 
-namespace ElectronicLive.Api.UnitTests;
+namespace ElectronicLive.Api.UnitTests.Ticketmaster;
 
 public class TicketmasterModelsTests
 {
