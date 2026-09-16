@@ -1,6 +1,7 @@
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Endpoints;
 using ElectronicLive.Api.Services;
+using Microsoft.Extensions.Caching.Hybrid;
 
 const string CorsPolicyName = "FrontendCorsPolicy";
 
@@ -18,6 +19,14 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddOpenApi();
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(30),
+        LocalCacheExpiration = TimeSpan.FromMinutes(30),
+    };
+});
 builder.Services.AddEventClients(builder.Configuration);
 builder.Services.AddEventServices();
 
