@@ -23,9 +23,9 @@ export function Header({ className = '' }: HeaderProps) {
               <rect x="18" y="4" width="2" height="16" rx="1" />
               <rect x="22" y="9" width="2" height="6" rx="1" />
             </svg>
-            <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#f3f4f6]">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#f3f4f6]">
               ElectronicLive
-            </span>
+            </h1>
           </div>
 
           <span

@@ -176,12 +176,12 @@ graph TD
 ### Chunk 8: Full App Assembly & Integration Suite
 **Objective:** Wire all components into `App.tsx`, synchronize URL deep-linking, and verify full user journey.
 
-1. **Integration (`src/App.tsx`):**
+1. **Integration (`src/app/App.tsx`):**
    - Header $\rightarrow$ SearchBar $\rightarrow$ QuickPills $\rightarrow$ EventList.
    - **URL Synchronization:**
      - Initialize query state from `new URLSearchParams(window.location.search).get('q') || ''`.
      - Update browser URL via `window.history.replaceState` when query changes.
-2. **End-to-End Component Tests (`src/__tests__/App.test.tsx`):**
+2. **End-to-End Component Tests (`src/app/__tests__/App.test.tsx`):**
    - `Should_display_idle_prompt_on_initial_load`
    - `Should_initialize_search_from_url_query_parameter`
    - `Should_execute_search_and_render_events_when_pill_is_clicked`
