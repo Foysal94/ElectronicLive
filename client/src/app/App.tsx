@@ -1,58 +1,33 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/search/SearchBar'
 import { QuickPills } from '../components/search/QuickPills'
 import { EventList } from '../components/events/EventList'
 import { useEventsSearch } from '../hooks/useEventsSearch'
-
-function getInitialQuery(): string {
-  if (typeof window === 'undefined') return ''
-  return new URLSearchParams(window.location.search).get('q') || ''
-}
-
-function updateUrlQuery(query: string): void {
-  if (typeof window === 'undefined') return
-  const trimmed = query.trim()
-  const newUrl = trimmed
-    ? `${window.location.pathname}?q=${encodeURIComponent(trimmed)}`
-    : window.location.pathname
-  window.history.replaceState(null, '', newUrl)
-}
+import { useSearchParam } from '../hooks/useSearchParam'
 
 export default function App() {
-  const [searchTerm, setSearchTerm] = useState<string>(getInitialQuery)
-  const [activeQuery, setActiveQuery] = useState<string>(getInitialQuery)
+  const [activeQuery, setActiveQuery] = useSearchParam('q')
+  const [searchTerm, setSearchTerm] = useState<string>(activeQuery)
+  const [prevActiveQuery, setPrevActiveQuery] = useState<string>(activeQuery)
+
+  if (prevActiveQuery !== activeQuery) {
+    setPrevActiveQuery(activeQuery)
+    setSearchTerm(activeQuery)
+  }
 
   const { events, isFetching, isError, error, refetch, isIdle } = useEventsSearch(activeQuery)
 
-  useEffect(() => {
-    const handlePopState = () => {
-      const q = getInitialQuery()
-      setSearchTerm(q)
-      setActiveQuery(q)
-    }
-
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
-
   const handleSearch = (query: string) => {
-    const trimmed = query.trim()
-    setActiveQuery(trimmed)
-    updateUrlQuery(trimmed)
+    setActiveQuery(query)
   }
 
   const handleSelectPill = (pill: string) => {
-    const trimmed = pill.trim()
-    setSearchTerm(trimmed)
-    setActiveQuery(trimmed)
-    updateUrlQuery(trimmed)
+    setActiveQuery(pill)
   }
 
   const handleClear = () => {
-    setSearchTerm('')
     setActiveQuery('')
-    updateUrlQuery('')
   }
 
   return (
