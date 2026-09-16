@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createQueryWrapper } from '../test/utils'
+import { createQueryWrapper } from '../../test/utils'
 import App from '../App'
 
 describe('App Integration Suite', () => {

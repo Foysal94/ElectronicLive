@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Header } from './components/layout/Header'
-import { SearchBar } from './components/search/SearchBar'
-import { QuickPills } from './components/search/QuickPills'
-import { EventList } from './components/events/EventList'
-import { useEventsSearch } from './hooks/useEventsSearch'
+import { Header } from '../components/layout/Header'
+import { SearchBar } from '../components/search/SearchBar'
+import { QuickPills } from '../components/search/QuickPills'
+import { EventList } from '../components/events/EventList'
+import { useEventsSearch } from '../hooks/useEventsSearch'
 
 function getInitialQuery(): string {
   if (typeof window === 'undefined') return ''
