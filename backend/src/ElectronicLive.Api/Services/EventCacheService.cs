@@ -3,17 +3,14 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace ElectronicLive.Api.Services;
 
-public sealed class CachedEventAggregatorService(
-    IEventAggregatorService inner,
-    HybridCache cache,
-    ILogger<CachedEventAggregatorService> logger
-) : IEventAggregatorService
+public sealed class EventCacheService(HybridCache cache, ILogger<EventCacheService> logger) : IEventCacheService
 {
     private static readonly string[] EventTags = ["events"];
 
-    public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
+    public async Task<IReadOnlyList<EventResponse>> GetOrAddAsync(
         string query,
-        string city = "London",
+        string city,
+        Func<CancellationToken, Task<IReadOnlyList<EventResponse>>> factory,
         CancellationToken cancellationToken = default
     )
     {
@@ -31,11 +28,11 @@ public sealed class CachedEventAggregatorService(
             async ct =>
             {
                 logger.LogInformation(
-                    "Cache miss for query '{Query}' in city '{City}'. Fetching from upstream providers.",
+                    "Cache miss for query '{Query}' in city '{City}'. Executing fetch factory.",
                     targetQuery,
                     targetCity
                 );
-                return await inner.SearchEventsAsync(targetQuery, targetCity, ct);
+                return await factory(ct);
             },
             tags: EventTags,
             cancellationToken: cancellationToken

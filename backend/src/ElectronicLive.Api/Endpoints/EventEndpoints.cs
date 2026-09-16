@@ -21,6 +21,7 @@ public static class EventEndpoints
     > SearchEvents(
         string? query,
         IEventAggregatorService eventAggregatorService,
+        IEventCacheService eventCacheService,
         string? city = "London",
         CancellationToken cancellationToken = default
     )
@@ -33,9 +34,15 @@ public static class EventEndpoints
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
+        var targetQuery = query.Trim();
         try
         {
-            var events = await eventAggregatorService.SearchEventsAsync(query.Trim(), targetCity, cancellationToken);
+            var events = await eventCacheService.GetOrAddAsync(
+                targetQuery,
+                targetCity,
+                ct => eventAggregatorService.SearchEventsAsync(targetQuery, targetCity, ct),
+                cancellationToken
+            );
             return TypedResults.Ok(events);
         }
         catch (AllProvidersUnavailableException)
