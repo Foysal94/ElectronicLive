@@ -11,26 +11,26 @@ describe('EventRow Component', () => {
   it('Should_render_event_with_single_provider', () => {
     render(<EventRow event={mockSingleProviderEvent} />)
 
-    expect(screen.getAllByText('Bicep (DJ Set)').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Fabric').length).toBeGreaterThan(0)
+    expect(screen.getByText('Bicep (DJ Set)')).toBeInTheDocument()
+    expect(screen.getByText('Fabric')).toBeInTheDocument()
   })
 
   it('Should_render_event_with_two_providers', () => {
     render(<EventRow event={mockTwoProviderEvent} />)
 
-    expect(screen.getAllByText('Charlotte de Witte - KNTXT London').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('FOLD').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Resident Advisor').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Skiddle').length).toBeGreaterThan(0)
+    expect(screen.getByText('Charlotte de Witte - KNTXT London')).toBeInTheDocument()
+    expect(screen.getByText('FOLD')).toBeInTheDocument()
+    expect(screen.getByText('Resident Advisor')).toBeInTheDocument()
+    expect(screen.getByText('Skiddle')).toBeInTheDocument()
   })
 
   it('Should_render_event_with_three_providers', () => {
     render(<EventRow event={mockMultiProviderEvent} />)
 
-    expect(screen.getAllByText('Amelie Lens - Exhale London').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Drumsheds').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Resident Advisor').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Skiddle').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Ticketmaster').length).toBeGreaterThan(0)
+    expect(screen.getByText('Amelie Lens - Exhale London')).toBeInTheDocument()
+    expect(screen.getByText('Drumsheds')).toBeInTheDocument()
+    expect(screen.getByText('Resident Advisor')).toBeInTheDocument()
+    expect(screen.getByText('Skiddle')).toBeInTheDocument()
+    expect(screen.getByText('Ticketmaster')).toBeInTheDocument()
   })
 })
