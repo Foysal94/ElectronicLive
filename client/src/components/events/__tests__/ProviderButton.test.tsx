@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { ProviderButton } from './ProviderButton'
+import { ProviderButton } from '../ProviderButton'
 
 describe('ProviderButton Component', () => {
   it('Should_render_provider_outbound_ticket_link_with_badge', () => {

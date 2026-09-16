@@ -5,7 +5,7 @@ import {
   isEventResponseList,
   isEventStatus,
   isEventTicketOffer,
-} from './types'
+} from '../types'
 
 describe('Domain Type Guards', () => {
   it('Should_validate_valid_event_providers', () => {

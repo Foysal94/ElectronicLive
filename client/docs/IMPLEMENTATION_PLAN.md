@@ -88,7 +88,7 @@ graph TD
      - Expose active network status: `const isFetching = queryResult.isFetching;`.
      - In consumers, gate loading skeleton strictly on `isFetching`. Never check `isPending` alone when query is disabled.
    - Exposes: `{ events: data ?? [], isPending, isFetching, isError, error, refetch, isIdle }`.
-2. **Unit Tests (`src/hooks/useEventsSearch.test.ts`):**
+2. **Unit Tests (`src/hooks/__tests__/useEventsSearch.test.ts`):**
    - `Should_fetch_and_cache_events_for_valid_query`
    - `Should_remain_idle_and_not_fetch_when_query_is_empty`
    - `Should_handle_api_errors_gracefully`
@@ -181,7 +181,7 @@ graph TD
    - **URL Synchronization:**
      - Initialize query state from `new URLSearchParams(window.location.search).get('q') || ''`.
      - Update browser URL via `window.history.replaceState` when query changes.
-2. **End-to-End Component Tests (`src/App.test.tsx`):**
+2. **End-to-End Component Tests (`src/__tests__/App.test.tsx`):**
    - `Should_display_idle_prompt_on_initial_load`
    - `Should_initialize_search_from_url_query_parameter`
    - `Should_execute_search_and_render_events_when_pill_is_clicked`

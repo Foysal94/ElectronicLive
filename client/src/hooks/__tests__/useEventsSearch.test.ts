@@ -1,8 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { ApiError } from '../api/errors'
-import { createQueryWrapper } from '../test/utils'
-import { useEventsSearch } from './useEventsSearch'
+import { ApiError } from '../../api/errors'
+import { createQueryWrapper } from '../../test/utils'
+import { useEventsSearch } from '../useEventsSearch'
 
 describe('useEventsSearch Hook', () => {
   it('Should_fetch_and_cache_events_for_valid_query', async () => {

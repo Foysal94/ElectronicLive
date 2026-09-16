@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import App from './App'
+import App from '../App'
 
 describe('App', () => {
   it('Should_render_app_heading_and_tagline', () => {

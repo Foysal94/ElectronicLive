@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { EventResponse } from '../../api/types'
-import { mockMultiProviderEvent, mockSingleProviderEvent } from '../../test/mocks/fixtures'
-import { EventList } from './EventList'
-import { sortEventsChronologically } from './utils'
+import type { EventResponse } from '../../../api/types'
+import { mockMultiProviderEvent, mockSingleProviderEvent } from '../../../test/mocks/fixtures'
+import { EventList } from '../EventList'
+import { sortEventsChronologically } from '../utils'
 
 describe('EventList Component', () => {
   it('Should_render_idle_prompt_when_isIdle_is_true', () => {

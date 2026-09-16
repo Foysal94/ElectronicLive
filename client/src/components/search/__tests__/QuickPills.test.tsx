@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { QUICK_ARTISTS, QUICK_VENUES } from './constants'
-import { QuickPills } from './QuickPills'
+import { QUICK_ARTISTS, QUICK_VENUES } from '../constants'
+import { QuickPills } from '../QuickPills'
 
 describe('QuickPills Component', () => {
   it('Should_render_artist_and_venue_pill_groups', () => {

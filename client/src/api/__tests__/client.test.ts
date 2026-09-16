@@ -1,8 +1,8 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { server } from '../test/mocks/server'
-import { fetchEvents } from './client'
-import { ApiError } from './errors'
+import { server } from '../../test/mocks/server'
+import { fetchEvents } from '../client'
+import { ApiError } from '../errors'
 
 describe('fetchEvents Client', () => {
   it('Should_fetch_events_successfully_for_valid_query', async () => {
