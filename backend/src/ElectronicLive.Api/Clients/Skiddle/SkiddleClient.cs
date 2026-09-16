@@ -41,12 +41,13 @@ public sealed class SkiddleClient : ISkiddleClient
             ? $"&latitude={coordinates.Value.Latitude.ToString(CultureInfo.InvariantCulture)}&longitude={coordinates.Value.Longitude.ToString(CultureInfo.InvariantCulture)}&radius=25"
             : string.Empty;
 
-        // Skiddle's keyword parameter indexes across event titles, line-up artists, and venues
+        // Skiddle's keyword parameter indexes across event titles, line-up artists, and venues.
+        // description=1 requests the artists array so loose OR matches can be filtered down to query relevance.
         var requestUri =
             $"events/search/?api_key={Uri.EscapeDataString(_apiKey)}"
             + $"&keyword={Uri.EscapeDataString(query)}"
             + geoQuery
-            + "&eventcode=LIVE,CLUB,FEST&order=date";
+            + "&eventcode=LIVE,CLUB,FEST&order=date&description=1";
 
         SkiddleResponse? payload;
         try
@@ -100,10 +101,62 @@ public sealed class SkiddleClient : ISkiddleClient
                 continue;
             }
 
+            if (!MatchesQuery(query, ev))
+            {
+                continue;
+            }
+
             result.Add(ev.ToEventResponse());
         }
 
         return result;
+    }
+
+    internal static bool MatchesQuery(string query, SkiddleEvent ev)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return true;
+        }
+
+        var trimmedQuery = query.Trim();
+
+        if (ev.EventName?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+
+        if (ev.Venue?.Name?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+
+        if (
+            ev.Artists?.Any(a =>
+                !string.IsNullOrWhiteSpace(a.Name) && a.Name.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)
+            ) == true
+        )
+        {
+            return true;
+        }
+
+        var tokens = trimmedQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length > 1)
+        {
+            var artistsText =
+                ev.Artists != null
+                    ? string.Join(" ", ev.Artists.Where(a => !string.IsNullOrWhiteSpace(a.Name)).Select(a => a.Name))
+                    : string.Empty;
+
+            var searchable = $"{ev.EventName} {ev.Venue?.Name} {artistsText}";
+
+            if (tokens.All(token => searchable.Contains(token, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static (double Latitude, double Longitude)? ResolveCoordinates(string city) =>
