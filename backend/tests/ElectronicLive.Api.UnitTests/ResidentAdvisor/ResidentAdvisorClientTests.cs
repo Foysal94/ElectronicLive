@@ -197,6 +197,39 @@ public class ResidentAdvisorClientTests
         result.ShouldHaveSingleItem().Id.ShouldBe("2");
     }
 
+    [Fact]
+    public async Task Should_ReturnTrue_WhenProbeHealthAsyncSucceeds()
+    {
+        var (client, handler) = CreateClient(statusCode: HttpStatusCode.OK);
+
+        var result = await client.ProbeHealthAsync();
+
+        result.ShouldBeTrue();
+        handler.LastRequest.ShouldNotBeNull();
+        handler.LastRequest.Method.ShouldBe(HttpMethod.Post);
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_WhenProbeHealthAsyncReturns500()
+    {
+        var (client, _) = CreateClient(statusCode: HttpStatusCode.InternalServerError);
+
+        var result = await client.ProbeHealthAsync();
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_WhenProbeHealthAsyncReturnsGraphQLErrors()
+    {
+        const string jsonWithErrors = "{\"errors\":[{\"message\":\"Server error\"}]}";
+        var (client, _) = CreateClient(responseBody: jsonWithErrors);
+
+        var result = await client.ProbeHealthAsync();
+
+        result.ShouldBeFalse();
+    }
+
     private static (ResidentAdvisorClient Client, CapturingHttpMessageHandler Handler) CreateClient(
         HttpStatusCode statusCode = HttpStatusCode.OK,
         string responseBody = "{\"data\":{\"search\":[]}}",

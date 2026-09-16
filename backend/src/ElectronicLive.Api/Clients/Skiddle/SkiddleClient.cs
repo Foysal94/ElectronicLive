@@ -174,4 +174,24 @@ public sealed class SkiddleClient : ISkiddleClient
             "newcastle" => (54.9783, -1.6178),
             _ => null,
         };
+
+    public async Task<bool> ProbeHealthAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            return false;
+        }
+
+        var requestUri = $"events/search/?api_key={Uri.EscapeDataString(_apiKey)}&limit=1";
+        try
+        {
+            using var response = await _httpClient.GetAsync(requestUri, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Skiddle health probe failed.");
+            return false;
+        }
+    }
 }

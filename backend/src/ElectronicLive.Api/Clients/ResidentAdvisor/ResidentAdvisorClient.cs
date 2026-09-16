@@ -149,4 +149,30 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
             || string.Equals(countryName.Trim(), "United Kingdom", StringComparison.OrdinalIgnoreCase)
             || string.Equals(countryName.Trim(), "UK", StringComparison.OrdinalIgnoreCase);
     }
+
+    public async Task<bool> ProbeHealthAsync(CancellationToken cancellationToken = default)
+    {
+        var requestPayload = new RaGraphQLRequest(SearchQuery, new { searchTerm = "London", limit = 1 });
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "graphql",
+                requestPayload,
+                JsonOptions,
+                cancellationToken
+            );
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<RaGraphQLResponse>(JsonOptions, cancellationToken);
+            return payload?.HasErrors != true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Resident Advisor health probe failed.");
+            return false;
+        }
+    }
 }

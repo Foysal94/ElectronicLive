@@ -182,6 +182,39 @@ public class TicketmasterClientTests
         result.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Should_ReturnFalse_WhenProbeHealthAsyncAndApiKeyMissing()
+    {
+        var (client, handler) = CreateClient(apiKey: string.Empty);
+
+        var result = await client.ProbeHealthAsync();
+
+        result.ShouldBeFalse();
+        handler.LastRequest.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Should_ReturnTrue_WhenProbeHealthAsyncSucceeds()
+    {
+        var (client, handler) = CreateClient(statusCode: HttpStatusCode.OK);
+
+        var result = await client.ProbeHealthAsync();
+
+        result.ShouldBeTrue();
+        handler.LastRequest.ShouldNotBeNull();
+        handler.LastRequest.RequestUri!.PathAndQuery.ShouldContain("size=1");
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_WhenProbeHealthAsyncReturns500()
+    {
+        var (client, _) = CreateClient(statusCode: HttpStatusCode.InternalServerError);
+
+        var result = await client.ProbeHealthAsync();
+
+        result.ShouldBeFalse();
+    }
+
     private static (TicketmasterClient Client, CapturingHttpMessageHandler Handler) CreateClient(
         HttpStatusCode statusCode = HttpStatusCode.OK,
         string responseBody = "{}",

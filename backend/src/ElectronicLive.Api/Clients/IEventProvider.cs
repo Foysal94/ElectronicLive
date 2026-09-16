@@ -11,4 +11,6 @@ public interface IEventProvider
         string city = "London",
         CancellationToken cancellationToken = default
     );
+
+    Task<bool> ProbeHealthAsync(CancellationToken cancellationToken = default);
 }

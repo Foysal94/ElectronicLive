@@ -1,5 +1,6 @@
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Endpoints;
+using ElectronicLive.Api.Infrastructure.Health;
 using ElectronicLive.Api.Services;
 
 const string CorsPolicyName = "FrontendCorsPolicy";
@@ -21,6 +22,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddEventClients(builder.Configuration);
 builder.Services.AddEventServices();
 builder.Services.AddEventCaching(builder.Configuration);
+builder.Services.AddEventHealthChecks();
 
 var app = builder.Build();
 
@@ -33,8 +35,7 @@ app.UseCors(CorsPolicyName);
 
 app.UseHttpsRedirection();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
-
+app.MapEventHealthCheckEndpoints();
 app.MapEventEndpoints();
 
 await app.RunAsync();

@@ -88,4 +88,24 @@ public sealed class TicketmasterClient : ITicketmasterClient
 
         return result;
     }
+
+    public async Task<bool> ProbeHealthAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            return false;
+        }
+
+        var requestUri = $"events.json?apikey={Uri.EscapeDataString(_apiKey)}&size=1&countryCode=GB";
+        try
+        {
+            using var response = await _httpClient.GetAsync(requestUri, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Ticketmaster health probe failed.");
+            return false;
+        }
+    }
 }
