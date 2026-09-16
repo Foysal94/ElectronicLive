@@ -11,6 +11,24 @@ namespace ElectronicLive.Api.UnitTests.Endpoints;
 public class EventEndpointsTests
 {
     private readonly IEventAggregatorService _aggregatorService = Substitute.For<IEventAggregatorService>();
+    private readonly IEventCacheService _cacheService = Substitute.For<IEventCacheService>();
+
+    public EventEndpointsTests()
+    {
+        _cacheService
+            .GetOrAddAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<Func<CancellationToken, Task<IReadOnlyList<EventResponse>>>>(),
+                Arg.Any<CancellationToken>()
+            )
+            .Returns(callInfo =>
+            {
+                var factory = callInfo.Arg<Func<CancellationToken, Task<IReadOnlyList<EventResponse>>>>();
+                var ct = callInfo.Arg<CancellationToken>();
+                return factory(ct);
+            });
+    }
 
     [Theory]
     [InlineData(null)]
@@ -18,12 +36,13 @@ public class EventEndpointsTests
     [InlineData("   ")]
     public async Task Should_ReturnValidationProblem_WhenQueryIsEmpty(string? query)
     {
-        var result = await EventEndpoints.SearchEvents(query, _aggregatorService);
+        var result = await EventEndpoints.SearchEvents(query, _aggregatorService, _cacheService);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
         validationProblem.ProblemDetails.Errors.ShouldContainKey("query");
         validationProblem.ProblemDetails.Errors["query"].ShouldContain("Search query parameter is required.");
+        await _cacheService.DidNotReceiveWithAnyArgs().GetOrAddAsync(default!, default!, default!, default);
         await _aggregatorService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default!);
     }
 
@@ -45,7 +64,7 @@ public class EventEndpointsTests
         };
         _aggregatorService.SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>()).Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService);
+        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService, _cacheService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -56,7 +75,7 @@ public class EventEndpointsTests
     {
         _aggregatorService.SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
 
-        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService, city: "Manchester");
+        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService, _cacheService, city: "Manchester");
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         await _aggregatorService.Received(1).SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>());
@@ -70,7 +89,7 @@ public class EventEndpointsTests
     {
         _aggregatorService.SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>()).Returns([]);
 
-        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService, city: city);
+        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService, _cacheService, city: city);
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         await _aggregatorService.Received(1).SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>());
@@ -81,7 +100,7 @@ public class EventEndpointsTests
     {
         _aggregatorService.SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
 
-        await EventEndpoints.SearchEvents("  fabric  ", _aggregatorService, city: "  Manchester  ");
+        await EventEndpoints.SearchEvents("  fabric  ", _aggregatorService, _cacheService, city: "  Manchester  ");
 
         await _aggregatorService.Received(1).SearchEventsAsync("fabric", "Manchester", Arg.Any<CancellationToken>());
     }
@@ -92,7 +111,7 @@ public class EventEndpointsTests
         using var cts = new CancellationTokenSource();
         _aggregatorService.SearchEventsAsync("fabric", "London", cts.Token).Returns([]);
 
-        await EventEndpoints.SearchEvents("fabric", _aggregatorService, cancellationToken: cts.Token);
+        await EventEndpoints.SearchEvents("fabric", _aggregatorService, _cacheService, cancellationToken: cts.Token);
 
         await _aggregatorService.Received(1).SearchEventsAsync("fabric", "London", cts.Token);
     }
@@ -104,7 +123,7 @@ public class EventEndpointsTests
             .SearchEventsAsync("fabric", "London", Arg.Any<CancellationToken>())
             .ThrowsAsync(new AllProvidersUnavailableException("fabric", 3));
 
-        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService);
+        var result = await EventEndpoints.SearchEvents("fabric", _aggregatorService, _cacheService);
 
         var problemResult = result.Result.ShouldBeOfType<ProblemHttpResult>();
         problemResult.StatusCode.ShouldBe(StatusCodes.Status502BadGateway);
