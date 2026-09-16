@@ -19,7 +19,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddOpenApi();
 builder.Services.AddEventClients(builder.Configuration);
-builder.Services.AddEventServices(builder.Configuration);
+builder.Services.AddEventServices();
+builder.Services.AddEventCaching(builder.Configuration);
 
 var app = builder.Build();
 

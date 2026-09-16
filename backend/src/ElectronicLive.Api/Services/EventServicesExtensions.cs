@@ -4,11 +4,16 @@ namespace ElectronicLive.Api.Services;
 
 public static class EventServicesExtensions
 {
-    public static IServiceCollection AddEventServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddEventServices(this IServiceCollection services)
     {
         services.AddSingleton<IEventDeduplicator, EventDeduplicator>();
         services.AddTransient<IEventAggregatorService, EventAggregatorService>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddEventCaching(this IServiceCollection services, IConfiguration configuration)
+    {
         var cacheExpirationMinutes = configuration.GetValue("Cache:ExpirationMinutes", 30);
         services.AddHybridCache(options =>
         {
