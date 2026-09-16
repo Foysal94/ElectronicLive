@@ -21,7 +21,8 @@ internal sealed record SkiddleEvent(
     string? Link,
     [property: JsonPropertyName("cancelled")] object? Cancelled,
     [property: JsonPropertyName("tickets")] object? Tickets,
-    SkiddleVenue? Venue
+    SkiddleVenue? Venue,
+    [property: JsonPropertyName("artists")] List<SkiddleArtist>? Artists = null
 )
 {
     public EventResponse ToEventResponse()
@@ -108,3 +109,8 @@ file static class SkiddleTypeCoercion
 internal sealed record SkiddleVenue(string? Name, string? Town);
 
 internal sealed record SkiddleOpeningTimes([property: JsonPropertyName("doorsopen")] string? DoorsOpen);
+
+internal sealed record SkiddleArtist(
+    [property: JsonPropertyName("artistid")] string? ArtistId,
+    [property: JsonPropertyName("name")] string? Name
+);
