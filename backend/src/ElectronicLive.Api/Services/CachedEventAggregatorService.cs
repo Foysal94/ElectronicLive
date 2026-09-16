@@ -22,23 +22,20 @@ public sealed class CachedEventAggregatorService(
             return [];
         }
 
-        var normalizedCity = string.IsNullOrWhiteSpace(city) ? "london" : city.Trim().ToLowerInvariant();
-        var normalizedQuery = query.Trim().ToLowerInvariant();
-        var cacheKey = $"events:agg:{normalizedCity}:{normalizedQuery}";
+        var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
+        var targetQuery = query.Trim();
+        var cacheKey = $"events:agg:{targetCity.ToLowerInvariant()}:{targetQuery.ToLowerInvariant()}";
 
         return await cache.GetOrCreateAsync(
             cacheKey,
             async ct =>
             {
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation(
-                        "Cache miss for query '{Query}' in city '{City}'. Fetching from upstream providers.",
-                        query,
-                        city
-                    );
-                }
-                return await inner.SearchEventsAsync(query, city, ct);
+                logger.LogInformation(
+                    "Cache miss for query '{Query}' in city '{City}'. Fetching from upstream providers.",
+                    targetQuery,
+                    targetCity
+                );
+                return await inner.SearchEventsAsync(targetQuery, targetCity, ct);
             },
             tags: EventTags,
             cancellationToken: cancellationToken

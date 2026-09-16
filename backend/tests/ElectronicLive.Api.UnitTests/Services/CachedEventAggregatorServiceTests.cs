@@ -99,7 +99,20 @@ public class CachedEventAggregatorServiceTests
         result1.ShouldBe(sampleEvents);
         result2.ShouldBe(sampleEvents);
         result3.ShouldBe(sampleEvents);
-        await _inner.Received(1).SearchEventsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _inner.Received(1).SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_ForwardSanitizedArguments_ToInnerService()
+    {
+        var service = CreateService();
+        var sampleEvents = new List<EventResponse> { CreateSampleEvent() };
+        _inner.SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>()).Returns(sampleEvents);
+
+        var result = await service.SearchEventsAsync("  Bicep  ", "   ");
+
+        result.ShouldBe(sampleEvents);
+        await _inner.Received(1).SearchEventsAsync("Bicep", "London", Arg.Any<CancellationToken>());
     }
 
     [Fact]

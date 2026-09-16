@@ -19,12 +19,13 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddOpenApi();
+var cacheExpirationMinutes = builder.Configuration.GetValue("Cache:ExpirationMinutes", 30);
 builder.Services.AddHybridCache(options =>
 {
     options.DefaultEntryOptions = new HybridCacheEntryOptions
     {
-        Expiration = TimeSpan.FromMinutes(30),
-        LocalCacheExpiration = TimeSpan.FromMinutes(30),
+        Expiration = TimeSpan.FromMinutes(cacheExpirationMinutes),
+        LocalCacheExpiration = TimeSpan.FromMinutes(cacheExpirationMinutes),
     };
 });
 builder.Services.AddEventClients(builder.Configuration);
