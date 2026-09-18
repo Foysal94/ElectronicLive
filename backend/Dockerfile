@@ -16,7 +16,7 @@ COPY backend/src/ src/
 WORKDIR /src/src/ElectronicLive.Api
 
 # Publish release build
-RUN dotnet publish ElectronicLive.Api.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish ElectronicLive.Api.csproj -c Release -o /app/publish --no-restore /p:CSharpier_Bypass=true
 
 # Final lightweight runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS final
