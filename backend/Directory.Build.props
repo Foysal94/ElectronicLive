@@ -8,8 +8,10 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591;CA1848;CA1873</NoWarn>
-    <RestorePackagesPath Condition="'$(RestorePackagesPath)' == '' and '$(OS)' == 'Windows_NT'">$(UserProfile)\.nuget\packages</RestorePackagesPath>
-    <RestorePackagesPath Condition="'$(RestorePackagesPath)' == '' and '$(OS)' != 'Windows_NT'">$(HOME)/.nuget/packages</RestorePackagesPath>
+    <RestorePackagesPath Condition="'$(RestorePackagesPath)' == '' and '$(OS)' == 'Windows_NT'"
+      >$(UserProfile)\.nuget\packages</RestorePackagesPath>
+    <RestorePackagesPath Condition="'$(RestorePackagesPath)' == '' and '$(OS)' != 'Windows_NT'"
+      >$(HOME)/.nuget/packages</RestorePackagesPath>
   </PropertyGroup>
 
   <!-- Relax rules and disable treat warnings as errors for test projects -->
