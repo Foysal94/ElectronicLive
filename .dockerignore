@@ -1,0 +1,13 @@
+.git
+.github
+.vs
+.vscode
+.idea
+**/bin/
+**/obj/
+**/TestResults/
+**/appsettings.secrets.json
+*.user
+*.suo
+*.log
+README.md
