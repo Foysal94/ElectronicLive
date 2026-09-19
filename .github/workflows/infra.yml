@@ -1,0 +1,69 @@
+name: Infrastructure (Terraform)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: "true"
+  TF_VAR_skiddle_api_key: ${{ secrets.SKIDDLE_API_KEY }}
+  TF_VAR_ticketmaster_api_key: ${{ secrets.TICKETMASTER_API_KEY }}
+
+jobs:
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        if: env.ARM_CLIENT_ID != ''
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: env.ARM_CLIENT_ID != ''
+        run: terraform plan -input=false -no-color
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.ARM_CLIENT_ID != ''
+        run: terraform apply -auto-approve -input=false
