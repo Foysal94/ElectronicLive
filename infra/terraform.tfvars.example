@@ -1,0 +1,14 @@
+# Example Terraform Variables for ElectronicLive
+
+location        = "uksouth"
+environment     = "prod"
+app_name        = "electroniclive"
+container_image = "ghcr.io/foysal94/electroniclive/electroniclive-api:latest"
+min_replicas    = 0
+max_replicas    = 1
+cpu             = 0.25
+memory          = "0.5Gi"
+
+# Pass API keys (or inject via environment variables TF_VAR_skiddle_api_key in CI)
+# skiddle_api_key      = "your-skiddle-key"
+# ticketmaster_api_key = "your-ticketmaster-key"

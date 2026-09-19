@@ -3,8 +3,17 @@ name: Build, Test & Deploy
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'client/**'
+      - '.github/workflows/ci-cd.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'client/**'
+      - '.github/workflows/ci-cd.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
