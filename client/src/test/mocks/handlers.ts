@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 import { mockDefaultEvents } from './fixtures'
 
 export const handlers = [
-  http.get('/api/events/search', ({ request }) => {
+  http.get('*/api/events/search', ({ request }) => {
     const url = new URL(request.url)
     const query = url.searchParams.get('query')
 

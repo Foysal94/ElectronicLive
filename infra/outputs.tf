@@ -23,3 +23,20 @@ output "application_insights_connection_string" {
   value       = azurerm_application_insights.appi.connection_string
   sensitive   = true
 }
+
+output "static_web_app_name" {
+  description = "The name of the deployed Azure Static Web App."
+  value       = azurerm_static_web_app.client.name
+}
+
+output "static_web_app_default_host_name" {
+  description = "The default host name (public URL) of the frontend Static Web App."
+  value       = azurerm_static_web_app.client.default_host_name
+}
+
+output "static_web_app_api_key" {
+  description = "The deployment token for Azure Static Web App."
+  value       = azurerm_static_web_app.client.api_key
+  sensitive   = true
+}
+
