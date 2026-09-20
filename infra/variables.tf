@@ -61,8 +61,8 @@ variable "ticketmaster_api_key" {
 }
 
 variable "static_web_app_location" {
-  description = "The Azure region for the Static Web App host (northeurope, westeurope, eastus2, centralus, westus2)."
+  description = "The Azure region for the Static Web App host (eastus2, centralus, westus2, westeurope, eastasia)."
   type        = string
-  default     = "northeurope"
+  default     = "eastus2"
 }
 
