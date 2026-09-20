@@ -65,8 +65,8 @@ jobs:
         if: env.ARM_CLIENT_ID != ''
         run: |
           az group create --name rg-electroniclive-tfstate --location uksouth
-          az storage account create --name stelivtfstate741e --resource-group rg-electroniclive-tfstate --location uksouth --sku Standard_LRS --allow-blob-public-access false --min-tls-version TLS1_2
-          az storage container create --name tfstate --account-name stelivtfstate741e --auth-mode login
+          az storage account create --name stelectroniclivetf --resource-group rg-electroniclive-tfstate --location uksouth --sku Standard_LRS --allow-blob-public-access false --min-tls-version TLS1_2
+          az storage container create --name tfstate --account-name stelectroniclivetf --auth-mode login
 
 
       - name: Terraform Init

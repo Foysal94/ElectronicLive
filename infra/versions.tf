@@ -10,7 +10,7 @@ terraform {
 
   backend "azurerm" {
     resource_group_name  = "rg-electroniclive-tfstate"
-    storage_account_name = "stelivtfstate741e"
+    storage_account_name = "stelectroniclivetf"
     container_name       = "tfstate"
     key                  = "electroniclive.terraform.tfstate"
     use_oidc             = true

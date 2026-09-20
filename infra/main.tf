@@ -89,12 +89,12 @@ resource "azurerm_container_app" "api" {
       }
 
       env {
-        name        = "Skiddle__ApiKey"
+        name        = "EventProviders__Skiddle__ApiKey"
         secret_name = "skiddle-api-key"
       }
 
       env {
-        name        = "Ticketmaster__ApiKey"
+        name        = "EventProviders__Ticketmaster__ApiKey"
         secret_name = "ticketmaster-api-key"
       }
     }
