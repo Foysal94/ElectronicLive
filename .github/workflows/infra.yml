@@ -67,11 +67,7 @@ jobs:
           az group create --name rg-electroniclive-tfstate --location uksouth
           az storage account create --name stelivtfstate741e --resource-group rg-electroniclive-tfstate --location uksouth --sku Standard_LRS --allow-blob-public-access false --min-tls-version TLS1_2
           az storage container create --name tfstate --account-name stelivtfstate741e --auth-mode login
-          # Remove partial unmanaged resources from previous failed run if they exist
-          if az group show --name rg-electroniclive-prod &>/dev/null; then
-            echo "Cleaning up unmanaged partial resource group..."
-            az group delete --name rg-electroniclive-prod --yes
-          fi
+
 
       - name: Terraform Init
         run: terraform init
