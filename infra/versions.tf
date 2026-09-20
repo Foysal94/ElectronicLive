@@ -8,13 +8,13 @@ terraform {
     }
   }
 
-  # Uncomment and configure for remote state in Azure Blob Storage
-  # backend "azurerm" {
-  #   resource_group_name  = "rg-electroniclive-tfstate"
-  #   storage_account_name = "<unique_storage_account_name>"
-  #   container_name       = "tfstate"
-  #   key                  = "electroniclive.terraform.tfstate"
-  # }
+  backend "azurerm" {
+    resource_group_name  = "rg-electroniclive-tfstate"
+    storage_account_name = "stelivtfstate741e"
+    container_name       = "tfstate"
+    key                  = "electroniclive.terraform.tfstate"
+    use_oidc             = true
+  }
 }
 
 provider "azurerm" {
