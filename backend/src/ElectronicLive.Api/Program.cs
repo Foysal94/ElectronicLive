@@ -8,13 +8,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: true, reloadOnChange: true);
 
-var allowedOrigins =
-    builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? ["http://localhost:5173", "http://localhost:3000"];
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+if (allowedOrigins.Length == 0 && builder.Environment.IsDevelopment())
+{
+    allowedOrigins = ["http://localhost:5173", "http://localhost:3000"];
+}
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(CorsPolicyName, policy => policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader());
+    options.AddPolicy(
+        CorsPolicyName,
+        policy =>
+        {
+            if (allowedOrigins.Length > 0)
+            {
+                policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader();
+            }
+        }
+    );
 });
 
 builder.Services.AddOpenApi();

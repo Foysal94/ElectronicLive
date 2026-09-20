@@ -37,6 +37,8 @@ public static class EventEndpoints
         var targetQuery = query.Trim();
         try
         {
+            // Explicitly orchestrate caching here rather than via decorator wrapping to maintain
+            // linear, top-to-bottom execution flow and obvious dependency resolution.
             var events = await eventCacheService.GetOrAddAsync(
                 targetQuery,
                 targetCity,
