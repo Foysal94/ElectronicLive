@@ -97,6 +97,11 @@ resource "azurerm_container_app" "api" {
         name        = "EventProviders__Ticketmaster__ApiKey"
         secret_name = "ticketmaster-api-key"
       }
+
+      env {
+        name  = "Cors__AllowedOrigins__0"
+        value = "https://${azurerm_static_web_app.client.default_host_name}"
+      }
     }
   }
 
@@ -113,3 +118,15 @@ resource "azurerm_container_app" "api" {
 
   tags = azurerm_resource_group.rg.tags
 }
+
+# 6. Azure Static Web App (Frontend Host)
+resource "azurerm_static_web_app" "client" {
+  name                = "swa-${local.resource_suffix}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = var.static_web_app_location
+  sku_tier            = "Free"
+  sku_size            = "Free"
+
+  tags = azurerm_resource_group.rg.tags
+}
+

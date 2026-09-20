@@ -1,6 +1,9 @@
 import { ApiError, extractProblemDetails } from './errors'
 import { type EventResponse, isEventResponseList } from './types'
 
+const API_BASE_URL =
+  (import.meta.env.VITE_ELECTRONICLIVE_API_URL as string | undefined)?.replace(/\/+$/, '') || ''
+
 export async function fetchEvents(
   query: string,
   city = 'London',
@@ -17,7 +20,8 @@ export async function fetchEvents(
     params.set('city', trimmedCity)
   }
 
-  const response = await fetch(`/api/events/search?${params.toString()}`, {
+  const endpoint = `${API_BASE_URL}/api/events/search?${params.toString()}`
+  const response = await fetch(endpoint, {
     headers: {
       Accept: 'application/json',
     },

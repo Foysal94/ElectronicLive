@@ -59,7 +59,7 @@ describe('fetchEvents Client', () => {
   it('Should_pass_custom_city_parameter_in_url', async () => {
     let capturedUrl = ''
     server.use(
-      http.get('/api/events/search', ({ request }) => {
+      http.get('*/api/events/search', ({ request }) => {
         capturedUrl = request.url
         return HttpResponse.json([])
       })
