@@ -27,8 +27,8 @@ env:
   TF_VAR_ticketmaster_api_key: ${{ secrets.TICKETMASTER_API_KEY }}
 
 jobs:
-  plan:
-    name: Terraform Plan
+  terraform:
+    name: Terraform Plan & Apply
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -70,48 +70,6 @@ jobs:
           cat plan.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Upload Plan Artifact
-        if: env.ARM_CLIENT_ID != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: infra/tfplan
-          retention-days: 1
-
-  apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    needs: plan
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    defaults:
-      run:
-        working-directory: infra
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9.0"
-
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          path: infra
-
-      - name: Azure Login via OIDC
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Terraform Init
-        run: terraform init
-
       - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && env.ARM_CLIENT_ID != ''
         run: terraform apply -auto-approve tfplan
