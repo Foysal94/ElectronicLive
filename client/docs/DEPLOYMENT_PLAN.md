@@ -92,24 +92,28 @@ Instead of third-party SaaS tools (Splunk, Logz.io, Datadog), leverage Azure's b
 
 ---
 
-## 6. Target CI/CD Pipeline Architecture
+## 6. Target CI/CD Pipeline Architecture (Decoupled Workflows)
 
 ```mermaid
 flowchart TD
     subgraph Git["GitHub Repository (Monorepo)"]
-        Push[Git Push main]
+        PushBE["Git Push (backend/**)"]
+        PushFE["Git Push (client/**)"]
     end
 
-    subgraph CI["GitHub Actions Pipeline (.github/workflows/ci-cd.yml)"]
-        Push --> TestBE[Job 1: Backend .NET Unit Tests]
-        Push --> TestFE[Job 2: Frontend Lint, Typecheck & Vitest]
-        TestBE --> BuildDocker[Job 3: Build & Push API Image to GHCR]
-        BuildDocker --> DeployACA[Job 4: Deploy to Azure Container Apps via OIDC]
-        TestFE --> DeploySWA[Job 5: Build & Deploy dist/ to Azure Static Web Apps]
+    subgraph CI_BE["Backend Pipeline (.github/workflows/backend-ci-cd.yml)"]
+        PushBE --> TestBE[Job 1: .NET Build & Unit Tests]
+        TestBE --> BuildDocker[Job 2: Build & Push API Image to GHCR]
+        BuildDocker --> DeployACA[Job 3: Deploy to Azure Container Apps via OIDC]
+    end
+
+    subgraph CI_FE["Frontend Pipeline (.github/workflows/client-ci-cd.yml)"]
+        PushFE --> TestFE[Job 1: Lint, Typecheck & Vitest]
+        TestFE --> DeploySWA[Job 2: Build & Deploy dist/ to Azure Static Web Apps]
     end
 
     subgraph Prod["Production Infrastructure (Azure)"]
-        DeployACA --> Backend["Backend: Azure Container Apps (aca-electroniclive-prod)"]
+        DeployACA --> Backend["Backend: Azure Container Apps (electroniclive-api)"]
         DeploySWA --> Frontend["Frontend: Azure Static Web Apps (swa-electroniclive-prod)"]
         Frontend -->|Direct HTTPS Query (CORS)| Backend
     end
@@ -129,7 +133,8 @@ flowchart TD
 
 ### Phase 2: Client & Pipeline Configuration
 - [x] Parameterize API client with `VITE_ELECTRONICLIVE_API_URL` ([client.ts](file:///Users/foysalahmed/Code/ElectronicLive/client/src/api/client.ts)).
-- [x] Add SWA deployment job to CI/CD workflow ([.github/workflows/ci-cd.yml](file:///Users/foysalahmed/Code/ElectronicLive/.github/workflows/ci-cd.yml)).
+- [x] Create decoupled backend CI/CD pipeline ([backend-ci-cd.yml](file:///Users/foysalahmed/Code/ElectronicLive/.github/workflows/backend-ci-cd.yml)).
+- [x] Create decoupled frontend CI/CD pipeline ([client-ci-cd.yml](file:///Users/foysalahmed/Code/ElectronicLive/.github/workflows/client-ci-cd.yml)).
 
 ### Phase 3: GitHub Repository Secrets & Variables
 - [ ] `AZURE_CLIENT_ID` (OIDC)
