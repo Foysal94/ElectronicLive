@@ -26,7 +26,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/electroniclive-api
+  IMAGE_NAME: foysal94/electroniclive/electroniclive-api
 
 jobs:
   test:
