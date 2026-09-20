@@ -104,7 +104,7 @@ jobs:
     name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.AZURE_CLIENT_ID != ''
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Azure Login via OIDC
         uses: azure/login@v2
