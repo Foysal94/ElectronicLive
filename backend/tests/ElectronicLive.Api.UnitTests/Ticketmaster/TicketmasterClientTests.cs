@@ -10,10 +10,15 @@ namespace ElectronicLive.Api.UnitTests.Ticketmaster;
 
 public class TicketmasterClientTests
 {
-    [Fact]
-    public async Task Should_ReturnEmpty_WhenApiKeyMissing()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("none")]
+    [InlineData("NONE")]
+    public async Task Should_ReturnEmpty_WhenApiKeyMissingOrNone(string? apiKey)
     {
-        var (client, handler) = CreateClient(apiKey: string.Empty);
+        var (client, handler) = CreateClient(apiKey: apiKey!);
 
         var result = await client.SearchEventsAsync("Bicep");
 

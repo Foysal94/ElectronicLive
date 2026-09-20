@@ -32,7 +32,7 @@ public sealed class TicketmasterClient : ITicketmasterClient
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(_apiKey))
+        if (string.IsNullOrWhiteSpace(_apiKey) || string.Equals(_apiKey, "none", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogWarning("Ticketmaster API key is not configured.");
             return [];
