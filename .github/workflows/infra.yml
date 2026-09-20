@@ -54,6 +54,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Register Azure Resource Providers
+        if: env.ARM_CLIENT_ID != ''
+        run: |
+          az provider register --namespace Microsoft.App --wait
+          az provider register --namespace Microsoft.OperationalInsights --wait
+          az provider register --namespace Microsoft.Insights --wait
+
       - name: Terraform Init
         run: terraform init
 
