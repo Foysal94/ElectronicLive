@@ -85,13 +85,10 @@ jobs:
     name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.AZURE_CLIENT_ID != ''
     steps:
       - name: Azure Login via OIDC
         uses: azure/login@v2
-        if: env.AZURE_CLIENT_ID != ''
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -99,9 +96,6 @@ jobs:
 
       - name: Deploy to Container App
         uses: azure/container-apps-deploy-action@v2
-        if: env.AZURE_CLIENT_ID != ''
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         with:
           imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           resourceGroup: rg-electroniclive-prod
