@@ -82,7 +82,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     needs: plan
-    if: github.ref == 'refs/heads/main' && env.ARM_CLIENT_ID != ''
+    if: github.ref == 'refs/heads/main'
     environment: production
     defaults:
       run:
