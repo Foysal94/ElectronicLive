@@ -143,50 +143,20 @@ public sealed class SkiddleClient : ISkiddleClient
 
     internal static bool MatchesQuery(string? query, SkiddleEvent ev)
     {
-        // When searching by genre with no free-text query, preserve all returned club events.
         if (string.IsNullOrWhiteSpace(query))
         {
             return true;
         }
 
-        var trimmedQuery = query.Trim();
+        var tokens = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var artists =
+            ev.Artists != null
+                ? string.Join(" ", ev.Artists.Where(a => !string.IsNullOrWhiteSpace(a.Name)).Select(a => a.Name))
+                : string.Empty;
 
-        if (ev.EventName?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true)
-        {
-            return true;
-        }
+        var searchable = $"{ev.EventName} {ev.Venue?.Name} {artists}";
 
-        if (ev.Venue?.Name?.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase) == true)
-        {
-            return true;
-        }
-
-        if (
-            ev.Artists?.Any(a =>
-                !string.IsNullOrWhiteSpace(a.Name) && a.Name.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)
-            ) == true
-        )
-        {
-            return true;
-        }
-
-        var tokens = trimmedQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (tokens.Length > 1)
-        {
-            var artistsText =
-                ev.Artists != null
-                    ? string.Join(" ", ev.Artists.Where(a => !string.IsNullOrWhiteSpace(a.Name)).Select(a => a.Name))
-                    : string.Empty;
-
-            var searchable = $"{ev.EventName} {ev.Venue?.Name} {artistsText}";
-
-            if (tokens.All(token => searchable.Contains(token, StringComparison.OrdinalIgnoreCase)))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return tokens.All(token => searchable.Contains(token, StringComparison.OrdinalIgnoreCase));
     }
 
     private static (double Latitude, double Longitude)? ResolveCoordinates(string city) =>
