@@ -37,6 +37,19 @@ public static class EventEndpoints
             );
         }
 
+        if (!string.IsNullOrWhiteSpace(genre) && !EventGenres.IsValid(genre))
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["genre"] =
+                    [
+                        $"Invalid genre '{genre}'. Supported genres are: {string.Join(", ", EventGenres.All)}.",
+                    ],
+                }
+            );
+        }
+
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
         var targetQuery = query?.Trim();
         var targetGenre = genre?.Trim().ToLowerInvariant();

@@ -51,6 +51,23 @@ public class EventEndpointsTests
         await _aggregatorService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
     }
 
+    [Theory]
+    [InlineData("polka")]
+    [InlineData("rock")]
+    [InlineData("hiphop")]
+    [InlineData("123")]
+    public async Task Should_ReturnValidationProblem_WhenGenreIsInvalid(string invalidGenre)
+    {
+        var result = await EventEndpoints.SearchEvents(null, invalidGenre, _aggregatorService, _cacheService);
+
+        var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
+        validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        validationProblem.ProblemDetails.Errors.ShouldContainKey("genre");
+        validationProblem.ProblemDetails.Errors["genre"][0].ShouldContain($"Invalid genre '{invalidGenre}'.");
+        await _cacheService.DidNotReceiveWithAnyArgs().GetOrAddAsync(default, default, default!, default!, default);
+        await _aggregatorService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
+    }
+
     [Fact]
     public async Task Should_ReturnOkWithEvents_WhenQueryIsValid()
     {
