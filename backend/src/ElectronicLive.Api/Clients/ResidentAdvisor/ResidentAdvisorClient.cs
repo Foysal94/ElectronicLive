@@ -58,9 +58,7 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
-        // RA's GraphQL API lacks a dedicated taxonomy parameter and searches across event titles,
-        // descriptions, and artist lineups. Mapping genre slugs like 'garage' to 'UK Garage' ensures
-        // accurate substring matching on Resident Advisor.
+        // Resident Advisor has no dedicated genre filter in GraphQL, so we search for the genre in the main search term
         var requestPayload = new RaGraphQLRequest(SearchQuery, new { searchTerm = searchTerm, limit = _options.Limit });
 
         RaGraphQLResponse? payload;
@@ -121,7 +119,7 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
 
         foreach (var item in items)
         {
-            // RA's global search index returns historical events (PASTEVENT); ignore them so they do not sort to the top of ascending feeds
+            // Ignore past events from RA global search
             if (string.Equals(item.SearchType, "PASTEVENT", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -165,11 +163,11 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
     private static string? ResolveGenreSearchTerm(string? genre) =>
         genre?.Trim().ToLowerInvariant() switch
         {
-            "techno" => "Techno",
-            "house" => "House",
-            "drum-and-bass" => "Drum and Bass",
-            "trance" => "Trance",
-            "garage" => "UK Garage",
+            EventGenres.Techno => "Techno",
+            EventGenres.House => "House",
+            EventGenres.DrumAndBass => "Drum and Bass",
+            EventGenres.Trance => "Trance",
+            EventGenres.Garage => "UK Garage",
             _ => null,
         };
 

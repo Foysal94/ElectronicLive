@@ -47,8 +47,7 @@ public sealed class SkiddleClient : ISkiddleClient
             ? $"&latitude={coordinates.Value.Latitude.ToString(CultureInfo.InvariantCulture)}&longitude={coordinates.Value.Longitude.ToString(CultureInfo.InvariantCulture)}&radius=25"
             : string.Empty;
 
-        // When query is null or empty, omit &keyword= parameter entirely because Skiddle's API rejects
-        // empty keyword values when filtering with &g= genre parameters.
+        // If query is empty, omit &keyword= so Skiddle does not return empty results for genre filtering
         var keywordParam = !string.IsNullOrWhiteSpace(query)
             ? $"&keyword={Uri.EscapeDataString(query.Trim())}"
             : string.Empty;
@@ -56,8 +55,6 @@ public sealed class SkiddleClient : ISkiddleClient
         var genreId = ResolveGenreId(genre);
         var genreParam = genreId.HasValue ? $"&g={genreId.Value}&eventcode=CLUB" : "&eventcode=LIVE,CLUB,FEST";
 
-        // Skiddle's keyword parameter indexes across event titles, line-up artists, and venues.
-        // description=1 requests the artists array so loose OR matches can be filtered down to query relevance.
         var requestUri =
             $"events/search/?api_key={Uri.EscapeDataString(_apiKey)}"
             + keywordParam
@@ -136,11 +133,11 @@ public sealed class SkiddleClient : ISkiddleClient
     private static int? ResolveGenreId(string? genre) =>
         genre?.Trim().ToLowerInvariant() switch
         {
-            "techno" => 4,
-            "house" => 1,
-            "drum-and-bass" => 7,
-            "trance" => 5,
-            "garage" => 26,
+            EventGenres.Techno => 4,
+            EventGenres.House => 1,
+            EventGenres.DrumAndBass => 7,
+            EventGenres.Trance => 5,
+            EventGenres.Garage => 26,
             _ => null,
         };
 

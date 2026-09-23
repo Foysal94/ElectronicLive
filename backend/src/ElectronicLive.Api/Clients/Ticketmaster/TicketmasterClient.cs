@@ -47,8 +47,7 @@ public sealed class TicketmasterClient : ITicketmasterClient
             return [];
         }
 
-        // Ticketmaster lacks discrete subgenre taxonomy filters for styles like UK Garage or Drum & Bass,
-        // so music classification combined with keyword search enforces music category filtering.
+        // Ticketmaster does not have specific genre filter fields, so we pass classificationName=music along with the genre keyword
         var requestUri =
             $"events.json?apikey={Uri.EscapeDataString(_apiKey)}"
             + $"&keyword={Uri.EscapeDataString(keyword)}"
@@ -107,11 +106,11 @@ public sealed class TicketmasterClient : ITicketmasterClient
     private static string? ResolveGenreKeyword(string? genre) =>
         genre?.Trim().ToLowerInvariant() switch
         {
-            "techno" => "Techno",
-            "house" => "House",
-            "drum-and-bass" => "Drum and Bass",
-            "trance" => "Trance",
-            "garage" => "UK Garage",
+            EventGenres.Techno => "Techno",
+            EventGenres.House => "House",
+            EventGenres.DrumAndBass => "Drum and Bass",
+            EventGenres.Trance => "Trance",
+            EventGenres.Garage => "UK Garage",
             _ => null,
         };
 
