@@ -27,7 +27,8 @@ public sealed class TicketmasterClient : ITicketmasterClient
     public EventProvider Provider => EventProvider.Ticketmaster;
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string query,
+        string? query,
+        string? genre = null,
         string city = "London",
         CancellationToken cancellationToken = default
     )
@@ -38,10 +39,19 @@ public sealed class TicketmasterClient : ITicketmasterClient
             return [];
         }
 
-        // Ticketmaster's keyword parameter indexes across artists/attractions, venues, and event titles
+        var genreKeyword = ResolveGenreKeyword(genre);
+        var keyword = ResolveCombinedKeyword(query, genreKeyword);
+
+        if (string.IsNullOrWhiteSpace(keyword))
+        {
+            return [];
+        }
+
+        // Ticketmaster lacks discrete subgenre taxonomy filters for styles like UK Garage or Drum & Bass,
+        // so music classification combined with keyword search enforces music category filtering.
         var requestUri =
             $"events.json?apikey={Uri.EscapeDataString(_apiKey)}"
-            + $"&keyword={Uri.EscapeDataString(query)}"
+            + $"&keyword={Uri.EscapeDataString(keyword)}"
             + $"&city={Uri.EscapeDataString(city)}"
             + "&countryCode=GB&classificationName=music&sort=date,asc";
 
@@ -70,7 +80,12 @@ public sealed class TicketmasterClient : ITicketmasterClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while querying Ticketmaster API for query {Query}", query);
+            _logger.LogError(
+                ex,
+                "Error occurred while querying Ticketmaster API for query '{Query}', genre '{Genre}'",
+                query,
+                genre
+            );
             return [];
         }
 
@@ -87,5 +102,27 @@ public sealed class TicketmasterClient : ITicketmasterClient
         }
 
         return result;
+    }
+
+    private static string? ResolveGenreKeyword(string? genre) =>
+        genre?.Trim().ToLowerInvariant() switch
+        {
+            "techno" => "Techno",
+            "house" => "House",
+            "drum-and-bass" => "Drum and Bass",
+            "trance" => "Trance",
+            "garage" => "UK Garage",
+            _ => null,
+        };
+
+    private static string? ResolveCombinedKeyword(string? query, string? genreKeyword)
+    {
+        var trimmedQuery = query?.Trim();
+        if (!string.IsNullOrWhiteSpace(trimmedQuery) && !string.IsNullOrWhiteSpace(genreKeyword))
+        {
+            return $"{trimmedQuery} {genreKeyword}";
+        }
+
+        return !string.IsNullOrWhiteSpace(trimmedQuery) ? trimmedQuery : genreKeyword;
     }
 }

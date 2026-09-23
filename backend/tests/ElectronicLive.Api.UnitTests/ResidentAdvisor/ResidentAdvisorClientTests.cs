@@ -125,7 +125,7 @@ public class ResidentAdvisorClientTests
 
         var (client, _) = CreateClient(responseBody: json);
 
-        var result = await client.SearchEventsAsync("Bicep", "london");
+        var result = await client.SearchEventsAsync("Bicep", city: "london");
 
         result.ShouldHaveSingleItem().Id.ShouldBe("2");
     }
@@ -149,7 +149,7 @@ public class ResidentAdvisorClientTests
 
         var (client, _) = CreateClient(responseBody: json);
 
-        var result = await client.SearchEventsAsync("Bicep", city!);
+        var result = await client.SearchEventsAsync("Bicep", city: city!);
 
         result.ShouldHaveSingleItem().Id.ShouldBe("1");
     }
@@ -195,6 +195,56 @@ public class ResidentAdvisorClientTests
         var result = await client.SearchEventsAsync("Bicep", "London");
 
         result.ShouldHaveSingleItem().Id.ShouldBe("2");
+    }
+
+    [Fact]
+    public async Task Should_QueryGraphQLWithUKGarage_WhenGenreIsGarage()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync(null, "garage", "London");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var requestBody = await handler.LastRequest.Content!.ReadAsStringAsync();
+        requestBody.ShouldContain("UK Garage");
+    }
+
+    [Fact]
+    public async Task Should_QueryGraphQLWithDrumAndBass_WhenGenreIsDrumAndBass()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync(null, "drum-and-bass", "London");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var requestBody = await handler.LastRequest.Content!.ReadAsStringAsync();
+        requestBody.ShouldContain("Drum and Bass");
+    }
+
+    [Fact]
+    public async Task Should_CombineQueryAndGenre_WhenBothSpecified()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync("Bicep", "techno", "London");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var requestBody = await handler.LastRequest.Content!.ReadAsStringAsync();
+        requestBody.ShouldContain("Bicep Techno");
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("   ", "   ")]
+    public async Task Should_ReturnEmpty_WhenBothQueryAndGenreAreNullOrWhitespace(string? query, string? genre)
+    {
+        var (client, handler) = CreateClient();
+
+        var result = await client.SearchEventsAsync(query, genre, "London");
+
+        result.ShouldBeEmpty();
+        handler.LastRequest.ShouldBeNull();
     }
 
     private static (ResidentAdvisorClient Client, CapturingHttpMessageHandler Handler) CreateClient(

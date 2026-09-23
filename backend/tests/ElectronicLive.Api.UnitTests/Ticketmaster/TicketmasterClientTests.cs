@@ -31,7 +31,7 @@ public class TicketmasterClientTests
     {
         var (client, handler) = CreateClient();
 
-        await client.SearchEventsAsync("Bicep & Hammer", "London & South");
+        await client.SearchEventsAsync("Bicep & Hammer", city: "London & South");
 
         handler.LastRequest.ShouldNotBeNull();
         handler.LastRequest.Method.ShouldBe(HttpMethod.Get);
@@ -185,6 +185,46 @@ public class TicketmasterClientTests
         var result = await client.SearchEventsAsync("Bicep");
 
         result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_ApplyMusicClassificationAndGenreKeyword_WhenGenreIsSpecified()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync(null, "drum-and-bass");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("keyword=Drum%20and%20Bass");
+        query.ShouldContain("classificationName=music");
+    }
+
+    [Fact]
+    public async Task Should_CombineQueryAndGenreKeyword_WhenBothSpecified()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync("Bicep", "techno");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("keyword=Bicep%20Techno");
+        query.ShouldContain("classificationName=music");
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("   ", "   ")]
+    public async Task Should_ReturnEmpty_WhenBothQueryAndGenreAreNullOrWhitespace(string? query, string? genre)
+    {
+        var (client, handler) = CreateClient();
+
+        var result = await client.SearchEventsAsync(query, genre);
+
+        result.ShouldBeEmpty();
+        handler.LastRequest.ShouldBeNull();
     }
 
     private static (TicketmasterClient Client, CapturingHttpMessageHandler Handler) CreateClient(
