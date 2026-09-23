@@ -4,6 +4,11 @@ import { type EventResponse, type EventSearchParams, isEventResponseList } from 
 const API_BASE_URL =
   (import.meta.env.VITE_ELECTRONICLIVE_API_URL as string | undefined)?.replace(/\/+$/, '') || ''
 
+/**
+ * Dispatches an event aggregation search request to the backend API.
+ * Accepts either a free-text search string (artist/venue) or an EventSearchParams object
+ * containing free-text query, genre, and city.
+ */
 export async function fetchEvents(
   searchOrQuery: EventSearchParams | string,
   city = 'London',
