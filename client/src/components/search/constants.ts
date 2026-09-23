@@ -1,4 +1,5 @@
-import type { EventGenre } from '../../api/types'
+import { EVENT_GENRE_LIST, type EventGenre } from '../../api/types'
+
 export const QUICK_ARTISTS = [
   'Hardwell',
   'Armin van Buuren',
@@ -21,10 +22,5 @@ export interface QuickGenreItem {
   readonly value: EventGenre
 }
 
-export const QUICK_GENRES: readonly QuickGenreItem[] = [
-  { label: 'Techno', value: 'techno' },
-  { label: 'House', value: 'house' },
-  { label: 'Drum & Bass', value: 'drum-and-bass' },
-  { label: 'Trance', value: 'trance' },
-  { label: 'Garage', value: 'garage' },
-] as const
+// Curated electronic music genres derived directly from the API type definition
+export const QUICK_GENRES: readonly QuickGenreItem[] = EVENT_GENRE_LIST

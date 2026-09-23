@@ -1,8 +1,22 @@
-export type EventProvider = 'Ticketmaster' | 'Skiddle' | 'ResidentAdvisor'
+// Single source of truth for upstream gig providers
+export const EVENT_PROVIDERS = ['Ticketmaster', 'Skiddle', 'ResidentAdvisor'] as const
+export type EventProvider = (typeof EVENT_PROVIDERS)[number]
 
-export type EventStatus = 'OnSale' | 'SoldOut' | 'Postponed' | 'Cancelled' | 'Unknown'
+// Single source of truth for event ticketing statuses
+export const EVENT_STATUSES = ['OnSale', 'SoldOut', 'Postponed', 'Cancelled', 'Unknown'] as const
+export type EventStatus = (typeof EVENT_STATUSES)[number]
 
-export type EventGenre = 'techno' | 'house' | 'drum-and-bass' | 'trance' | 'garage'
+// Single source of truth for curated genre filters and UI labels
+export const EVENT_GENRES = {
+  TECHNO: { label: 'Techno', value: 'techno' },
+  HOUSE: { label: 'House', value: 'house' },
+  DRUM_AND_BASS: { label: 'Drum & Bass', value: 'drum-and-bass' },
+  TRANCE: { label: 'Trance', value: 'trance' },
+  GARAGE: { label: 'Garage', value: 'garage' },
+} as const
+
+export type EventGenre = (typeof EVENT_GENRES)[keyof typeof EVENT_GENRES]['value']
+export const EVENT_GENRE_LIST = Object.values(EVENT_GENRES)
 
 export interface EventSearchParams {
   query?: string
@@ -28,9 +42,9 @@ export interface EventResponse {
   offers?: EventTicketOffer[] | null
 }
 
-const VALID_PROVIDERS: ReadonlySet<string> = new Set(['Ticketmaster', 'Skiddle', 'ResidentAdvisor'])
-const VALID_STATUSES: ReadonlySet<string> = new Set(['OnSale', 'SoldOut', 'Postponed', 'Cancelled', 'Unknown'])
-const VALID_GENRES: ReadonlySet<string> = new Set(['techno', 'house', 'drum-and-bass', 'trance', 'garage'])
+const VALID_PROVIDERS: ReadonlySet<string> = new Set(EVENT_PROVIDERS)
+const VALID_STATUSES: ReadonlySet<string> = new Set(EVENT_STATUSES)
+const VALID_GENRES: ReadonlySet<string> = new Set(EVENT_GENRE_LIST.map((g) => g.value))
 
 export function isEventGenre(value: unknown): value is EventGenre {
   return typeof value === 'string' && VALID_GENRES.has(value)
