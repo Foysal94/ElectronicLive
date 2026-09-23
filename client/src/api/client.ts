@@ -1,26 +1,39 @@
 import { ApiError, extractProblemDetails } from './errors'
-import { type EventResponse, isEventResponseList } from './types'
+import { type EventResponse, type EventSearchParams, isEventResponseList } from './types'
 
 const API_BASE_URL =
   (import.meta.env.VITE_ELECTRONICLIVE_API_URL as string | undefined)?.replace(/\/+$/, '') || ''
 
 export async function fetchEvents(
-  query: string,
+  searchOrQuery: EventSearchParams | string,
   city = 'London',
   signal?: AbortSignal
 ): Promise<EventResponse[]> {
-  const trimmedQuery = query.trim()
-  if (!trimmedQuery) {
+  const searchParams: EventSearchParams =
+    typeof searchOrQuery === 'string'
+      ? { query: searchOrQuery, city }
+      : searchOrQuery
+
+  const query = searchParams.query?.trim()
+  const genre = searchParams.genre?.trim()
+  const targetCity = (searchParams.city ?? city).trim()
+
+  if (!query && !genre) {
     return []
   }
 
-  const params = new URLSearchParams({ query: trimmedQuery })
-  const trimmedCity = city.trim()
-  if (trimmedCity) {
-    params.set('city', trimmedCity)
+  const urlParams = new URLSearchParams()
+  if (query) {
+    urlParams.set('query', query)
+  }
+  if (genre) {
+    urlParams.set('genre', genre)
+  }
+  if (targetCity) {
+    urlParams.set('city', targetCity)
   }
 
-  const endpoint = `${API_BASE_URL}/api/events/search?${params.toString()}`
+  const endpoint = `${API_BASE_URL}/api/events/search?${urlParams.toString()}`
   const response = await fetch(endpoint, {
     headers: {
       Accept: 'application/json',

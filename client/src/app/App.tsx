@@ -1,34 +1,46 @@
 import { useState } from 'react'
+import type { EventGenre } from '../api/types'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/search/SearchBar'
 import { QuickPills } from '../components/search/QuickPills'
 import { EventList } from '../components/events/EventList'
 import { useEventsSearch } from '../hooks/useEventsSearch'
-import { useSearchParam } from '../hooks/useSearchParam'
+import { useAppSearchParams } from '../hooks/useSearchParam'
 
 export default function App() {
-  const [activeQuery, setActiveQuery] = useSearchParam('q')
+  const { query: activeQuery, genre: activeGenre, setQuery, setGenre, clearAll } = useAppSearchParams()
   const [searchTerm, setSearchTerm] = useState<string>(activeQuery)
   const [prevActiveQuery, setPrevActiveQuery] = useState<string>(activeQuery)
+  const [prevActiveGenre, setPrevActiveGenre] = useState<string>(activeGenre)
 
-  if (prevActiveQuery !== activeQuery) {
+  if (prevActiveQuery !== activeQuery || prevActiveGenre !== activeGenre) {
     setPrevActiveQuery(activeQuery)
+    setPrevActiveGenre(activeGenre)
     setSearchTerm(activeQuery)
   }
 
-  const { events, isFetching, isError, error, refetch, isIdle } = useEventsSearch(activeQuery)
+  const { events, isFetching, isError, error, refetch, isIdle } = useEventsSearch({
+    query: activeQuery,
+    genre: activeGenre || undefined,
+  })
 
   const handleSearch = (query: string) => {
-    setActiveQuery(query)
+    setQuery(query)
   }
 
-  const handleSelectPill = (pill: string) => {
-    setActiveQuery(pill)
+  const handleSelectArtistVenue = (name: string) => {
+    setQuery(name)
+  }
+
+  const handleSelectGenre = (genre: EventGenre) => {
+    setGenre(genre)
   }
 
   const handleClear = () => {
-    setActiveQuery('')
+    clearAll()
   }
+
+  const displayQuery = activeQuery || (activeGenre ? activeGenre.toUpperCase() : '')
 
   return (
     <div className="min-h-screen bg-[#181b1f] text-[#f3f4f6] flex flex-col selection:bg-emerald-500/20 selection:text-emerald-300">
@@ -41,7 +53,12 @@ export default function App() {
             onSearch={handleSearch}
             onClear={handleClear}
           />
-          <QuickPills activeQuery={activeQuery} onSelect={handleSelectPill} />
+          <QuickPills
+            activeQuery={activeQuery}
+            activeGenre={activeGenre}
+            onSelectQuery={handleSelectArtistVenue}
+            onSelectGenre={handleSelectGenre}
+          />
         </section>
 
         <section aria-label="Upcoming events timetable">
@@ -52,10 +69,11 @@ export default function App() {
             isError={isError}
             error={error}
             onRetry={refetch}
-            query={activeQuery}
+            query={displayQuery}
           />
         </section>
       </main>
     </div>
   )
 }
+

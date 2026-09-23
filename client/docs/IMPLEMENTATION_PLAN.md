@@ -1,8 +1,10 @@
 # Frontend Implementation Plan: ElectronicLive React Client
 
-**References:**
-- UI Specification & Mockups: [`docs/SPECIFICATION.md`](./SPECIFICATION.md)
+**References & Visual Mockups:**
+- UI Specification: [`docs/SPECIFICATION.md`](./SPECIFICATION.md)
 - Operational Directives & Guardrails: [`../AGENTS.md`](../AGENTS.md)
+- Desktop UI Reference: ![Desktop UI Mockup](./ui-mockup.jpg)
+- Mobile UI Reference: ![Mobile UI Mockup](./ui-mockup-mobile.jpg)
 
 > [!NOTE]
 > **Living Document & Flexibility Directive:**
@@ -22,6 +24,8 @@ graph TD
     C6 --> C7[Chunk 7: Timetable Results & Responsive Rows]
     C7 --> C8[Chunk 8: App Assembly & Integration Suite]
     C8 --> C9[Chunk 9: Quality Gate Verification]
+    C9 --> C10[Chunk 10: Backend Genre Taxonomy & Upstream Integration]
+    C10 --> C11[Chunk 11: Frontend Quick-Search Genre Pills & URL State Sync]
 ```
 
 ---
@@ -204,3 +208,99 @@ graph TD
    - `dotnet test backend/` $\rightarrow$ 131/131 tests passed.
    - Full Pattern B compliance: All tests co-located under dedicated `__tests__/` folders.
    - Zero derived state in `useEffect` and resilient `isFetching` skeleton gating.
+
+---
+
+### Chunk 10: Backend Genre Taxonomy & Upstream Integration (COMPLETED)
+**Objective:** Add a dedicated `genre` query parameter to the .NET Minimal API (`GET /api/events/search`), mapping standardized genres (`techno`, `house`, `drum-and-bass`, `trance`, `garage`) to upstream provider classifications (Ticketmaster music classification, Skiddle club codes/genre flags, RA search), preventing non-electronic venue-name false positives.
+
+1. **Contracts & Validation (`backend/src/ElectronicLive.Api/Endpoints/EventEndpoints.cs`):**
+   - Update `SearchEvents`:
+     - Parameters: `string? query, string? genre, string? city = "London", IEventAggregatorService eventAggregatorService, IEventCacheService eventCacheService, CancellationToken cancellationToken = default`.
+     - Validation: Require at least one of `query` or `genre` to be non-empty. Return `TypedResults.ValidationProblem` when both are omitted or empty.
+     - Normalize values: `targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim()`, `targetQuery = query?.Trim()`, `targetGenre = genre?.Trim().ToLowerInvariant()`.
+     - **Unambiguous Composite Cache Key:** Construct composite cache keys unambiguously:
+       ```csharp
+       $"events:{targetCity}:q={targetQuery ?? ""}:g={targetGenre ?? ""}"
+       ```
+       *Prevents cache collision vulnerability where a request with both parameters (e.g. `?query=Bicep&genre=techno`) collides with plain `?genre=techno`.*
+2. **Aggregator & Provider Clients (`Services/` and `Infrastructure/Clients/`):**
+   - Update `IEventAggregatorService.SearchEventsAsync(string? query, string? genre, string city, CancellationToken ct)`.
+   - Update `ITicketmasterClient.SearchEventsAsync`:
+     - When `genre` is passed, set `classificationName=Music` and map genre keyword (`techno` $\rightarrow$ `Techno`, `house` $\rightarrow$ `House`, `drum-and-bass` $\rightarrow$ `Drum and Bass`, `trance` $\rightarrow$ `Trance`, `garage` $\rightarrow$ `UK Garage`).
+   - Update `ISkiddleClient.SearchEventsAsync`:
+     - **URI Construction When Query is Empty:** When `query` is null or empty, omit the `&keyword=` parameter (avoiding `Uri.EscapeDataString(null)` exceptions or empty keyword parameters), and append `&g={genreId}&eventcode=CLUB`.
+     - When both `query` and `genre` are present, embed both `&keyword={Uri.EscapeDataString(query)}&g={genreId}&eventcode=CLUB`.
+     - **Relevance Filter Guard:** In `MatchesQuery(string query, SkiddleEvent ev)`, ensure `string.IsNullOrWhiteSpace(query)` returns `true` so valid genre results are not filtered out when `query` is empty.
+     - Map genre codes: `techno` $\rightarrow$ `g=4`, `house` $\rightarrow$ `g=1`, `drum-and-bass` $\rightarrow$ `g=7`, `trance` $\rightarrow$ `g=5`, `garage` $\rightarrow$ `g=26`.
+   - Update `IResidentAdvisorClient.SearchEventsAsync`:
+     - RA GraphQL search index has no dedicated genre field and matches `searchTerm` across event descriptions and artist names. When `genre` is specified, query `searchTerm` with mapped genre strings: `drum-and-bass` $\rightarrow$ `"Drum and Bass"`, `garage` $\rightarrow$ `"UK Garage"`, `techno` $\rightarrow$ `"Techno"`, `house` $\rightarrow$ `"House"`, `trance` $\rightarrow$ `"Trance"`.
+3. **Unit Tests (`backend/tests/ElectronicLive.Api.UnitTests/`):**
+   - In `EventEndpointsTests.cs`:
+     - `Should_return_validation_problem_when_both_query_and_genre_are_empty`
+     - `Should_search_events_successfully_when_only_genre_is_provided`
+     - `Should_search_events_successfully_when_both_query_and_genre_are_provided`
+     - `Should_generate_unambiguous_cache_keys_when_query_and_genre_both_exist`
+   - In `TicketmasterClientTests.cs`:
+     - `Should_apply_music_classification_and_genre_keyword_when_genre_is_specified`
+   - In `SkiddleClientTests.cs`:
+     - `Should_apply_club_eventcode_and_genre_id_when_genre_is_specified`
+     - `Should_omit_keyword_parameter_when_query_is_null_or_empty`
+     - `Should_retain_all_genre_events_in_matches_query_when_query_is_null_or_empty`
+   - In `ResidentAdvisorClientTests.cs`:
+     - `Should_query_graphql_with_uk_garage_when_genre_is_garage`
+   - In `EventAggregatorServiceTests.cs`:
+     - `Should_forward_genre_parameter_to_all_providers_concurrently`
+   - All tests follow `Should_...` convention per [`backend/AGENTS.md`](../AGENTS.md).
+4. **Verification & Quality Gate:**
+   - `dotnet test backend/ElectronicLive.sln` $\rightarrow$ 174/174 tests passed.
+
+---
+
+### Chunk 11: Frontend Quick-Search Genre Pills & URL State Sync (COMPLETED)
+**Objective:** Add `Quick Search Genres:` pills to the client, wire calls to `/api/events/search?genre=...`, and handle clean URL synchronization (`?genre=...`) alongside existing free-text search (`?q=...`).
+
+1. **Contracts & API Client (`client/src/api/`):**
+   - In `src/api/types.ts`: define `EventGenre = 'techno' | 'house' | 'drum-and-bass' | 'trance' | 'garage'` and `EventSearchParams = { query?: string; genre?: EventGenre; city?: string }`.
+   - In `src/api/client.ts`: update `fetchEvents(params: EventSearchParams, signal?: AbortSignal)`. Constructs `/api/events/search?query=...` or `/api/events/search?genre=...&city=...`.
+2. **Hook & Test Infrastructure (`hooks/` and `test/mocks/`):**
+   - In `src/hooks/useEventsSearch.ts`: accept `EventSearchParams`.
+     - Query key: `['events', 'search', { query: params.query?.trim().toLowerCase(), genre: params.genre, city: params.city }]`.
+     - `enabled: Boolean(params.query?.trim() || params.genre)`.
+     - Derive `isIdle = !params.query?.trim() && !params.genre`.
+   - In `src/test/mocks/handlers.ts`: update `GET /api/events/search` mock handler to recognize `genre` parameter.
+3. **Pills & UI Components (`components/search/` and `app/`):**
+   - In `src/components/search/constants.ts`:
+     ```ts
+     export const QUICK_GENRES = [
+       { label: 'Techno', value: 'techno' },
+       { label: 'House', value: 'house' },
+       { label: 'Drum & Bass', value: 'drum-and-bass' },
+       { label: 'Trance', value: 'trance' },
+       { label: 'Garage', value: 'garage' },
+     ] as const
+     ```
+   - In `src/components/search/QuickPills.tsx`:
+     - Render third row `Quick Search Genres:` using `QUICK_GENRES`.
+     - Props: `activeGenre?: EventGenre`, `onSelectGenre: (genre: EventGenre) => void`.
+     - Active pill styling: `bg-emerald-950 text-emerald-400 border-emerald-800`.
+     - Compact flex wrapping (`gap-2 sm:gap-3`), touch target `min-h-[44px]`.
+   - In `src/app/App.tsx` & URL sync:
+     - URL routing: Free-text search writes `?q=...`; genre pill selection writes `?genre=...`.
+     - Mutual exclusivity: Selecting a genre pill clears active text query; submitting search input clears active genre pill.
+     - On page mount: parse `new URLSearchParams(window.location.search)` for `q` and `genre` and execute initial search.
+4. **Unit & Integration Tests (`__tests__/`):**
+   - In `src/components/search/__tests__/QuickPills.test.tsx`:
+     - `Should_render_artist_venue_and_genre_pill_groups`
+     - `Should_trigger_onSelectGenre_when_genre_pill_clicked`
+     - `Should_highlight_active_genre_pill`
+   - In `src/app/__tests__/App.test.tsx`:
+     - `Should_execute_search_and_render_events_when_genre_pill_clicked`
+     - `Should_initialize_search_from_url_genre_parameter`
+     - `Should_switch_cleanly_between_genre_and_text_search`
+5. **Verification & Quality Gate:**
+   - `npm run lint`
+   - `npm run typecheck`
+   - `npm run test`
+   - `npm run build`
+
