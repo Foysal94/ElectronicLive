@@ -11,7 +11,8 @@ public sealed class EventAggregatorService(
 ) : IEventAggregatorService
 {
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string query,
+        string? query,
+        string? genre = null,
         string city = "London",
         CancellationToken cancellationToken = default
     )
@@ -28,7 +29,7 @@ public sealed class EventAggregatorService(
             {
                 try
                 {
-                    var events = await provider.SearchEventsAsync(query, city, cancellationToken);
+                    var events = await provider.SearchEventsAsync(query, genre, city, cancellationToken);
                     return (Success: true, Events: events, Provider: provider.Provider, Exception: (Exception?)null);
                 }
                 // Re-throw only if the caller cancelled. Upstream timeouts throw TaskCanceledException
@@ -56,20 +57,22 @@ public sealed class EventAggregatorService(
         if (failedCount == providerList.Count)
         {
             logger.LogError(
-                "All {ProviderCount} event providers failed while searching for query {Query}",
+                "All {ProviderCount} event providers failed while searching for query '{Query}', genre '{Genre}'",
                 providerList.Count,
-                query
+                query,
+                genre
             );
-            throw new AllProvidersUnavailableException(query, providerList.Count);
+            throw new AllProvidersUnavailableException(query, genre, providerList.Count);
         }
 
         foreach (var failed in results.Where(r => !r.Success))
         {
             logger.LogWarning(
                 failed.Exception,
-                "Provider {Provider} failed while searching for query {Query}",
+                "Provider {Provider} failed while searching for query '{Query}', genre '{Genre}'",
                 failed.Provider,
-                query
+                query,
+                genre
             );
         }
 

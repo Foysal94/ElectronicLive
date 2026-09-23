@@ -43,18 +43,23 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
     public EventProvider Provider => EventProvider.ResidentAdvisor;
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string query,
+        string? query,
+        string? genre = null,
         string city = "London",
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(query))
+        var genreTerm = ResolveGenreSearchTerm(genre);
+        var searchTerm = ResolveCombinedSearchTerm(query, genreTerm);
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
         {
             return [];
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
-        var requestPayload = new RaGraphQLRequest(SearchQuery, new { searchTerm = query, limit = _options.Limit });
+        // Resident Advisor has no dedicated genre filter in GraphQL, so we search for the genre in the main search term
+        var requestPayload = new RaGraphQLRequest(SearchQuery, new { searchTerm = searchTerm, limit = _options.Limit });
 
         RaGraphQLResponse? payload;
         try
@@ -87,7 +92,12 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while querying Resident Advisor API for query {Query}", query);
+            _logger.LogError(
+                ex,
+                "Error occurred while querying Resident Advisor API for query '{Query}', genre '{Genre}'",
+                query,
+                genre
+            );
             return [];
         }
 
@@ -109,7 +119,7 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
 
         foreach (var item in items)
         {
-            // RA's global search index returns historical events (PASTEVENT); ignore them so they do not sort to the top of ascending feeds
+            // Ignore past events from RA global search
             if (string.Equals(item.SearchType, "PASTEVENT", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -148,5 +158,27 @@ public sealed class ResidentAdvisorClient : IResidentAdvisorClient
         return string.IsNullOrWhiteSpace(countryName)
             || string.Equals(countryName.Trim(), "United Kingdom", StringComparison.OrdinalIgnoreCase)
             || string.Equals(countryName.Trim(), "UK", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? ResolveGenreSearchTerm(string? genre) =>
+        genre?.Trim().ToLowerInvariant() switch
+        {
+            EventGenres.Techno => "Techno",
+            EventGenres.House => "House",
+            EventGenres.DrumAndBass => "Drum and Bass",
+            EventGenres.Trance => "Trance",
+            EventGenres.Garage => "UK Garage",
+            _ => null,
+        };
+
+    private static string? ResolveCombinedSearchTerm(string? query, string? genreTerm)
+    {
+        var trimmedQuery = query?.Trim();
+        if (!string.IsNullOrWhiteSpace(trimmedQuery) && !string.IsNullOrWhiteSpace(genreTerm))
+        {
+            return $"{trimmedQuery} {genreTerm}";
+        }
+
+        return !string.IsNullOrWhiteSpace(trimmedQuery) ? trimmedQuery : genreTerm;
     }
 }
