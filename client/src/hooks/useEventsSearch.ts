@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchEvents } from '../api/client'
-import type { EventResponse } from '../api/types'
+import type { EventResponse, EventSearchParams } from '../api/types'
 
 export interface UseEventsSearchResult {
   events: EventResponse[]
@@ -12,14 +12,27 @@ export interface UseEventsSearchResult {
   isIdle: boolean
 }
 
-export function useEventsSearch(query: string, city = 'London'): UseEventsSearchResult {
-  const trimmedQuery = query.trim()
-  const trimmedCity = city.trim()
-  const isIdle = !trimmedQuery
+export function useEventsSearch(
+  searchOrQuery: EventSearchParams | string,
+  city = 'London'
+): UseEventsSearchResult {
+  const searchParams: EventSearchParams =
+    typeof searchOrQuery === 'string'
+      ? { query: searchOrQuery, city }
+      : searchOrQuery
+
+  const query = searchParams.query?.trim() ?? ''
+  const genre = searchParams.genre
+  const targetCity = (searchParams.city ?? city).trim() || 'London'
+  const isIdle = !query && !genre
 
   const { data, isPending, isFetching, isError, error, refetch } = useQuery({
-    queryKey: ['events', 'search', trimmedQuery.toLowerCase(), trimmedCity.toLowerCase()],
-    queryFn: ({ signal }) => fetchEvents(trimmedQuery, trimmedCity, signal),
+    queryKey: [
+      'events',
+      'search',
+      { query: query.toLowerCase(), genre: genre ?? null, city: targetCity.toLowerCase() },
+    ],
+    queryFn: ({ signal }) => fetchEvents({ query, genre, city: targetCity }, targetCity, signal),
     enabled: !isIdle,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

@@ -24,7 +24,8 @@ public sealed class SkiddleClient : ISkiddleClient
     public EventProvider Provider => EventProvider.Skiddle;
 
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
-        string query,
+        string? query,
+        string? genre = null,
         string city = "London",
         CancellationToken cancellationToken = default
     )
@@ -35,19 +36,34 @@ public sealed class SkiddleClient : ISkiddleClient
             return [];
         }
 
+        if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(genre))
+        {
+            return [];
+        }
+
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
         var coordinates = ResolveCoordinates(targetCity);
         var geoQuery = coordinates.HasValue
             ? $"&latitude={coordinates.Value.Latitude.ToString(CultureInfo.InvariantCulture)}&longitude={coordinates.Value.Longitude.ToString(CultureInfo.InvariantCulture)}&radius=25"
             : string.Empty;
 
+        // When query is null or empty, omit &keyword= parameter entirely because Skiddle's API rejects
+        // empty keyword values when filtering with &g= genre parameters.
+        var keywordParam = !string.IsNullOrWhiteSpace(query)
+            ? $"&keyword={Uri.EscapeDataString(query.Trim())}"
+            : string.Empty;
+
+        var genreId = ResolveGenreId(genre);
+        var genreParam = genreId.HasValue ? $"&g={genreId.Value}&eventcode=CLUB" : "&eventcode=LIVE,CLUB,FEST";
+
         // Skiddle's keyword parameter indexes across event titles, line-up artists, and venues.
         // description=1 requests the artists array so loose OR matches can be filtered down to query relevance.
         var requestUri =
             $"events/search/?api_key={Uri.EscapeDataString(_apiKey)}"
-            + $"&keyword={Uri.EscapeDataString(query)}"
+            + keywordParam
             + geoQuery
-            + "&eventcode=LIVE,CLUB,FEST&order=date&description=1";
+            + genreParam
+            + "&order=date&description=1";
 
         SkiddleResponse? payload;
         try
@@ -74,7 +90,12 @@ public sealed class SkiddleClient : ISkiddleClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while querying Skiddle API for query {Query}", query);
+            _logger.LogError(
+                ex,
+                "Error occurred while querying Skiddle API for query '{Query}', genre '{Genre}'",
+                query,
+                genre
+            );
             return [];
         }
 
@@ -112,8 +133,20 @@ public sealed class SkiddleClient : ISkiddleClient
         return result;
     }
 
-    internal static bool MatchesQuery(string query, SkiddleEvent ev)
+    private static int? ResolveGenreId(string? genre) =>
+        genre?.Trim().ToLowerInvariant() switch
+        {
+            "techno" => 4,
+            "house" => 1,
+            "drum-and-bass" => 7,
+            "trance" => 5,
+            "garage" => 26,
+            _ => null,
+        };
+
+    internal static bool MatchesQuery(string? query, SkiddleEvent ev)
     {
+        // When searching by genre with no free-text query, preserve all returned club events.
         if (string.IsNullOrWhiteSpace(query))
         {
             return true;

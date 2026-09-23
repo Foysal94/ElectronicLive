@@ -2,6 +2,14 @@ export type EventProvider = 'Ticketmaster' | 'Skiddle' | 'ResidentAdvisor'
 
 export type EventStatus = 'OnSale' | 'SoldOut' | 'Postponed' | 'Cancelled' | 'Unknown'
 
+export type EventGenre = 'techno' | 'house' | 'drum-and-bass' | 'trance' | 'garage'
+
+export interface EventSearchParams {
+  query?: string
+  genre?: EventGenre
+  city?: string
+}
+
 export interface EventTicketOffer {
   provider: EventProvider
   ticketUrl: string | null
@@ -22,6 +30,11 @@ export interface EventResponse {
 
 const VALID_PROVIDERS: ReadonlySet<string> = new Set(['Ticketmaster', 'Skiddle', 'ResidentAdvisor'])
 const VALID_STATUSES: ReadonlySet<string> = new Set(['OnSale', 'SoldOut', 'Postponed', 'Cancelled', 'Unknown'])
+const VALID_GENRES: ReadonlySet<string> = new Set(['techno', 'house', 'drum-and-bass', 'trance', 'garage'])
+
+export function isEventGenre(value: unknown): value is EventGenre {
+  return typeof value === 'string' && VALID_GENRES.has(value)
+}
 
 export function isEventProvider(value: unknown): value is EventProvider {
   return typeof value === 'string' && VALID_PROVIDERS.has(value)
