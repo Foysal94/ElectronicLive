@@ -29,7 +29,15 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddOpenApi();
-builder.Services.AddApplicationInsightsTelemetry();
+
+var appInsightsConnectionString =
+    builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+    ?? builder.Configuration["ApplicationInsights:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+{
+    builder.Services.AddApplicationInsightsTelemetry();
+}
+
 builder.Services.AddEventClients(builder.Configuration);
 builder.Services.AddEventServices();
 builder.Services.AddEventCaching(builder.Configuration);

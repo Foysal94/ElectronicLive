@@ -52,7 +52,7 @@ public class SkiddleClientTests
     {
         var (client, handler) = CreateClient();
 
-        await client.SearchEventsAsync("Bicep", "Manchester");
+        await client.SearchEventsAsync("Bicep", city: "Manchester");
 
         handler.LastRequest.ShouldNotBeNull();
         var query = handler.LastRequest.RequestUri!.PathAndQuery;
@@ -179,7 +179,7 @@ public class SkiddleClientTests
 
         var (client, handler) = CreateClient(responseBody: json);
 
-        var result = await client.SearchEventsAsync("Bicep", "Inverness");
+        var result = await client.SearchEventsAsync("Bicep", city: "Inverness");
 
         handler.LastRequest.ShouldNotBeNull();
         var query = handler.LastRequest.RequestUri!.PathAndQuery;
@@ -303,7 +303,7 @@ public class SkiddleClientTests
     {
         var (client, handler) = CreateClient();
 
-        await client.SearchEventsAsync("Bicep", city!);
+        await client.SearchEventsAsync("Bicep", city: city!);
 
         handler.LastRequest.ShouldNotBeNull();
         var query = handler.LastRequest.RequestUri!.PathAndQuery;
@@ -326,6 +326,95 @@ public class SkiddleClientTests
         var result = await client.SearchEventsAsync("Bicep");
 
         result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_ApplyClubEventcodeAndGenreId_WhenGenreIsSpecified()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync(null, "drum-and-bass");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("g=7");
+        query.ShouldContain("eventcode=CLUB");
+        query.ShouldNotContain("keyword=");
+    }
+
+    [Fact]
+    public async Task Should_OmitKeywordParameter_WhenQueryIsNullOrWhiteSpace()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync("   ", "techno");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("g=4");
+        query.ShouldContain("eventcode=CLUB");
+        query.ShouldNotContain("keyword=");
+    }
+
+    [Fact]
+    public async Task Should_IncludeBothKeywordAndGenreId_WhenBothProvided()
+    {
+        var (client, handler) = CreateClient();
+
+        await client.SearchEventsAsync("Bicep", "house");
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("keyword=Bicep");
+        query.ShouldContain("g=1");
+        query.ShouldContain("eventcode=CLUB");
+    }
+
+    [Fact]
+    public void Should_RetainAllGenreEventsInMatchesQuery_WhenQueryIsNullOrWhiteSpace()
+    {
+        var ev = new SkiddleEvent(
+            "1",
+            "Underground Techno Night",
+            null,
+            null,
+            null,
+            null,
+            null,
+            new SkiddleVenue("FOLD", "London"),
+            null
+        );
+
+        SkiddleClientHelpers.MatchesQuery(null, ev).ShouldBeTrue();
+        SkiddleClientHelpers.MatchesQuery("", ev).ShouldBeTrue();
+        SkiddleClientHelpers.MatchesQuery("   ", ev).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("techno", 4)]
+    [InlineData("house", 1)]
+    [InlineData("drum-and-bass", 7)]
+    [InlineData("trance", 5)]
+    [InlineData("garage", 26)]
+    [InlineData("invalid-genre", null)]
+    [InlineData(null, null)]
+    public void Should_ResolveExpectedGenreId_FromCanonicalGenre(string? genre, int? expectedId)
+    {
+        var genreId = SkiddleClientHelpers.ResolveGenreId(genre);
+        genreId.ShouldBe(expectedId);
+    }
+
+    [Fact]
+    public void Should_BuildSearchUri_WithCoordinatesAndOmittedKeyword_WhenQueryIsEmpty()
+    {
+        var uri = SkiddleClientHelpers.BuildSearchUri("test-key", "", "techno", "London");
+
+        uri.ShouldContain("api_key=test-key");
+        uri.ShouldContain("latitude=51.5074");
+        uri.ShouldContain("longitude=-0.1278");
+        uri.ShouldContain("g=4");
+        uri.ShouldContain("eventcode=CLUB");
+        uri.ShouldNotContain("keyword=");
     }
 
     private static (SkiddleClient Client, CapturingHttpMessageHandler Handler) CreateClient(

@@ -36,16 +36,19 @@ public class EventCacheServiceTests
         );
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task Should_ReturnEmptyList_WhenQueryIsWhitespace(string? query)
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("   ", "   ")]
+    [InlineData(null, "")]
+    [InlineData("", null)]
+    public async Task Should_ReturnEmptyList_WhenQueryAndGenreAreWhitespace(string? query, string? genre)
     {
         var service = CreateService();
         var factoryCalled = false;
 
         var result = await service.GetOrAddAsync(
-            query!,
+            query,
+            genre,
             "London",
             _ =>
             {
@@ -67,6 +70,7 @@ public class EventCacheServiceTests
 
         var result = await service.GetOrAddAsync(
             "Bicep",
+            null,
             "London",
             _ =>
             {
@@ -92,8 +96,8 @@ public class EventCacheServiceTests
             return Task.FromResult<IReadOnlyList<EventResponse>>(sampleEvents);
         }
 
-        var result1 = await service.GetOrAddAsync("Bicep", "London", Factory);
-        var result2 = await service.GetOrAddAsync("Bicep", "London", Factory);
+        var result1 = await service.GetOrAddAsync("Bicep", null, "London", Factory);
+        var result2 = await service.GetOrAddAsync("Bicep", null, "London", Factory);
 
         result1.ShouldBe(sampleEvents);
         result2.ShouldBe(sampleEvents);
@@ -113,14 +117,46 @@ public class EventCacheServiceTests
             return Task.FromResult<IReadOnlyList<EventResponse>>(sampleEvents);
         }
 
-        var result1 = await service.GetOrAddAsync("  Bicep  ", " London ", Factory);
-        var result2 = await service.GetOrAddAsync("bicep", "london", Factory);
-        var result3 = await service.GetOrAddAsync("BICEP", "LONDON", Factory);
+        var result1 = await service.GetOrAddAsync("  Bicep  ", "  Techno  ", " London ", Factory);
+        var result2 = await service.GetOrAddAsync("bicep", "techno", "london", Factory);
+        var result3 = await service.GetOrAddAsync("BICEP", "TECHNO", "LONDON", Factory);
 
         result1.ShouldBe(sampleEvents);
         result2.ShouldBe(sampleEvents);
         result3.ShouldBe(sampleEvents);
         factoryCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Should_GenerateUnambiguousCacheKeys_WhenQueryAndGenreBothExist()
+    {
+        var service = CreateService();
+        var bicepEvents = new List<EventResponse> { CreateSampleEvent("1", "Bicep Live") };
+        var technoEvents = new List<EventResponse> { CreateSampleEvent("2", "Techno Night") };
+        var bicepTechnoEvents = new List<EventResponse> { CreateSampleEvent("3", "Bicep Techno Special") };
+
+        var r1 = await service.GetOrAddAsync(
+            "Bicep",
+            null,
+            "London",
+            _ => Task.FromResult<IReadOnlyList<EventResponse>>(bicepEvents)
+        );
+        var r2 = await service.GetOrAddAsync(
+            null,
+            "techno",
+            "London",
+            _ => Task.FromResult<IReadOnlyList<EventResponse>>(technoEvents)
+        );
+        var r3 = await service.GetOrAddAsync(
+            "Bicep",
+            "techno",
+            "London",
+            _ => Task.FromResult<IReadOnlyList<EventResponse>>(bicepTechnoEvents)
+        );
+
+        r1.ShouldBe(bicepEvents);
+        r2.ShouldBe(technoEvents);
+        r3.ShouldBe(bicepTechnoEvents);
     }
 
     [Fact]
@@ -132,6 +168,7 @@ public class EventCacheServiceTests
         await Should.ThrowAsync<AllProvidersUnavailableException>(() =>
             service.GetOrAddAsync(
                 "Overmono",
+                null,
                 "London",
                 _ =>
                 {
@@ -147,6 +184,7 @@ public class EventCacheServiceTests
         var successfulEvents = new List<EventResponse> { CreateSampleEvent("e-2", "Overmono Live") };
         var retryResult = await service.GetOrAddAsync(
             "Overmono",
+            null,
             "London",
             _ =>
             {
@@ -168,6 +206,7 @@ public class EventCacheServiceTests
 
         await service.GetOrAddAsync(
             "Bicep",
+            null,
             "London",
             ct =>
             {
@@ -190,6 +229,7 @@ public class EventCacheServiceTests
         await Should.ThrowAsync<OperationCanceledException>(() =>
             service.GetOrAddAsync(
                 "Bicep",
+                null,
                 "London",
                 _ => Task.FromResult<IReadOnlyList<EventResponse>>([CreateSampleEvent()]),
                 cts.Token
