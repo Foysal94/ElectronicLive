@@ -4,20 +4,21 @@ import { mockDefaultEvents } from './fixtures'
 export const handlers = [
   http.get('*/api/events/search', ({ request }) => {
     const url = new URL(request.url)
-    const query = url.searchParams.get('query')
+    const query = url.searchParams.get('query')?.trim() || ''
+    const genre = url.searchParams.get('genre')?.trim().toLowerCase() || ''
 
-    if (!query || !query.trim()) {
+    if (!query && !genre) {
       return HttpResponse.json(
         {
           title: 'One or more validation errors occurred.',
           status: 400,
-          errors: { query: ['Search query parameter is required.'] },
+          errors: { query: ['At least one of query or genre parameter must be provided.'] },
         },
         { status: 400 }
       )
     }
 
-    const trimmed = query.trim().toLowerCase()
+    const trimmed = query.toLowerCase()
 
     if (trimmed === 'error' || trimmed === 'error-500') {
       return HttpResponse.json(
@@ -47,6 +48,35 @@ export const handlers = [
 
     if (trimmed === 'all' || trimmed === '*') {
       return HttpResponse.json(mockDefaultEvents)
+    }
+
+    if (genre) {
+      let genreEvents = mockDefaultEvents.filter((ev) => {
+        const evName = ev.name.toLowerCase()
+        if (genre === 'techno') {
+          return evName.includes('techno') || evName.includes('amelie') || evName.includes('charlotte')
+        }
+        if (genre === 'house') {
+          return evName.includes('house') || evName.includes('defected')
+        }
+        if (genre === 'drum-and-bass') {
+          return evName.includes('drum & bass') || evName.includes('hospitality')
+        }
+        if (genre === 'trance') {
+          return evName.includes('hardwell') || evName.includes('armin')
+        }
+        return false
+      })
+
+      if (query) {
+        genreEvents = genreEvents.filter(
+          (ev) =>
+            ev.name.toLowerCase().includes(trimmed) ||
+            ev.venueName.toLowerCase().includes(trimmed)
+        )
+      }
+
+      return HttpResponse.json(genreEvents)
     }
 
     const matchingEvents = mockDefaultEvents.filter(

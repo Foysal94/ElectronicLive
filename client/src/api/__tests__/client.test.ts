@@ -13,8 +13,28 @@ describe('fetchEvents Client', () => {
     expect(results[0]?.provider).toBe('ResidentAdvisor')
   })
 
+  it('Should_fetch_events_successfully_for_genre_parameter', async () => {
+    const results = await fetchEvents({ genre: 'techno' })
+
+    expect(results.length).toBeGreaterThan(0)
+    expect(results.some((ev) => ev.name.includes('Techno'))).toBe(true)
+  })
+
+  it('Should_fetch_events_successfully_when_both_query_and_genre_provided', async () => {
+    const results = await fetchEvents({ query: 'Charlotte', genre: 'techno' })
+
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0]?.name).toContain('Charlotte')
+  })
+
   it('Should_return_empty_array_without_request_when_query_is_whitespace', async () => {
     const results = await fetchEvents('   ')
+
+    expect(results).toEqual([])
+  })
+
+  it('Should_return_empty_array_without_request_when_both_query_and_genre_are_empty', async () => {
+    const results = await fetchEvents({ query: '   ', genre: undefined })
 
     expect(results).toEqual([])
   })

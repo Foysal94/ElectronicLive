@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isEventGenre,
   isEventProvider,
   isEventResponse,
   isEventResponseList,
@@ -8,6 +9,22 @@ import {
 } from '../types'
 
 describe('Domain Type Guards', () => {
+  it('Should_validate_valid_event_genres', () => {
+    expect(isEventGenre('techno')).toBe(true)
+    expect(isEventGenre('house')).toBe(true)
+    expect(isEventGenre('drum-and-bass')).toBe(true)
+    expect(isEventGenre('trance')).toBe(true)
+    expect(isEventGenre('garage')).toBe(true)
+  })
+
+  it('Should_reject_invalid_event_genres', () => {
+    expect(isEventGenre('rock')).toBe(false)
+    expect(isEventGenre('Techno')).toBe(false)
+    expect(isEventGenre('')).toBe(false)
+    expect(isEventGenre(null)).toBe(false)
+    expect(isEventGenre(undefined)).toBe(false)
+  })
+
   it('Should_validate_valid_event_providers', () => {
     expect(isEventProvider('ResidentAdvisor')).toBe(true)
     expect(isEventProvider('Ticketmaster')).toBe(true)

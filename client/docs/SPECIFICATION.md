@@ -49,7 +49,7 @@ client/src/
 │   │   └── Header.tsx            # Soundwave SVG logo, London chip, and Provider attribution
 │   ├── search/                   # Search controls
 │   │   ├── SearchBar.tsx         # Text input with submit/clear buttons
-│   │   └── QuickPills.tsx        # Quick Search Artists & Quick Search Venues pill rows
+│   │   └── QuickPills.tsx        # Quick Search Artists, Venues, and Genres pill rows
 │   └── events/                   # Timetable display
 │       ├── EventList.tsx         # Results container (orchestrates loading, empty, and data states)
 │       ├── EventRow.tsx          # Timetable row item (responsive desktop row / mobile card)
@@ -78,19 +78,34 @@ client/src/
   > `Aggregating live events from Resident Advisor · Ticketmaster · Skiddle`
   - Explains data scope upfront so users understand why proprietary or closed platforms (such as DICE) are omitted.
 
-### 4.2. Unified Search Section & URL Deep-Linking
-- **Unified Query:** Single search input accepting artist names (e.g., *"Amelie Lens"*), event titles (e.g., *"A State Of Trance"*), or venue names (e.g., *"Drumsheds"*).
+### 4.2. Search Section, Genre Taxonomies & URL Deep-Linking
+- **Dual Query Capabilities:**
+  - **Free-Text Search (`query`):** Free-text query parameter accepting artist names (e.g., *"Amelie Lens"*), event titles (e.g., *"A State Of Trance"*), or venue names (e.g., *"Drumsheds"*).
+  - **Genre Taxonomy Search (`genre`):** Dedicated enum query parameter (`techno`, `house`, `drum-and-bass`, `trance`, `garage`) targeting upstream musical classifications and club event codes.
+  - **Validation Rule:** The backend endpoint (`GET /api/events/search`) requires at least one of `query` or `genre`. If both are omitted or empty, returns `400 Bad Request` with validation details.
+- **Provider Taxonomy Mapping Rules:**
+  | Genre | Ticketmaster Mapping | Skiddle Mapping | Resident Advisor Mapping |
+  | :--- | :--- | :--- | :--- |
+  | `techno` | `classificationName=Music&keyword=Techno` | `eventcode=CLUB&g=4` | GraphQL `searchTerm: "Techno"` |
+  | `house` | `classificationName=Music&keyword=House` | `eventcode=CLUB&g=1` | GraphQL `searchTerm: "House"` |
+  | `drum-and-bass` | `classificationName=Music&keyword=Drum and Bass` | `eventcode=CLUB&g=7` | GraphQL `searchTerm: "Drum and Bass"` |
+  | `trance` | `classificationName=Music&keyword=Trance` | `eventcode=CLUB&g=5` | GraphQL `searchTerm: "Trance"` |
+  | `garage` | `classificationName=Music&keyword=UK Garage` | `eventcode=CLUB&g=26` | GraphQL `searchTerm: "Garage"` |
 - **Trigger Mechanics:**
   - Fires on **Enter key** or clicking the **"Search"** button.
   - **No keystroke debouncing:** Live querying on keystroke is explicitly forbidden to prevent spamming upstream third-party rate limits.
 - **Categorized Quick-Search Pills:**
   - **Quick Search Artists:** `Hardwell`, `Armin van Buuren`, `Amelie Lens`, `Charlotte de Witte`, `Bicep`, `Eric Prydz`.
   - **Quick Search Venues:** `Drumsheds`, `Fabric`, `FOLD`, `Ministry of Sound`, `Studio 338`.
-  - Pills are styled as distinct clickable buttons with rounded borders and dark container fills.
-  - Clicking any pill immediately populates the search input and executes the query.
+  - **Quick Search Genres:** `Techno`, `House`, `Drum & Bass`, `Trance`, `Garage`.
+  - Pills are styled as distinct clickable buttons with rounded borders and dark container fills (`min-h-[44px]` touch target).
+  - Clicking an Artist or Venue pill populates the search input and queries `?query=...`.
+  - Clicking a Genre pill queries `?genre=...`, bypassing free-text matching and isolating upstream music categories.
 - **URL Synchronization (Deep-Linking):**
-  - Synchronize active search query to the browser URL (`?q=...`) using native `URLSearchParams` and `window.history.replaceState`.
-  - On page load, if `?q=` is present in the URL, automatically initialize the search input and execute the query.
+  - Synchronize active search state to the browser URL using native `URLSearchParams` and `window.history.replaceState`.
+  - Free-text searches sync to `?q=...`.
+  - Genre pill filters sync to `?genre=...` using clean kebab-case tokens (e.g. `?genre=drum-and-bass`), avoiding ampersand serialization quirks.
+  - On page load, initialize search state from either `?genre=` or `?q=` and execute the corresponding query.
 
 ### 4.3. Results Timetable & Intermediate Viewport Layout
 - **Chronological Sorting:** Gigs are ordered ascending by date and door time. Unannounced dates appear at the end.
@@ -154,6 +169,11 @@ The backend integrates exactly three providers (`ResidentAdvisor`, `Ticketmaster
 4. **Missing Start Times:** Date block gracefully renders `TBA` when an event lacks a confirmed date or time.
 5. **Venue Name Truncation:** Long venue strings truncate with ellipsis (`truncate`) to prevent breaking card boundaries on narrow screens.
 6. **CORS in Development:** Local Vite dev server proxies `/api` calls directly to `http://localhost:5275`. Backend also enforces CORS policy in production.
+7. **Upstream Keyword vs. Taxonomy Disambiguation & RA Fallback:** Free-text `query` searches match against artist, title, and venue names. To prevent generic genre queries (such as *"House"* or *"Garage"*) from matching non-electronic venues (e.g. *"House of Vans"*, *"The Garage"* in Highbury), musical genres are queried via the dedicated `genre` parameter. This applies category constraints (`classificationName=Music` on Ticketmaster and `eventcode=CLUB` with Skiddle genre IDs). Since Resident Advisor has no dedicated genre field in GraphQL, RA queries `searchTerm` using specific genre tokens (`"UK Garage"`, `"Drum and Bass"`).
+8. **Clean URL State & Parameter Separation:** Rather than serializing ambiguous genre phrases with special characters into `?q=Drum+%26+Bass`, genre filters sync to `?genre=drum-and-bass` using URL-safe kebab-case strings. Free-text search continues to sync via `?q=...`.
+9. **Mobile Viewport Vertical Real Estate:** Adding a third row of pills expands the search filter container height. To preserve the core principle that the event timetable occupies over 80% of the active viewport on mobile, pill rows retain compact flex wrapping (`gap-2 sm:gap-3`) and touch-friendly dimensions (`min-h-[44px]`).
+10. **Backend Cache Key Collision Vulnerability:** To prevent cache collisions when callers pass both `query` and `genre` (e.g. `?query=Bicep&genre=techno` vs `?genre=techno`), `HybridCache` keys must be formatted unambiguously as `events:{city}:q={query}:g={genre}` rather than using coalescing fallbacks (`genre ?? query`).
+11. **Skiddle URI Construction & Relevance Filter Guard:** When `genre` is set and `query` is empty, `SkiddleClient` must omit the `&keyword=` parameter (avoiding `Uri.EscapeDataString(null)` errors) and ensure `MatchesQuery` returns `true` for empty queries so valid genre listings are never discarded.
 
 ---
 

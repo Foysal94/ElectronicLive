@@ -143,4 +143,65 @@ describe('App Integration Suite', () => {
       expect(screen.getByText('Discover London Electronic Music')).toBeInTheDocument()
     })
   })
+
+  it('Should_execute_search_and_render_events_when_genre_pill_clicked', async () => {
+    const user = userEvent.setup()
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    const technoPill = screen.getByRole('button', { name: 'Techno' })
+    await user.click(technoPill)
+
+    expect(screen.getByRole('searchbox', { name: 'Search artist, event, or venue in London' })).toHaveValue('')
+    expect(window.location.search).toBe('?genre=techno')
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Anetha & Charlotte de Witte - Techno All Night').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('Should_initialize_search_from_url_genre_parameter', async () => {
+    window.history.replaceState(null, '', '/?genre=house')
+
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Defected London - House Odyssey').length).toBeGreaterThan(0)
+    })
+
+    const housePill = screen.getByRole('button', { name: 'House' })
+    expect(housePill.className).toContain('text-emerald-400')
+    expect(housePill.className).toContain('bg-emerald-950')
+  })
+
+  it('Should_switch_cleanly_between_genre_and_text_search', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/?genre=techno')
+
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Anetha & Charlotte de Witte - Techno All Night').length).toBeGreaterThan(0)
+    })
+
+    // Switch to text search
+    const input = screen.getByRole('searchbox', { name: 'Search artist, event, or venue in London' })
+    await user.type(input, 'Bicep')
+    const searchButton = screen.getByRole('button', { name: 'Search' })
+    await user.click(searchButton)
+
+    expect(window.location.search).toBe('?q=Bicep')
+    await waitFor(() => {
+      expect(screen.getAllByText('Bicep (DJ Set)').length).toBeGreaterThan(0)
+    })
+
+    // Switch back to genre pill
+    const dnbPill = screen.getByRole('button', { name: 'Drum & Bass' })
+    await user.click(dnbPill)
+
+    expect(window.location.search).toBe('?genre=drum-and-bass')
+    expect(screen.getByRole('searchbox', { name: 'Search artist, event, or venue in London' })).toHaveValue('')
+    await waitFor(() => {
+      expect(screen.getAllByText('Hospitality London - Drum & Bass Special').length).toBeGreaterThan(0)
+    })
+  })
 })

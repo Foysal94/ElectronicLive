@@ -21,6 +21,22 @@ describe('useEventsSearch Hook', () => {
     expect(result.current.events[0]?.name).toBe('Amelie Lens - Exhale London')
   })
 
+  it('Should_fetch_and_cache_events_for_genre_search_params', async () => {
+    const { result } = renderHook(() => useEventsSearch({ genre: 'house' }), {
+      wrapper: createQueryWrapper(),
+    })
+
+    expect(result.current.isIdle).toBe(false)
+
+    await waitFor(() => {
+      expect(result.current.isFetching).toBe(false)
+    })
+
+    expect(result.current.isError).toBe(false)
+    expect(result.current.events.length).toBeGreaterThan(0)
+    expect(result.current.events[0]?.name).toBe('Defected London - House Odyssey')
+  })
+
   it('Should_remain_idle_and_not_fetch_when_query_is_empty', () => {
     const { result } = renderHook(() => useEventsSearch('   '), {
       wrapper: createQueryWrapper(),
