@@ -385,9 +385,36 @@ public class SkiddleClientTests
             null
         );
 
-        SkiddleClient.MatchesQuery(null, ev).ShouldBeTrue();
-        SkiddleClient.MatchesQuery("", ev).ShouldBeTrue();
-        SkiddleClient.MatchesQuery("   ", ev).ShouldBeTrue();
+        SkiddleClientHelpers.MatchesQuery(null, ev).ShouldBeTrue();
+        SkiddleClientHelpers.MatchesQuery("", ev).ShouldBeTrue();
+        SkiddleClientHelpers.MatchesQuery("   ", ev).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("techno", 4)]
+    [InlineData("house", 1)]
+    [InlineData("drum-and-bass", 7)]
+    [InlineData("trance", 5)]
+    [InlineData("garage", 26)]
+    [InlineData("invalid-genre", null)]
+    [InlineData(null, null)]
+    public void Should_ResolveExpectedGenreId_FromCanonicalGenre(string? genre, int? expectedId)
+    {
+        var genreId = SkiddleClientHelpers.ResolveGenreId(genre);
+        genreId.ShouldBe(expectedId);
+    }
+
+    [Fact]
+    public void Should_BuildSearchUri_WithCoordinatesAndOmittedKeyword_WhenQueryIsEmpty()
+    {
+        var uri = SkiddleClientHelpers.BuildSearchUri("test-key", "", "techno", "London");
+
+        uri.ShouldContain("api_key=test-key");
+        uri.ShouldContain("latitude=51.5074");
+        uri.ShouldContain("longitude=-0.1278");
+        uri.ShouldContain("g=4");
+        uri.ShouldContain("eventcode=CLUB");
+        uri.ShouldNotContain("keyword=");
     }
 
     private static (SkiddleClient Client, CapturingHttpMessageHandler Handler) CreateClient(

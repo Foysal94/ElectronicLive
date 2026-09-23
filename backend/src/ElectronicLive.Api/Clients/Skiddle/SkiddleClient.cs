@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
@@ -42,25 +41,8 @@ public sealed class SkiddleClient : ISkiddleClient
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
-        var coordinates = ResolveCoordinates(targetCity);
-        var geoQuery = coordinates.HasValue
-            ? $"&latitude={coordinates.Value.Latitude.ToString(CultureInfo.InvariantCulture)}&longitude={coordinates.Value.Longitude.ToString(CultureInfo.InvariantCulture)}&radius=25"
-            : string.Empty;
-
-        // If query is empty, omit &keyword= so Skiddle does not return empty results for genre filtering
-        var keywordParam = !string.IsNullOrWhiteSpace(query)
-            ? $"&keyword={Uri.EscapeDataString(query.Trim())}"
-            : string.Empty;
-
-        var genreId = ResolveGenreId(genre);
-        var genreParam = genreId.HasValue ? $"&g={genreId.Value}&eventcode=CLUB" : "&eventcode=LIVE,CLUB,FEST";
-
-        var requestUri =
-            $"events/search/?api_key={Uri.EscapeDataString(_apiKey)}"
-            + keywordParam
-            + geoQuery
-            + genreParam
-            + "&order=date&description=1";
+        var coordinates = SkiddleClientHelpers.ResolveCoordinates(targetCity);
+        var requestUri = SkiddleClientHelpers.BuildSearchUri(_apiKey, query, genre, targetCity);
 
         SkiddleResponse? payload;
         try
@@ -119,7 +101,7 @@ public sealed class SkiddleClient : ISkiddleClient
                 continue;
             }
 
-            if (!MatchesQuery(query, ev))
+            if (!SkiddleClientHelpers.MatchesQuery(query, ev))
             {
                 continue;
             }
@@ -130,48 +112,5 @@ public sealed class SkiddleClient : ISkiddleClient
         return result;
     }
 
-    private static int? ResolveGenreId(string? genre) =>
-        genre?.Trim().ToLowerInvariant() switch
-        {
-            EventGenres.Techno => 4,
-            EventGenres.House => 1,
-            EventGenres.DrumAndBass => 7,
-            EventGenres.Trance => 5,
-            EventGenres.Garage => 26,
-            _ => null,
-        };
-
-    internal static bool MatchesQuery(string? query, SkiddleEvent ev)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return true;
-        }
-
-        var tokens = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var artists =
-            ev.Artists != null
-                ? string.Join(" ", ev.Artists.Where(a => !string.IsNullOrWhiteSpace(a.Name)).Select(a => a.Name))
-                : string.Empty;
-
-        var searchable = $"{ev.EventName} {ev.Venue?.Name} {artists}";
-
-        return tokens.All(token => searchable.Contains(token, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static (double Latitude, double Longitude)? ResolveCoordinates(string city) =>
-        city.ToLowerInvariant() switch
-        {
-            "london" => (51.5074, -0.1278),
-            "manchester" => (53.4808, -2.2426),
-            "birmingham" => (52.4862, -1.8904),
-            "bristol" => (51.4545, -2.5879),
-            "leeds" => (53.8008, -1.5491),
-            "glasgow" => (55.8642, -4.2518),
-            "liverpool" => (53.4084, -2.9916),
-            "brighton" => (50.8225, -0.1372),
-            "sheffield" => (53.3811, -1.4701),
-            "newcastle" => (54.9783, -1.6178),
-            _ => null,
-        };
+    internal static bool MatchesQuery(string? query, SkiddleEvent ev) => SkiddleClientHelpers.MatchesQuery(query, ev);
 }
