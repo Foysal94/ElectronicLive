@@ -64,3 +64,5 @@ node_modules/
 dist/
 dist-ssr/
 
+# Knowledge graph artifacts
+graphify-out/
