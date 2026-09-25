@@ -2,7 +2,7 @@ import type { EventResponse } from '../../api/types'
 import { ErrorBanner } from '../common/ErrorBanner'
 import { EmptyState } from './EmptyState'
 import { EventRow } from './EventRow'
-import { EventSkeleton } from './EventSkeleton'
+import { LoadingState } from './LoadingState'
 import { sortEventsChronologically } from './utils'
 
 interface EventListProps {
@@ -37,7 +37,7 @@ export function EventList({
     }
 
     if (isFetching) {
-      return <EventSkeleton count={4} />
+      return <LoadingState />
     }
 
     if (isIdle) {
