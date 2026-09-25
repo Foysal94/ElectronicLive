@@ -1,18 +1,20 @@
 interface EventSkeletonProps {
   count?: number
   className?: string
+  ariaHidden?: boolean
 }
 
 // Renders pulsing placeholder wireframes during active network fetches.
 // Mirrors the exact structural dimensions and layout geometry of EventRow
 // (date box, multi-line titles, button bounds) to eliminate Cumulative Layout Shift (CLS).
-export function EventSkeleton({ count = 4, className = '' }: EventSkeletonProps) {
+export function EventSkeleton({ count = 4, className = '', ariaHidden = false }: EventSkeletonProps) {
   const items = Array.from({ length: count }, (_, index) => index)
 
   return (
     <div
-      role="status"
-      aria-label="Loading upcoming events"
+      role={ariaHidden ? undefined : 'status'}
+      aria-label={ariaHidden ? undefined : 'Loading upcoming events'}
+      aria-hidden={ariaHidden ? true : undefined}
       className={`w-full flex flex-col gap-3 ${className}`}
     >
       {items.map((key) => (
@@ -33,7 +35,7 @@ export function EventSkeleton({ count = 4, className = '' }: EventSkeletonProps)
           </div>
         </div>
       ))}
-      <span className="sr-only">Loading events...</span>
+      {!ariaHidden && <span className="sr-only">Loading events...</span>}
     </div>
   )
 }
