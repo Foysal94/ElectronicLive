@@ -7,11 +7,6 @@
 - Resilience & Networking: `IHttpClientFactory` with Polly policies
 - Testing: xUnit, Shouldly, NSubstitute 
 
-## Commands
-- Build: `dotnet build backend/ElectronicLive.sln`
-- Run API: `dotnet run --project backend/src/ElectronicLive.Api`
-- Run Tests: `dotnet test backend/ElectronicLive.sln`
-
 ## Architecture & Code Boundaries
 - **Endpoints Over Controllers:** Map endpoints using static extension methods on `IEndpointRouteBuilder` inside `Endpoints/` (e.g., `Endpoints/EventEndpoints.cs`). Never place full endpoint implementations in `Program.cs`.
 - **Unit-Testable Handlers:** Endpoint logic must reside in `internal static` handler methods so they can be unit-tested directly without spinning up HTTP test servers. `[InternalsVisibleTo]` must target `ElectronicLive.Api.UnitTests`.
@@ -22,9 +17,12 @@
 
 
 ## Guardrails
-- NEVER instantiate `new HttpClient()`. Use typed clients via dependency injection.
-- NEVER create database migrations or introduce an ORM.
 - Handle external upstream failures gracefully; a failure from one gig provider should not crash the entire endpoint.
+
+## Azure Safeguards
+- Always prompt for explicit user confirmation before executing destructive or state-altering Azure commands (e.g., `az * delete`, resource teardown, scale-down, or state-altering scripts).
+- Verify the active subscription and tenant context (`az account show`) before executing modifications if multiple subscriptions are configured.
+
 
 - **Pragmatic SOLID Design:** 
   - **Single Responsibility (SRP):** Classes and endpoints must have one clear reason to change (e.g., separate HTTP routing from external third-party integration).
