@@ -52,6 +52,7 @@ public static class EventEndpoints
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
         var targetQuery = query?.Trim();
         var targetGenre = genre?.Trim().ToLowerInvariant();
+
         try
         {
             var events = await eventSearchService.SearchEventsAsync(

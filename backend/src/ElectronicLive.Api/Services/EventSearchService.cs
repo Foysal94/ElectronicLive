@@ -120,17 +120,13 @@ public sealed class EventSearchService(
         var allEvents = results.Where(r => r.Success).SelectMany(r => r.Events ?? []);
         var deduplicated = Deduplicate(allEvents);
 
-        return deduplicated
-            // Push unannounced/TBA dates and times to the end of search results
-            .OrderBy(e => e.Date ?? DateOnly.MaxValue)
-            .ThenBy(e => e.Time ?? TimeOnly.MaxValue)
-            .ToList();
+        return deduplicated.OrderBy(e => e.Date ?? DateOnly.MaxValue).ThenBy(e => e.Time ?? TimeOnly.MaxValue).ToList();
     }
 
     private static List<EventResponse> Deduplicate(IEnumerable<EventResponse> events)
     {
         var deduplicated = new List<EventResponse>();
-        var datedGroups = new Dictionary<string, List<EventResponse>>(StringComparer.OrdinalIgnoreCase);
+        var datedGroups = new Dictionary<(DateOnly Date, string Venue), List<EventResponse>>();
 
         foreach (var ev in events)
         {
@@ -142,7 +138,7 @@ public sealed class EventSearchService(
                 continue;
             }
 
-            var key = $"{ev.Date.Value:yyyy-MM-dd}_{NormalizeVenue(ev.VenueName)}";
+            var key = (Date: ev.Date.Value, Venue: NormalizeVenue(ev.VenueName));
             if (!datedGroups.TryGetValue(key, out var group))
             {
                 group = [];
