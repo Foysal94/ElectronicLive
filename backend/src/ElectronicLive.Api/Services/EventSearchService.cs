@@ -1,20 +1,67 @@
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Exceptions;
 using ElectronicLive.Api.Models;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace ElectronicLive.Api.Services;
 
-public sealed class EventAggregatorService(
+public sealed class EventSearchService(
     IEnumerable<IEventProvider> providers,
-    IEventDeduplicator deduplicator,
-    ILogger<EventAggregatorService> logger
-) : IEventAggregatorService
+    HybridCache cache,
+    ILogger<EventSearchService> logger
+) : IEventSearchService
 {
+    private static readonly string[] EventTags = ["events"];
+
     public async Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string? query,
         string? genre = null,
         string city = "London",
         CancellationToken cancellationToken = default
+    )
+    {
+        if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(genre))
+        {
+            return [];
+        }
+
+        var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
+        var targetQuery = query?.Trim();
+        var targetGenre = genre?.Trim().ToLowerInvariant();
+
+        // Composite cache key isolates city, free-text query, and genre to prevent collisions between
+        // overlapping artist queries and standalone genre filter hits.
+        var cacheKey =
+            $"events:agg:{targetCity.ToLowerInvariant()}:q={targetQuery?.ToLowerInvariant() ?? ""}:g={targetGenre ?? ""}";
+
+        return await cache.GetOrCreateAsync(
+            cacheKey,
+            async ct =>
+            {
+                logger.LogInformation(
+                    "Cache miss for query '{Query}', genre '{Genre}' in city '{City}'. Querying upstream providers.",
+                    targetQuery,
+                    targetGenre,
+                    targetCity
+                );
+                var rawEvents = await FetchFromProvidersAsync(targetQuery, targetGenre, targetCity, ct);
+                var deduplicated = EventDeduplicator.Deduplicate(rawEvents);
+
+                return deduplicated
+                    .OrderBy(e => e.Date ?? DateOnly.MaxValue)
+                    .ThenBy(e => e.Time ?? TimeOnly.MaxValue)
+                    .ToList();
+            },
+            tags: EventTags,
+            cancellationToken: cancellationToken
+        );
+    }
+
+    private async Task<IReadOnlyList<EventResponse>> FetchFromProvidersAsync(
+        string? query,
+        string? genre,
+        string city,
+        CancellationToken cancellationToken
     )
     {
         var providerList = providers as IReadOnlyCollection<IEventProvider> ?? providers.ToList();
@@ -45,7 +92,7 @@ public sealed class EventAggregatorService(
                         Success: false,
                         Events: (IReadOnlyList<EventResponse>)[],
                         Provider: provider.Provider,
-                        Exception: (Exception?)ex
+                        Exception: ex
                     );
                 }
             })
@@ -76,13 +123,6 @@ public sealed class EventAggregatorService(
             );
         }
 
-        var allEvents = results.Where(r => r.Success).SelectMany(r => r.Events ?? []);
-        var deduplicated = deduplicator.Deduplicate(allEvents);
-
-        return deduplicated
-            // Push unannounced/TBA dates and times to the end of search results
-            .OrderBy(e => e.Date ?? DateOnly.MaxValue)
-            .ThenBy(e => e.Time ?? TimeOnly.MaxValue)
-            .ToList();
+        return results.Where(r => r.Success).SelectMany(r => r.Events ?? []).ToList();
     }
 }

@@ -2,12 +2,12 @@ using ElectronicLive.Api.Models;
 
 namespace ElectronicLive.Api.Services;
 
-public sealed class EventDeduplicator : IEventDeduplicator
+internal static class EventDeduplicator
 {
-    public IReadOnlyList<EventResponse> Deduplicate(IEnumerable<EventResponse> events)
+    internal static List<EventResponse> Deduplicate(IEnumerable<EventResponse> events)
     {
         var deduplicated = new List<EventResponse>();
-        var datedGroups = new Dictionary<string, List<EventResponse>>(StringComparer.OrdinalIgnoreCase);
+        var datedGroups = new Dictionary<(DateOnly Date, string Venue), List<EventResponse>>();
 
         foreach (var ev in events)
         {
@@ -19,7 +19,7 @@ public sealed class EventDeduplicator : IEventDeduplicator
                 continue;
             }
 
-            var key = $"{ev.Date.Value:yyyy-MM-dd}_{NormalizeVenue(ev.VenueName)}";
+            var key = (Date: ev.Date.Value, Venue: NormalizeVenue(ev.VenueName));
             if (!datedGroups.TryGetValue(key, out var group))
             {
                 group = [];
@@ -77,7 +77,6 @@ public sealed class EventDeduplicator : IEventDeduplicator
     private static EventResponse EnsureOffers(EventResponse ev) =>
         ev.Offers is not null ? ev : ev with { Offers = [new EventTicketOffer(ev.Provider, ev.TicketUrl, ev.Status)] };
 
-    // Prioritize confirmed statuses over Unknown so unverified provider data does not overwrite verified SoldOut or Cancelled states
     private static int StatusPriority(EventStatus status) =>
         status switch
         {
@@ -100,7 +99,7 @@ public sealed class EventDeduplicator : IEventDeduplicator
 
     // Normalizes venue names by stripping leading articles ("The "), common city suffixes,
     // and non-alphanumeric punctuation to match cross-vendor differences (e.g., "The Drumsheds" vs "Drumsheds, London").
-    private static string NormalizeVenue(string venue)
+    internal static string NormalizeVenue(string venue)
     {
         if (string.IsNullOrWhiteSpace(venue))
         {

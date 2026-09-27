@@ -10,26 +10,7 @@ namespace ElectronicLive.Api.UnitTests.Endpoints;
 
 public class EventEndpointsTests
 {
-    private readonly IEventAggregatorService _aggregatorService = Substitute.For<IEventAggregatorService>();
-    private readonly IEventCacheService _cacheService = Substitute.For<IEventCacheService>();
-
-    public EventEndpointsTests()
-    {
-        _cacheService
-            .GetOrAddAsync(
-                Arg.Any<string?>(),
-                Arg.Any<string?>(),
-                Arg.Any<string>(),
-                Arg.Any<Func<CancellationToken, Task<IReadOnlyList<EventResponse>>>>(),
-                Arg.Any<CancellationToken>()
-            )
-            .Returns(callInfo =>
-            {
-                var factory = callInfo.Arg<Func<CancellationToken, Task<IReadOnlyList<EventResponse>>>>();
-                var ct = callInfo.Arg<CancellationToken>();
-                return factory(ct);
-            });
-    }
+    private readonly IEventSearchService _searchService = Substitute.For<IEventSearchService>();
 
     [Theory]
     [InlineData(null, null)]
@@ -39,7 +20,7 @@ public class EventEndpointsTests
     [InlineData("", null)]
     public async Task Should_ReturnValidationProblem_WhenBothQueryAndGenreAreEmpty(string? query, string? genre)
     {
-        var result = await EventEndpoints.SearchEvents(query, genre, _aggregatorService, _cacheService);
+        var result = await EventEndpoints.SearchEvents(query, genre, _searchService);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
@@ -47,8 +28,7 @@ public class EventEndpointsTests
         validationProblem
             .ProblemDetails.Errors["query"]
             .ShouldContain("At least one of query or genre parameter is required.");
-        await _cacheService.DidNotReceiveWithAnyArgs().GetOrAddAsync(default, default, default!, default!, default);
-        await _aggregatorService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
+        await _searchService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
     }
 
     [Theory]
@@ -58,14 +38,13 @@ public class EventEndpointsTests
     [InlineData("123")]
     public async Task Should_ReturnValidationProblem_WhenGenreIsInvalid(string invalidGenre)
     {
-        var result = await EventEndpoints.SearchEvents(null, invalidGenre, _aggregatorService, _cacheService);
+        var result = await EventEndpoints.SearchEvents(null, invalidGenre, _searchService);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
         validationProblem.ProblemDetails.Errors.ShouldContainKey("genre");
         validationProblem.ProblemDetails.Errors["genre"][0].ShouldContain($"Invalid genre '{invalidGenre}'.");
-        await _cacheService.DidNotReceiveWithAnyArgs().GetOrAddAsync(default, default, default!, default!, default);
-        await _aggregatorService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
+        await _searchService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
     }
 
     [Fact]
@@ -84,11 +63,11 @@ public class EventEndpointsTests
                 EventProvider.Ticketmaster
             ),
         };
-        _aggregatorService
+        _searchService
             .SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("fabric", null, _aggregatorService, _cacheService);
+        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -110,11 +89,11 @@ public class EventEndpointsTests
                 EventProvider.ResidentAdvisor
             ),
         };
-        _aggregatorService
+        _searchService
             .SearchEventsAsync(null, "techno", "London", Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents(null, "techno", _aggregatorService, _cacheService);
+        var result = await EventEndpoints.SearchEvents(null, "techno", _searchService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -136,11 +115,11 @@ public class EventEndpointsTests
                 EventProvider.ResidentAdvisor
             ),
         };
-        _aggregatorService
+        _searchService
             .SearchEventsAsync("Charlotte", "techno", "London", Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("Charlotte", "techno", _aggregatorService, _cacheService);
+        var result = await EventEndpoints.SearchEvents("Charlotte", "techno", _searchService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -149,20 +128,12 @@ public class EventEndpointsTests
     [Fact]
     public async Task Should_PassCustomCity_WhenSpecified()
     {
-        _aggregatorService.SearchEventsAsync("fabric", null, "Manchester", Arg.Any<CancellationToken>()).Returns([]);
+        _searchService.SearchEventsAsync("fabric", null, "Manchester", Arg.Any<CancellationToken>()).Returns([]);
 
-        var result = await EventEndpoints.SearchEvents(
-            "fabric",
-            null,
-            _aggregatorService,
-            _cacheService,
-            city: "Manchester"
-        );
+        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService, city: "Manchester");
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
-        await _aggregatorService
-            .Received(1)
-            .SearchEventsAsync("fabric", null, "Manchester", Arg.Any<CancellationToken>());
+        await _searchService.Received(1).SearchEventsAsync("fabric", null, "Manchester", Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -171,30 +142,22 @@ public class EventEndpointsTests
     [InlineData("   ")]
     public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace(string? city)
     {
-        _aggregatorService.SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>()).Returns([]);
+        _searchService.SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>()).Returns([]);
 
-        var result = await EventEndpoints.SearchEvents("fabric", null, _aggregatorService, _cacheService, city: city);
+        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService, city: city);
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
-        await _aggregatorService.Received(1).SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>());
+        await _searchService.Received(1).SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Should_TrimQueryAndCityAndGenre_WhenWhitespacePresent()
     {
-        _aggregatorService
-            .SearchEventsAsync("fabric", "techno", "Manchester", Arg.Any<CancellationToken>())
-            .Returns([]);
+        _searchService.SearchEventsAsync("fabric", "techno", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
 
-        await EventEndpoints.SearchEvents(
-            "  fabric  ",
-            "  Techno  ",
-            _aggregatorService,
-            _cacheService,
-            city: "  Manchester  "
-        );
+        await EventEndpoints.SearchEvents("  fabric  ", "  Techno  ", _searchService, city: "  Manchester  ");
 
-        await _aggregatorService
+        await _searchService
             .Received(1)
             .SearchEventsAsync("fabric", "techno", "Manchester", Arg.Any<CancellationToken>());
     }
@@ -203,27 +166,21 @@ public class EventEndpointsTests
     public async Task Should_PropagateCancellationToken()
     {
         using var cts = new CancellationTokenSource();
-        _aggregatorService.SearchEventsAsync("fabric", null, "London", cts.Token).Returns([]);
+        _searchService.SearchEventsAsync("fabric", null, "London", cts.Token).Returns([]);
 
-        await EventEndpoints.SearchEvents(
-            "fabric",
-            null,
-            _aggregatorService,
-            _cacheService,
-            cancellationToken: cts.Token
-        );
+        await EventEndpoints.SearchEvents("fabric", null, _searchService, cancellationToken: cts.Token);
 
-        await _aggregatorService.Received(1).SearchEventsAsync("fabric", null, "London", cts.Token);
+        await _searchService.Received(1).SearchEventsAsync("fabric", null, "London", cts.Token);
     }
 
     [Fact]
     public async Task Should_Return502BadGateway_WhenAllProvidersFail()
     {
-        _aggregatorService
+        _searchService
             .SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>())
             .ThrowsAsync(new AllProvidersUnavailableException("fabric", 3));
 
-        var result = await EventEndpoints.SearchEvents("fabric", null, _aggregatorService, _cacheService);
+        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService);
 
         var problemResult = result.Result.ShouldBeOfType<ProblemHttpResult>();
         problemResult.StatusCode.ShouldBe(StatusCodes.Status502BadGateway);

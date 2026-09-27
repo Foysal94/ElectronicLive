@@ -5,12 +5,32 @@ namespace ElectronicLive.Api.UnitTests.Services;
 
 public class EventDeduplicatorTests
 {
-    private readonly EventDeduplicator _sut = new();
+    private static EventResponse CreateSampleEvent(
+        string id = "e-1",
+        string name = "Bicep Live",
+        string venue = "The Drumsheds",
+        DateOnly? date = null,
+        TimeOnly? time = null,
+        EventStatus status = EventStatus.OnSale,
+        EventProvider provider = EventProvider.Ticketmaster,
+        string? ticketUrl = "https://tickets.com/1",
+        bool explicitDate = false
+    ) =>
+        new(
+            id,
+            name,
+            venue,
+            explicitDate ? date : (date ?? new DateOnly(2026, 12, 10)),
+            time ?? new TimeOnly(21, 0),
+            ticketUrl,
+            status,
+            provider
+        );
 
     [Fact]
     public void Should_ReturnEmpty_WhenEventsCollectionIsEmpty()
     {
-        var result = _sut.Deduplicate([]);
+        var result = EventDeduplicator.Deduplicate([]);
 
         result.ShouldBeEmpty();
     }
@@ -18,18 +38,18 @@ public class EventDeduplicatorTests
     [Fact]
     public void Should_PopulateSingleOffer_WhenEventHasNoDuplicates()
     {
-        var ev = new EventResponse(
+        var ev = CreateSampleEvent(
             "tm-1",
             "Fred Again..",
             "Alexandra Palace",
             new DateOnly(2026, 9, 30),
             new TimeOnly(19, 0),
-            "https://ticketmaster.com/fred",
             EventStatus.OnSale,
-            EventProvider.Ticketmaster
+            EventProvider.Ticketmaster,
+            "https://ticketmaster.com/fred"
         );
 
-        var result = _sut.Deduplicate([ev]);
+        var result = EventDeduplicator.Deduplicate([ev]);
 
         var item = result.ShouldHaveSingleItem();
         var offers = item.Offers.ShouldNotBeNull();
@@ -42,28 +62,28 @@ public class EventDeduplicatorTests
     [Fact]
     public void Should_MergeDuplicateEventsAcrossProviders_WhenDateAndNormalizedVenueMatch()
     {
-        var tmEvent = new EventResponse(
+        var tmEvent = CreateSampleEvent(
             "tm-1",
             "Four Tet Live",
             "The Drumsheds",
             new DateOnly(2026, 10, 17),
             new TimeOnly(14, 0),
-            "https://ticketmaster.com/1",
             EventStatus.OnSale,
-            EventProvider.Ticketmaster
+            EventProvider.Ticketmaster,
+            "https://ticketmaster.com/1"
         );
-        var skEvent = new EventResponse(
+        var skEvent = CreateSampleEvent(
             "sk-1",
             "Four Tet - All Day Long",
             "Drumsheds, London",
             new DateOnly(2026, 10, 17),
             new TimeOnly(13, 0),
-            "https://skiddle.com/1",
             EventStatus.SoldOut,
-            EventProvider.Skiddle
+            EventProvider.Skiddle,
+            "https://skiddle.com/1"
         );
 
-        var result = _sut.Deduplicate([tmEvent, skEvent]);
+        var result = EventDeduplicator.Deduplicate([tmEvent, skEvent]);
 
         var merged = result.ShouldHaveSingleItem();
         merged.Date.ShouldBe(new DateOnly(2026, 10, 17));
@@ -81,28 +101,26 @@ public class EventDeduplicatorTests
     [Fact]
     public void Should_NormalizeVenueVariations_WhenMatchingDuplicates()
     {
-        var tmEvent = new EventResponse(
+        var tmEvent = CreateSampleEvent(
             "tm-1",
             "Bicep Live",
             "O2 Academy Brixton",
             new DateOnly(2026, 11, 20),
             new TimeOnly(19, 0),
-            "https://ticketmaster.com/1",
             EventStatus.OnSale,
             EventProvider.Ticketmaster
         );
-        var skEvent = new EventResponse(
+        var skEvent = CreateSampleEvent(
             "sk-1",
             "Bicep",
             "The O2 Academy Brixton, London",
             new DateOnly(2026, 11, 20),
             new TimeOnly(19, 0),
-            "https://skiddle.com/1",
             EventStatus.OnSale,
             EventProvider.Skiddle
         );
 
-        var result = _sut.Deduplicate([tmEvent, skEvent]);
+        var result = EventDeduplicator.Deduplicate([tmEvent, skEvent]);
 
         result.Count.ShouldBe(1);
         var offers = result[0].Offers.ShouldNotBeNull();
@@ -112,28 +130,28 @@ public class EventDeduplicatorTests
     [Fact]
     public void Should_PrioritizeOnSaleProvider_WhenDuplicateEventIsSoldOutOnAnotherProvider()
     {
-        var tmEvent = new EventResponse(
+        var tmEvent = CreateSampleEvent(
             "tm-1",
             "Overmono",
             "Roundhouse",
             new DateOnly(2026, 12, 5),
             new TimeOnly(20, 0),
-            "https://ticketmaster.com/1",
             EventStatus.SoldOut,
-            EventProvider.Ticketmaster
+            EventProvider.Ticketmaster,
+            "https://ticketmaster.com/1"
         );
-        var skEvent = new EventResponse(
+        var skEvent = CreateSampleEvent(
             "sk-1",
             "Overmono Live",
             "The Roundhouse",
             new DateOnly(2026, 12, 5),
             new TimeOnly(20, 0),
-            "https://skiddle.com/1",
             EventStatus.OnSale,
-            EventProvider.Skiddle
+            EventProvider.Skiddle,
+            "https://skiddle.com/1"
         );
 
-        var result = _sut.Deduplicate([tmEvent, skEvent]);
+        var result = EventDeduplicator.Deduplicate([tmEvent, skEvent]);
 
         var merged = result.ShouldHaveSingleItem();
         merged.Status.ShouldBe(EventStatus.OnSale);
@@ -142,132 +160,74 @@ public class EventDeduplicatorTests
     }
 
     [Fact]
-    public void Should_NotMergeEvents_WhenDatesDiffer()
+    public void Should_PrioritizeVerifiedSoldOut_OverUnverifiedUnknown()
     {
-        var tmEvent = new EventResponse(
+        var tmEvent = CreateSampleEvent(
             "tm-1",
-            "Bicep Live Night 1",
+            "Bicep Live",
             "Drumsheds",
-            new DateOnly(2026, 11, 20),
+            new DateOnly(2026, 11, 26),
             new TimeOnly(19, 0),
-            null,
-            EventStatus.OnSale,
+            EventStatus.SoldOut,
             EventProvider.Ticketmaster
         );
-        var skEvent = new EventResponse(
-            "sk-1",
-            "Bicep Live Night 2",
+        var raEvent = CreateSampleEvent(
+            "ra-1",
+            "Bicep Live",
             "Drumsheds",
-            new DateOnly(2026, 11, 21),
+            new DateOnly(2026, 11, 26),
             new TimeOnly(19, 0),
-            null,
-            EventStatus.OnSale,
-            EventProvider.Skiddle
+            EventStatus.Unknown,
+            EventProvider.ResidentAdvisor
         );
 
-        var result = _sut.Deduplicate([tmEvent, skEvent]);
+        var result = EventDeduplicator.Deduplicate([tmEvent, raEvent]);
 
-        result.Count.ShouldBe(2);
-    }
-
-    [Fact]
-    public void Should_NotMergeEvents_WhenVenuesDiffer()
-    {
-        var tmEvent = new EventResponse(
-            "tm-1",
-            "Bicep",
-            "Fabric",
-            new DateOnly(2026, 11, 20),
-            new TimeOnly(23, 0),
-            null,
-            EventStatus.OnSale,
-            EventProvider.Ticketmaster
-        );
-        var skEvent = new EventResponse(
-            "sk-1",
-            "Bicep",
-            "Ministry of Sound",
-            new DateOnly(2026, 11, 20),
-            new TimeOnly(23, 0),
-            null,
-            EventStatus.OnSale,
-            EventProvider.Skiddle
-        );
-
-        var result = _sut.Deduplicate([tmEvent, skEvent]);
-
-        result.Count.ShouldBe(2);
-    }
-
-    [Fact]
-    public void Should_NotMergeEvents_WhenDateIsNull()
-    {
-        var tmEvent = new EventResponse(
-            "tm-1",
-            "Bicep TBA 1",
-            "Drumsheds",
-            null,
-            null,
-            null,
-            EventStatus.OnSale,
-            EventProvider.Ticketmaster
-        );
-        var skEvent = new EventResponse(
-            "sk-1",
-            "Bicep TBA 2",
-            "Drumsheds",
-            null,
-            null,
-            null,
-            EventStatus.OnSale,
-            EventProvider.Skiddle
-        );
-
-        var result = _sut.Deduplicate([tmEvent, skEvent]);
-
-        result.Count.ShouldBe(2);
+        var ev = result.ShouldHaveSingleItem();
+        ev.Status.ShouldBe(EventStatus.SoldOut);
+        ev.Provider.ShouldBe(EventProvider.Ticketmaster);
     }
 
     [Fact]
     public void Should_MergeThreeProviders_IntoCompositeOffers()
     {
-        var tmEvent = new EventResponse(
+        var tmEvent = CreateSampleEvent(
             "tm-1",
             "Bicep Live",
             "The Drumsheds",
             new DateOnly(2026, 11, 26),
             new TimeOnly(19, 0),
-            "https://ticketmaster.com/bicep",
             EventStatus.OnSale,
-            EventProvider.Ticketmaster
+            EventProvider.Ticketmaster,
+            "https://ticketmaster.com/bicep"
         );
-        var skEvent = new EventResponse(
+        var skEvent = CreateSampleEvent(
             "sk-1",
             "Bicep Live at Drumsheds",
             "Drumsheds, London",
             new DateOnly(2026, 11, 26),
             new TimeOnly(18, 30),
-            "https://skiddle.com/bicep",
             EventStatus.OnSale,
-            EventProvider.Skiddle
+            EventProvider.Skiddle,
+            "https://skiddle.com/bicep"
         );
-        var raEvent = new EventResponse(
+        var raEvent = CreateSampleEvent(
             "ra-1",
             "Bicep",
             "Drumsheds",
             new DateOnly(2026, 11, 26),
             new TimeOnly(18, 0),
-            "https://ra.co/events/ra-1",
             EventStatus.OnSale,
-            EventProvider.ResidentAdvisor
+            EventProvider.ResidentAdvisor,
+            "https://ra.co/events/1"
         );
 
-        var result = _sut.Deduplicate([tmEvent, skEvent, raEvent]);
+        var result = EventDeduplicator.Deduplicate([tmEvent, skEvent, raEvent]);
 
         var ev = result.ShouldHaveSingleItem();
         ev.Offers.ShouldNotBeNull();
         ev.Offers.Count.ShouldBe(3);
-        ev.Time.ShouldBe(new TimeOnly(18, 0)); // Earliest door time chosen
+        ev.Time.ShouldBe(new TimeOnly(18, 0));
         ev.Offers.Select(o => o.Provider)
             .ShouldBe(
                 [EventProvider.Ticketmaster, EventProvider.Skiddle, EventProvider.ResidentAdvisor],
@@ -276,33 +236,53 @@ public class EventDeduplicatorTests
     }
 
     [Fact]
-    public void Should_PrioritizeVerifiedSoldOut_OverUnverifiedUnknown()
+    public void Should_NotMergeEvents_WhenDatesDiffer()
     {
-        var tmEvent = new EventResponse(
+        var tmEvent = CreateSampleEvent(
             "tm-1",
-            "Bicep Live",
+            "Bicep Night 1",
             "Drumsheds",
-            new DateOnly(2026, 11, 26),
-            new TimeOnly(19, 0),
-            "https://ticketmaster.com/bicep",
-            EventStatus.SoldOut,
-            EventProvider.Ticketmaster
+            new DateOnly(2026, 11, 20),
+            new TimeOnly(19, 0)
         );
-        var raEvent = new EventResponse(
-            "ra-1",
-            "Bicep Live",
+        var skEvent = CreateSampleEvent(
+            "sk-1",
+            "Bicep Night 2",
             "Drumsheds",
-            new DateOnly(2026, 11, 26),
-            new TimeOnly(19, 0),
-            "https://ra.co/events/ra-1",
-            EventStatus.Unknown,
-            EventProvider.ResidentAdvisor
+            new DateOnly(2026, 11, 21),
+            new TimeOnly(19, 0)
         );
 
-        var result = _sut.Deduplicate([tmEvent, raEvent]);
+        var result = EventDeduplicator.Deduplicate([tmEvent, skEvent]);
 
-        var ev = result.ShouldHaveSingleItem();
-        ev.Status.ShouldBe(EventStatus.SoldOut);
-        ev.Provider.ShouldBe(EventProvider.Ticketmaster);
+        result.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Should_NotMergeEvents_WhenVenuesDiffer()
+    {
+        var tmEvent = CreateSampleEvent("tm-1", "Bicep", "Fabric", new DateOnly(2026, 11, 20), new TimeOnly(23, 0));
+        var skEvent = CreateSampleEvent(
+            "sk-1",
+            "Bicep",
+            "Ministry of Sound",
+            new DateOnly(2026, 11, 20),
+            new TimeOnly(23, 0)
+        );
+
+        var result = EventDeduplicator.Deduplicate([tmEvent, skEvent]);
+
+        result.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Should_NotMergeEvents_WhenDateIsNull()
+    {
+        var tmEvent = CreateSampleEvent("tm-1", "Bicep TBA 1", "Drumsheds", null, null, explicitDate: true);
+        var skEvent = CreateSampleEvent("sk-1", "Bicep TBA 2", "Drumsheds", null, null, explicitDate: true);
+
+        var result = EventDeduplicator.Deduplicate([tmEvent, skEvent]);
+
+        result.Count.ShouldBe(2);
     }
 }

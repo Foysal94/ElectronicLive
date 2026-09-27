@@ -2,7 +2,7 @@ using ElectronicLive.Api.Models;
 
 namespace ElectronicLive.Api.Services;
 
-public interface IEventAggregatorService
+public interface IEventSearchService
 {
     Task<IReadOnlyList<EventResponse>> SearchEventsAsync(
         string? query,

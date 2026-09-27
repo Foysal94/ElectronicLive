@@ -21,8 +21,7 @@ public static class EventEndpoints
     > SearchEvents(
         string? query,
         string? genre,
-        IEventAggregatorService eventAggregatorService,
-        IEventCacheService eventCacheService,
+        IEventSearchService eventSearchService,
         string? city = "London",
         CancellationToken cancellationToken = default
     )
@@ -53,15 +52,13 @@ public static class EventEndpoints
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
         var targetQuery = query?.Trim();
         var targetGenre = genre?.Trim().ToLowerInvariant();
+
         try
         {
-            // Explicitly orchestrate caching here rather than via decorator wrapping to maintain
-            // linear, top-to-bottom execution flow and obvious dependency resolution.
-            var events = await eventCacheService.GetOrAddAsync(
+            var events = await eventSearchService.SearchEventsAsync(
                 targetQuery,
                 targetGenre,
                 targetCity,
-                ct => eventAggregatorService.SearchEventsAsync(targetQuery, targetGenre, targetCity, ct),
                 cancellationToken
             );
             return TypedResults.Ok(events);
