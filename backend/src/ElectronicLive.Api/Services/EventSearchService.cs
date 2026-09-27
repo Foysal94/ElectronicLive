@@ -44,14 +44,20 @@ public sealed class EventSearchService(
                     targetGenre,
                     targetCity
                 );
-                return await FetchAndDeduplicateAsync(targetQuery, targetGenre, targetCity, ct);
+                var rawEvents = await FetchFromProvidersAsync(targetQuery, targetGenre, targetCity, ct);
+                var deduplicated = EventDeduplicator.Deduplicate(rawEvents);
+
+                return deduplicated
+                    .OrderBy(e => e.Date ?? DateOnly.MaxValue)
+                    .ThenBy(e => e.Time ?? TimeOnly.MaxValue)
+                    .ToList();
             },
             tags: EventTags,
             cancellationToken: cancellationToken
         );
     }
 
-    private async Task<IReadOnlyList<EventResponse>> FetchAndDeduplicateAsync(
+    private async Task<IReadOnlyList<EventResponse>> FetchFromProvidersAsync(
         string? query,
         string? genre,
         string city,
@@ -117,9 +123,6 @@ public sealed class EventSearchService(
             );
         }
 
-        var allEvents = results.Where(r => r.Success).SelectMany(r => r.Events ?? []);
-        var deduplicated = EventDeduplicator.Deduplicate(allEvents);
-
-        return deduplicated.OrderBy(e => e.Date ?? DateOnly.MaxValue).ThenBy(e => e.Time ?? TimeOnly.MaxValue).ToList();
+        return results.Where(r => r.Success).SelectMany(r => r.Events ?? []).ToList();
     }
 }
