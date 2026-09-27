@@ -6,8 +6,7 @@ public static class EventServicesExtensions
 {
     public static IServiceCollection AddEventServices(this IServiceCollection services)
     {
-        services.AddSingleton<IEventDeduplicator, EventDeduplicator>();
-        services.AddTransient<IEventAggregatorService, EventAggregatorService>();
+        services.AddTransient<IEventSearchService, EventSearchService>();
 
         return services;
     }
@@ -23,7 +22,6 @@ public static class EventServicesExtensions
                 LocalCacheExpiration = TimeSpan.FromMinutes(cacheExpirationMinutes),
             };
         });
-        services.AddTransient<IEventCacheService, EventCacheService>();
 
         return services;
     }
