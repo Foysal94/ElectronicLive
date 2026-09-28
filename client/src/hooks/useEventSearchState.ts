@@ -37,11 +37,28 @@ function parseSearchFromUrl(): ParsedUrlState {
 }
 
 /**
+ * Synchronizes search state with the browser address bar using replaceState
+ * to keep navigation history tidy without pushing new entries on filter tweaks.
+ */
+function syncUrl(query: string, genre: EventGenre | '') {
+  if (typeof window === 'undefined') return
+
+  let newUrl = window.location.pathname
+  if (genre) {
+    newUrl = `${window.location.pathname}?genre=${encodeURIComponent(genre)}`
+  } else if (query) {
+    newUrl = `${window.location.pathname}?q=${encodeURIComponent(query)}`
+  }
+
+  window.history.replaceState(null, '', newUrl)
+}
+
+/**
  * Custom hook managing search input state, address bar synchronization, and filter exclusivity.
  */
 export function useEventSearchState(): EventSearchState {
   const [urlState, setUrlState] = useState<ParsedUrlState>(parseSearchFromUrl)
-  const [searchTerm, setSearchTerm] = useState<string>(() => parseSearchFromUrl().query)
+  const [searchTerm, setSearchTerm] = useState<string>(() => urlState.query)
 
   // Listen to browser Back/Forward navigation ('popstate') so input and active filters match history
   useEffect(() => {
@@ -59,30 +76,19 @@ export function useEventSearchState(): EventSearchState {
     const trimmed = rawQuery.trim()
     setUrlState({ query: trimmed, genre: '' })
     setSearchTerm(trimmed)
-
-    if (typeof window === 'undefined') return
-    // Use replaceState to keep browser history tidy rather than pushing entries on every search
-    const newUrl = trimmed
-      ? `${window.location.pathname}?q=${encodeURIComponent(trimmed)}`
-      : window.location.pathname
-    window.history.replaceState(null, '', newUrl)
+    syncUrl(trimmed, '')
   }
 
   const handleSelectGenre = (genre: EventGenre) => {
     setUrlState({ query: '', genre })
     setSearchTerm('')
-
-    if (typeof window === 'undefined') return
-    const newUrl = `${window.location.pathname}?genre=${encodeURIComponent(genre)}`
-    window.history.replaceState(null, '', newUrl)
+    syncUrl('', genre)
   }
 
   const handleClear = () => {
     setUrlState({ query: '', genre: '' })
     setSearchTerm('')
-
-    if (typeof window === 'undefined') return
-    window.history.replaceState(null, '', window.location.pathname)
+    syncUrl('', '')
   }
 
   return {
