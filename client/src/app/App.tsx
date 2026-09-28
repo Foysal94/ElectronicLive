@@ -1,44 +1,25 @@
-import { useState } from 'react'
-import type { EventGenre } from '../api/types'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/search/SearchBar'
 import { QuickPills } from '../components/search/QuickPills'
 import { EventList } from '../components/events/EventList'
 import { useEventsSearch } from '../hooks/useEventsSearch'
-import { useAppSearchParams } from '../hooks/useSearchParam'
+import { useEventSearchState } from '../hooks/useEventSearchState'
 
 export default function App() {
-  const { query: activeQuery, genre: activeGenre, setQuery, setGenre, clearAll } = useAppSearchParams()
-  const [searchTerm, setSearchTerm] = useState<string>(activeQuery)
-  const [prevActiveQuery, setPrevActiveQuery] = useState<string>(activeQuery)
-  const [prevActiveGenre, setPrevActiveGenre] = useState<string>(activeGenre)
-
-  if (prevActiveQuery !== activeQuery || prevActiveGenre !== activeGenre) {
-    setPrevActiveQuery(activeQuery)
-    setPrevActiveGenre(activeGenre)
-    setSearchTerm(activeQuery)
-  }
+  const {
+    searchTerm,
+    activeQuery,
+    activeGenre,
+    setSearchTerm,
+    handleSearch,
+    handleSelectGenre,
+    handleClear,
+  } = useEventSearchState()
 
   const { events, isFetching, isError, error, refetch, isIdle } = useEventsSearch({
     query: activeQuery,
     genre: activeGenre || undefined,
   })
-
-  const handleSearch = (query: string) => {
-    setQuery(query)
-  }
-
-  const handleSelectArtistVenue = (name: string) => {
-    setQuery(name)
-  }
-
-  const handleSelectGenre = (genre: EventGenre) => {
-    setGenre(genre)
-  }
-
-  const handleClear = () => {
-    clearAll()
-  }
 
   const displayQuery = activeQuery || (activeGenre ? activeGenre.toUpperCase() : '')
 
@@ -56,7 +37,7 @@ export default function App() {
           <QuickPills
             activeQuery={activeQuery}
             activeGenre={activeGenre}
-            onSelectQuery={handleSelectArtistVenue}
+            onSelectQuery={handleSearch}
             onSelectGenre={handleSelectGenre}
           />
         </section>
@@ -76,4 +57,3 @@ export default function App() {
     </div>
   )
 }
-
