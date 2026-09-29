@@ -3,7 +3,8 @@
 ## Tech Stack
 - .NET 10 Web API (`ElectronicLive.sln`, `src/ElectronicLive.Api`)
 - Pattern: Minimal APIs organized by resource extension classes (`Endpoints/`) returning `TypedResults`
-- Architecture: Aggregator / BFF (No internal DB; pulls from external EDM/gig sources)
+- Architecture: Aggregator / BFF with Relational Persistence for Watchlists (PostgreSQL + EF Core) & external EDM/gig provider aggregation
+- Persistence: PostgreSQL (Neon.tech), Entity Framework Core (`Npgsql.EntityFrameworkCore.PostgreSQL`)
 - Resilience & Networking: `IHttpClientFactory` with Polly policies
 - Testing: xUnit, Shouldly, NSubstitute 
 

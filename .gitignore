@@ -57,6 +57,11 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+# SQLite local database files
+*.db
+*.db-shm
+*.db-wal
+
 backend/src/ElectronicLive.Api/appsettings.secrets.json
 
 # Node / Frontend

@@ -1,6 +1,8 @@
 using ElectronicLive.Api.Clients;
+using ElectronicLive.Api.Data;
 using ElectronicLive.Api.Endpoints;
 using ElectronicLive.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 const string CorsPolicyName = "FrontendCorsPolicy";
 
@@ -41,8 +43,22 @@ if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
 builder.Services.AddEventClients(builder.Configuration);
 builder.Services.AddEventServices();
 builder.Services.AddEventCaching(builder.Configuration);
+builder.Services.AddPersistence(builder.Configuration);
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ElectronicLiveDbContext>();
+    if (dbContext.Database.IsSqlite())
+    {
+        await dbContext.Database.EnsureCreatedAsync();
+    }
+    else
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
