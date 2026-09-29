@@ -1,10 +1,6 @@
-using System.Security.Cryptography;
-using ElectronicLive.Api.Data;
-using ElectronicLive.Api.Data.Entities;
 using ElectronicLive.Api.Models;
 using ElectronicLive.Api.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicLive.Api.Endpoints;
 
@@ -22,7 +18,7 @@ public static class SubscriptionEndpoints
 
     internal static async Task<Results<Created<SubscribeResponse>, Ok<SubscribeResponse>, ValidationProblem>> Subscribe(
         SubscribeRequest request,
-        ElectronicLiveDbContext dbContext,
+        ISubscriptionService subscriptionService,
         IArtistVerificationService artistVerificationService,
         CancellationToken cancellationToken = default
     )
@@ -44,126 +40,37 @@ public static class SubscriptionEndpoints
             );
         }
 
-        var targetEmail = request.Email!.Trim().ToLowerInvariant();
-        var targetArtist = trimmedArtist.ToLowerInvariant();
+        var (subscriptionId, isNew) = await subscriptionService.SubscribeAsync(request, cancellationToken);
         var targetCity = string.IsNullOrWhiteSpace(request.City) ? "London" : request.City.Trim();
 
-        var user = await dbContext
-            .Users.Include(u => u.Subscriptions)
-            .FirstOrDefaultAsync(u => u.Email == targetEmail, cancellationToken);
-
-        if (user == null)
-        {
-            user = new User
-            {
-                Id = Guid.NewGuid(),
-                Email = targetEmail,
-                UnsubscribeToken = GenerateUnsubscribeToken(),
-                CreatedAt = DateTimeOffset.UtcNow,
-            };
-            dbContext.Users.Add(user);
-        }
-
-        var existingSubscription = user.Subscriptions.FirstOrDefault(s =>
-            string.Equals(s.ArtistName, targetArtist, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(s.City, targetCity, StringComparison.OrdinalIgnoreCase)
-        );
-
-        if (existingSubscription != null)
-        {
-            if (existingSubscription.IsActive)
-            {
-                return TypedResults.Ok(
-                    new SubscribeResponse(
-                        existingSubscription.Id,
-                        $"Already subscribed to {trimmedArtist} in {targetCity}."
-                    )
-                );
-            }
-
-            existingSubscription.IsActive = true;
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return TypedResults.Ok(
-                new SubscribeResponse(
-                    existingSubscription.Id,
-                    $"Subscription to {trimmedArtist} in {targetCity} reactivated successfully."
-                )
+        return isNew
+            ? TypedResults.Created(
+                $"/api/subscriptions/{subscriptionId}",
+                new SubscribeResponse(subscriptionId, "Subscribed successfully")
+            )
+            : TypedResults.Ok(
+                new SubscribeResponse(subscriptionId, $"Already subscribed to {trimmedArtist} in {targetCity}.")
             );
-        }
-
-        var newSubscription = new Subscription
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            ArtistName = targetArtist,
-            City = targetCity,
-            IsActive = true,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
-        user.Subscriptions.Add(newSubscription);
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return TypedResults.Created(
-            $"/api/subscriptions/{newSubscription.Id}",
-            new SubscribeResponse(newSubscription.Id, "Subscribed successfully")
-        );
     }
 
     internal static async Task<ContentHttpResult> Unsubscribe(
         string? token,
         string? artist,
-        ElectronicLiveDbContext dbContext,
+        ISubscriptionService subscriptionService,
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(token))
+        var (success, message) = await subscriptionService.UnsubscribeAsync(token, artist, cancellationToken);
+
+        if (!success)
         {
-            return SubscriptionHtmlRenderer.BadRequest(
-                "Invalid unsubscribe request. An unsubscribe token is required."
-            );
+            return string.IsNullOrWhiteSpace(token)
+                ? SubscriptionHtmlRenderer.BadRequest(message)
+                : SubscriptionHtmlRenderer.NotFound(message);
         }
 
-        var trimmedToken = token.Trim();
-        var user = await dbContext
-            .Users.Include(u => u.Subscriptions)
-            .FirstOrDefaultAsync(u => u.UnsubscribeToken == trimmedToken, cancellationToken);
-
-        if (user == null)
-        {
-            return SubscriptionHtmlRenderer.NotFound("Invalid or expired unsubscribe link.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(artist))
-        {
-            var targetArtist = artist.Trim().ToLowerInvariant();
-            var matchingSubscriptions = user
-                .Subscriptions.Where(s =>
-                    string.Equals(s.ArtistName, targetArtist, StringComparison.OrdinalIgnoreCase) && s.IsActive
-                )
-                .ToList();
-
-            if (matchingSubscriptions.Count > 0)
-            {
-                matchingSubscriptions.ForEach(s => s.IsActive = false);
-                await dbContext.SaveChangesAsync(cancellationToken);
-                return SubscriptionHtmlRenderer.Success(
-                    $"You have successfully unsubscribed from alerts for {artist.Trim()}."
-                );
-            }
-
-            return SubscriptionHtmlRenderer.NotSubscribed(
-                $"You are not currently subscribed to alerts for {artist.Trim()}."
-            );
-        }
-
-        user.Subscriptions.Where(s => s.IsActive).ToList().ForEach(s => s.IsActive = false);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return SubscriptionHtmlRenderer.Success("You have successfully unsubscribed from all artist alerts.");
+        return message.Contains("not currently subscribed", StringComparison.OrdinalIgnoreCase)
+            ? SubscriptionHtmlRenderer.NotSubscribed(message)
+            : SubscriptionHtmlRenderer.Success(message);
     }
-
-    // 32-byte cryptographic random entropy (64 hex chars) ensures unsubscribe tokens cannot be enumerated via URL guessing
-    private static string GenerateUnsubscribeToken() =>
-        Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
 }
