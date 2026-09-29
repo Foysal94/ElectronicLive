@@ -57,6 +57,11 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+# SQLite local database files
+*.db
+*.db-shm
+*.db-wal
+
 backend/src/ElectronicLive.Api/appsettings.secrets.json
 
 # Node / Frontend
@@ -66,3 +71,6 @@ dist-ssr/
 
 # Knowledge graph artifacts
 graphify-out/
+
+# Matt Poddock SKills -> Do not commit wayfinder specs and tickets
+.scratch/
