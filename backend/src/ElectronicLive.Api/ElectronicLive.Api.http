@@ -19,3 +19,20 @@ GET {{ElectronicLive.Api_HostAddress}}/api/events/search?query=Bicep
 Accept: application/json
 
 ###
+
+POST {{ElectronicLive.Api_HostAddress}}/api/subscriptions
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "user@example.com",
+  "artistName": "Bicep",
+  "city": "London"
+}
+
+###
+
+GET {{ElectronicLive.Api_HostAddress}}/api/subscriptions/unsubscribe?token=sample-token&artist=Bicep
+Accept: text/html
+
+###

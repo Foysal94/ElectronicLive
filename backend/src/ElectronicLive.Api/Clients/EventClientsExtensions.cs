@@ -1,4 +1,5 @@
 using ElectronicLive.Api.Configuration;
+using ElectronicLive.Api.Services;
 using Microsoft.Extensions.Options;
 
 namespace ElectronicLive.Api.Clients;
@@ -13,6 +14,16 @@ public static class EventClientsExtensions
 
         services
             .AddHttpClient<ITicketmasterClient, TicketmasterClient>(
+                (sp, client) =>
+                {
+                    var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;
+                    client.BaseAddress = new Uri(options.BaseUrl);
+                }
+            )
+            .AddStandardResilienceHandler();
+
+        services
+            .AddHttpClient<IArtistVerificationService, TicketmasterArtistVerificationService>(
                 (sp, client) =>
                 {
                     var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;

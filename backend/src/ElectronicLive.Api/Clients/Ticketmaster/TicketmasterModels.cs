@@ -67,3 +67,19 @@ internal sealed record TicketmasterDates(TicketmasterStart? Start, TicketmasterS
 internal sealed record TicketmasterStart(string? LocalDate, string? LocalTime);
 
 internal sealed record TicketmasterStatus(string? Code);
+
+internal sealed record TicketmasterAttractionsResponse(
+    [property: JsonPropertyName("_embedded")] TicketmasterAttractionsEmbedded? Embedded,
+    [property: JsonPropertyName("page")] TicketmasterAttractionsPage? Page
+);
+
+internal sealed record TicketmasterAttractionsEmbedded(
+    [property: JsonPropertyName("attractions")] List<TicketmasterAttractionItem>? Attractions
+);
+
+internal sealed record TicketmasterAttractionItem(
+    [property: JsonPropertyName("id")] string? Id,
+    [property: JsonPropertyName("name")] string? Name
+);
+
+internal sealed record TicketmasterAttractionsPage([property: JsonPropertyName("totalElements")] int TotalElements);
