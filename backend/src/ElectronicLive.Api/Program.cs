@@ -49,14 +49,25 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ElectronicLiveDbContext>();
-    if (dbContext.Database.IsSqlite())
+    try
     {
-        await dbContext.Database.EnsureCreatedAsync();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ElectronicLiveDbContext>();
+        if (dbContext.Database.IsSqlite())
+        {
+            await dbContext.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            await dbContext.Database.MigrateAsync();
+        }
     }
-    else
+    catch (Exception ex)
     {
-        await dbContext.Database.MigrateAsync();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(
+            ex,
+            "Database initialization or migration skipped/failed on startup. Continuing startup in degraded state."
+        );
     }
 }
 

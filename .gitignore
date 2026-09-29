@@ -71,3 +71,6 @@ dist-ssr/
 
 # Knowledge graph artifacts
 graphify-out/
+
+# Matt Poddock SKills -> Do not commit wayfinder specs and tickets
+.scratch/
