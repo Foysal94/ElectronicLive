@@ -1,16 +1,10 @@
-using System.Net.Mail;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using ElectronicLive.Api.Data;
-using ElectronicLive.Api.Data.Entities;
 using ElectronicLive.Api.Models;
 using ElectronicLive.Api.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicLive.Api.Endpoints;
 
-public static partial class SubscriptionEndpoints
+public static class SubscriptionEndpoints
 {
     public static RouteGroupBuilder MapSubscriptionEndpoints(this IEndpointRouteBuilder app)
     {
@@ -24,212 +18,72 @@ public static partial class SubscriptionEndpoints
 
     internal static async Task<Results<Created<SubscribeResponse>, Ok<SubscribeResponse>, ValidationProblem>> Subscribe(
         SubscribeRequest request,
-        ElectronicLiveDbContext dbContext,
-        IArtistVerificationService artistVerificationService,
+        ISubscriptionService subscriptionService,
         CancellationToken cancellationToken = default
     )
     {
-        if (!IsValidEmail(request.Email))
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]> { ["email"] = ["A valid email address is required."] }
-            );
-        }
-
-        if (string.IsNullOrWhiteSpace(request.ArtistName))
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]> { ["artistName"] = ["Artist name is required."] }
-            );
-        }
-
-        var trimmedArtist = request.ArtistName.Trim();
-        var isVerified = await artistVerificationService.VerifyArtistExistsAsync(trimmedArtist, cancellationToken);
-        if (!isVerified)
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]>
-                {
-                    ["artistName"] = [$"Artist '{trimmedArtist}' could not be verified as a genuine music entity."],
-                }
-            );
-        }
-
-        var targetEmail = request.Email!.Trim().ToLowerInvariant();
-        var targetArtist = trimmedArtist.ToLowerInvariant();
-        var targetCity = string.IsNullOrWhiteSpace(request.City) ? "London" : request.City.Trim();
-
-        var user = await dbContext
-            .Users.Include(u => u.Subscriptions)
-            .FirstOrDefaultAsync(u => u.Email == targetEmail, cancellationToken);
-
-        if (user == null)
-        {
-            user = new User
-            {
-                Id = Guid.NewGuid(),
-                Email = targetEmail,
-                UnsubscribeToken = GenerateUnsubscribeToken(),
-                CreatedAt = DateTimeOffset.UtcNow,
-            };
-            dbContext.Users.Add(user);
-        }
-
-        var existingSubscription = user.Subscriptions.FirstOrDefault(s =>
-            string.Equals(s.ArtistName, targetArtist, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(s.City, targetCity, StringComparison.OrdinalIgnoreCase)
+        var result = await subscriptionService.SubscribeAsync(
+            request.Email,
+            request.ArtistName,
+            request.City,
+            cancellationToken
         );
 
-        if (existingSubscription != null)
+        return result.Status switch
         {
-            if (existingSubscription.IsActive)
-            {
-                return TypedResults.Ok(
-                    new SubscribeResponse(
-                        existingSubscription.Id,
-                        $"Already subscribed to {trimmedArtist} in {targetCity}."
-                    )
-                );
-            }
-
-            existingSubscription.IsActive = true;
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return TypedResults.Ok(
-                new SubscribeResponse(
-                    existingSubscription.Id,
-                    $"Subscription to {trimmedArtist} in {targetCity} reactivated successfully."
-                )
-            );
-        }
-
-        var newSubscription = new Subscription
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            ArtistName = targetArtist,
-            City = targetCity,
-            IsActive = true,
-            CreatedAt = DateTimeOffset.UtcNow,
+            SubscribeStatus.Created => TypedResults.Created(
+                $"/api/subscriptions/{result.SubscriptionId}",
+                new SubscribeResponse(result.SubscriptionId, result.Message ?? "Subscribed successfully")
+            ),
+            SubscribeStatus.AlreadySubscribed or SubscribeStatus.Reactivated => TypedResults.Ok(
+                new SubscribeResponse(result.SubscriptionId, result.Message!)
+            ),
+            SubscribeStatus.InvalidEmail => TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["email"] = [result.ErrorMessage!] }
+            ),
+            SubscribeStatus.InvalidArtist or SubscribeStatus.ArtistNotVerified => TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["artistName"] = [result.ErrorMessage!] }
+            ),
+            _ => throw new InvalidOperationException($"Unexpected subscribe status: {result.Status}"),
         };
-        user.Subscriptions.Add(newSubscription);
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return TypedResults.Created(
-            $"/api/subscriptions/{newSubscription.Id}",
-            new SubscribeResponse(newSubscription.Id, "Subscribed successfully")
-        );
     }
 
     internal static async Task<ContentHttpResult> Unsubscribe(
         string? token,
         string? artist,
-        ElectronicLiveDbContext dbContext,
+        ISubscriptionService subscriptionService,
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(token))
+        var result = await subscriptionService.UnsubscribeAsync(token, artist, cancellationToken);
+
+        return result.Status switch
         {
-            return SubscriptionHtmlRenderer.Render(
+            UnsubscribeStatus.MissingToken => SubscriptionHtmlRenderer.Render(
                 "Unsubscribe Error",
-                "Invalid unsubscribe request. An unsubscribe token is required.",
+                result.ErrorMessage!,
                 isSuccess: false,
                 statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
-        var trimmedToken = token.Trim();
-        var user = await dbContext
-            .Users.Include(u => u.Subscriptions)
-            .FirstOrDefaultAsync(u => u.UnsubscribeToken == trimmedToken, cancellationToken);
-
-        if (user == null)
-        {
-            return SubscriptionHtmlRenderer.Render(
+            ),
+            UnsubscribeStatus.InvalidToken => SubscriptionHtmlRenderer.Render(
                 "Unsubscribe Error",
-                "Invalid or expired unsubscribe link.",
+                result.ErrorMessage!,
                 isSuccess: false,
                 statusCode: StatusCodes.Status404NotFound
-            );
-        }
-
-        if (!string.IsNullOrWhiteSpace(artist))
-        {
-            var targetArtist = artist.Trim().ToLowerInvariant();
-            var matchingSubscriptions = user
-                .Subscriptions.Where(s =>
-                    string.Equals(s.ArtistName, targetArtist, StringComparison.OrdinalIgnoreCase) && s.IsActive
-                )
-                .ToList();
-
-            if (matchingSubscriptions.Count > 0)
-            {
-                foreach (var sub in matchingSubscriptions)
-                {
-                    sub.IsActive = false;
-                }
-                await dbContext.SaveChangesAsync(cancellationToken);
-                return SubscriptionHtmlRenderer.Render(
-                    "Unsubscribed",
-                    $"You have successfully unsubscribed from alerts for {artist.Trim()}.",
-                    isSuccess: true,
-                    statusCode: StatusCodes.Status200OK
-                );
-            }
-
-            return SubscriptionHtmlRenderer.Render(
-                "Not Subscribed",
-                $"You are not currently subscribed to alerts for {artist.Trim()}.",
+            ),
+            UnsubscribeStatus.Success or UnsubscribeStatus.AllSuccess => SubscriptionHtmlRenderer.Render(
+                "Unsubscribed",
+                result.Message!,
                 isSuccess: true,
                 statusCode: StatusCodes.Status200OK
-            );
-        }
-
-        foreach (var sub in user.Subscriptions.Where(s => s.IsActive))
-        {
-            sub.IsActive = false;
-        }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return SubscriptionHtmlRenderer.Render(
-            "Unsubscribed",
-            "You have successfully unsubscribed from all artist alerts.",
-            isSuccess: true,
-            statusCode: StatusCodes.Status200OK
-        );
+            ),
+            UnsubscribeStatus.NotSubscribed => SubscriptionHtmlRenderer.Render(
+                "Not Subscribed",
+                result.Message!,
+                isSuccess: true,
+                statusCode: StatusCodes.Status200OK
+            ),
+            _ => throw new InvalidOperationException($"Unexpected unsubscribe status: {result.Status}"),
+        };
     }
-
-    private static string GenerateUnsubscribeToken() =>
-        Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-
-    private static bool IsValidEmail(string? email)
-    {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            return false;
-        }
-
-        var trimmed = email.Trim();
-        if (!EmailRegex().IsMatch(trimmed))
-        {
-            return false;
-        }
-
-        try
-        {
-            var mailAddress = new MailAddress(trimmed);
-            return mailAddress.Address == trimmed;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    [GeneratedRegex(
-        @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant
-    )]
-    private static partial Regex EmailRegex();
 }

@@ -87,7 +87,6 @@ public sealed class TicketmasterArtistVerificationService : IArtistVerificationS
             && (
                 string.Equals(a.Name, trimmedArtist, StringComparison.OrdinalIgnoreCase)
                 || a.Name.Contains(trimmedArtist, StringComparison.OrdinalIgnoreCase)
-                || trimmedArtist.Contains(a.Name, StringComparison.OrdinalIgnoreCase)
             )
         );
     }

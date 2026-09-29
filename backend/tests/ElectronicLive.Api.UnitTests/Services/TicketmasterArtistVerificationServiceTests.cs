@@ -40,7 +40,7 @@ public class TicketmasterArtistVerificationServiceTests
     [Fact]
     public async Task Should_ConstructExpectedRequestUrl()
     {
-        var (service, handler) = CreateService(responseBody: AttractionJson("Bicep"));
+        var (service, handler) = CreateService(responseBody: AttractionJson("Bicep & Hammer"));
         var result = await service.VerifyArtistExistsAsync("Bicep & Hammer");
 
         result.ShouldBeTrue();
