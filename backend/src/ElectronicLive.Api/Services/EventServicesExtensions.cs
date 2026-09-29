@@ -1,4 +1,3 @@
-using ElectronicLive.Api.Services.Subscriptions;
 using Microsoft.Extensions.Caching.Hybrid;
 
 namespace ElectronicLive.Api.Services;
@@ -8,7 +7,6 @@ public static class EventServicesExtensions
     public static IServiceCollection AddEventServices(this IServiceCollection services)
     {
         services.AddTransient<IEventSearchService, EventSearchService>();
-        services.AddTransient<ISubscriptionService, SubscriptionService>();
 
         return services;
     }
