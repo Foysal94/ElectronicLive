@@ -1,5 +1,5 @@
-using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
+using ElectronicLive.Api.Models.Subscriptions;
+using ElectronicLive.Api.Services.Subscriptions;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ElectronicLive.Api.Endpoints;
@@ -59,30 +59,12 @@ public static class SubscriptionEndpoints
 
         return result.Status switch
         {
-            UnsubscribeStatus.MissingToken => SubscriptionHtmlRenderer.Render(
-                "Unsubscribe Error",
-                result.ErrorMessage!,
-                isSuccess: false,
-                statusCode: StatusCodes.Status400BadRequest
+            UnsubscribeStatus.MissingToken => SubscriptionHtmlRenderer.BadRequest(result.ErrorMessage!),
+            UnsubscribeStatus.InvalidToken => SubscriptionHtmlRenderer.NotFound(result.ErrorMessage!),
+            UnsubscribeStatus.Success or UnsubscribeStatus.AllSuccess => SubscriptionHtmlRenderer.Success(
+                result.Message!
             ),
-            UnsubscribeStatus.InvalidToken => SubscriptionHtmlRenderer.Render(
-                "Unsubscribe Error",
-                result.ErrorMessage!,
-                isSuccess: false,
-                statusCode: StatusCodes.Status404NotFound
-            ),
-            UnsubscribeStatus.Success or UnsubscribeStatus.AllSuccess => SubscriptionHtmlRenderer.Render(
-                "Unsubscribed",
-                result.Message!,
-                isSuccess: true,
-                statusCode: StatusCodes.Status200OK
-            ),
-            UnsubscribeStatus.NotSubscribed => SubscriptionHtmlRenderer.Render(
-                "Not Subscribed",
-                result.Message!,
-                isSuccess: true,
-                statusCode: StatusCodes.Status200OK
-            ),
+            UnsubscribeStatus.NotSubscribed => SubscriptionHtmlRenderer.NotSubscribed(result.Message!),
             _ => throw new InvalidOperationException($"Unexpected unsubscribe status: {result.Status}"),
         };
     }

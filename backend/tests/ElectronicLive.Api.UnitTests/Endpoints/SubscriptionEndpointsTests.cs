@@ -1,6 +1,6 @@
 using ElectronicLive.Api.Endpoints;
-using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
+using ElectronicLive.Api.Models.Subscriptions;
+using ElectronicLive.Api.Services.Subscriptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 

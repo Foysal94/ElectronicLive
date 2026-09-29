@@ -5,7 +5,7 @@ using ElectronicLive.Api.Data;
 using ElectronicLive.Api.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Services.Subscriptions;
 
 public sealed partial class SubscriptionService : ISubscriptionService
 {
