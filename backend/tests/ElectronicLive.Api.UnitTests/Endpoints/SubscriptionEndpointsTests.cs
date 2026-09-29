@@ -56,9 +56,9 @@ public sealed class SubscriptionEndpointsTests : IDisposable
 
         var result = await SubscriptionEndpoints.Subscribe(request, context, _artistVerificationService);
 
-        var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
-        validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
-        validationProblem.ProblemDetails.Errors.ShouldContainKey("email");
+        var problem = result.Result.ShouldBeOfType<ValidationProblem>();
+        problem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        problem.ProblemDetails.Errors.ShouldContainKey("email");
         await _artistVerificationService.DidNotReceiveWithAnyArgs().VerifyArtistExistsAsync(default!, default);
     }
 
@@ -73,9 +73,9 @@ public sealed class SubscriptionEndpointsTests : IDisposable
 
         var result = await SubscriptionEndpoints.Subscribe(request, context, _artistVerificationService);
 
-        var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
-        validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
-        validationProblem.ProblemDetails.Errors.ShouldContainKey("artistName");
+        var problem = result.Result.ShouldBeOfType<ValidationProblem>();
+        problem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        problem.ProblemDetails.Errors.ShouldContainKey("artistName");
         await _artistVerificationService.DidNotReceiveWithAnyArgs().VerifyArtistExistsAsync(default!, default);
     }
 
@@ -88,10 +88,10 @@ public sealed class SubscriptionEndpointsTests : IDisposable
 
         var result = await SubscriptionEndpoints.Subscribe(request, context, _artistVerificationService);
 
-        var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
-        validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
-        validationProblem.ProblemDetails.Errors.ShouldContainKey("artistName");
-        validationProblem.ProblemDetails.Errors["artistName"][0].ShouldContain("asdf123xyz");
+        var problem = result.Result.ShouldBeOfType<ValidationProblem>();
+        problem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        problem.ProblemDetails.Errors.ShouldContainKey("artistName");
+        problem.ProblemDetails.Errors["artistName"][0].ShouldContain("asdf123xyz");
     }
 
     [Fact]
@@ -133,11 +133,10 @@ public sealed class SubscriptionEndpointsTests : IDisposable
 
         var createdResult = result.Result.ShouldBeOfType<Created<SubscribeResponse>>();
         createdResult.StatusCode.ShouldBe(StatusCodes.Status201Created);
-        createdResult.Value.ShouldNotBeNull();
 
         using var verifyContext = CreateContext();
         var sub = await verifyContext.Subscriptions.FirstOrDefaultAsync(s =>
-            s.Id == createdResult.Value.SubscriptionId
+            s.Id == createdResult.Value!.SubscriptionId
         );
         sub.ShouldNotBeNull();
         sub.City.ShouldBe("Manchester");
@@ -146,32 +145,7 @@ public sealed class SubscriptionEndpointsTests : IDisposable
     [Fact]
     public async Task Should_ReturnOk_WhenSubscribingDuplicateActiveSubscription()
     {
-        var userId = Guid.NewGuid();
-        var subId = Guid.NewGuid();
-        using (var seedContext = CreateContext())
-        {
-            seedContext.Users.Add(
-                new User
-                {
-                    Id = userId,
-                    Email = "fan@electroniclive.com",
-                    UnsubscribeToken = "token123",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            seedContext.Subscriptions.Add(
-                new Subscription
-                {
-                    Id = subId,
-                    UserId = userId,
-                    ArtistName = "bicep",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            await seedContext.SaveChangesAsync();
-        }
+        var (_, subIds) = await SeedUser("fan@electroniclive.com", "token123", ("bicep", "London", true));
 
         using var context = CreateContext();
         var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
@@ -181,8 +155,7 @@ public sealed class SubscriptionEndpointsTests : IDisposable
 
         var okResult = result.Result.ShouldBeOfType<Ok<SubscribeResponse>>();
         okResult.StatusCode.ShouldBe(StatusCodes.Status200OK);
-        okResult.Value.ShouldNotBeNull();
-        okResult.Value.SubscriptionId.ShouldBe(subId);
+        okResult.Value!.SubscriptionId.ShouldBe(subIds[0]);
         okResult.Value.Message.ShouldContain("Already subscribed");
 
         using var verifyContext = CreateContext();
@@ -192,32 +165,7 @@ public sealed class SubscriptionEndpointsTests : IDisposable
     [Fact]
     public async Task Should_ReturnOk_WhenReactivatingInactiveSubscription()
     {
-        var userId = Guid.NewGuid();
-        var subId = Guid.NewGuid();
-        using (var seedContext = CreateContext())
-        {
-            seedContext.Users.Add(
-                new User
-                {
-                    Id = userId,
-                    Email = "fan@electroniclive.com",
-                    UnsubscribeToken = "token123",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            seedContext.Subscriptions.Add(
-                new Subscription
-                {
-                    Id = subId,
-                    UserId = userId,
-                    ArtistName = "bicep",
-                    City = "London",
-                    IsActive = false,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            await seedContext.SaveChangesAsync();
-        }
+        var (_, subIds) = await SeedUser("fan@electroniclive.com", "token123", ("bicep", "London", false));
 
         using var context = CreateContext();
         var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
@@ -227,14 +175,12 @@ public sealed class SubscriptionEndpointsTests : IDisposable
 
         var okResult = result.Result.ShouldBeOfType<Ok<SubscribeResponse>>();
         okResult.StatusCode.ShouldBe(StatusCodes.Status200OK);
-        okResult.Value.ShouldNotBeNull();
-        okResult.Value.SubscriptionId.ShouldBe(subId);
+        okResult.Value!.SubscriptionId.ShouldBe(subIds[0]);
         okResult.Value.Message.ShouldContain("reactivated");
 
         using var verifyContext = CreateContext();
-        var updatedSub = await verifyContext.Subscriptions.FindAsync(subId);
-        updatedSub.ShouldNotBeNull();
-        updatedSub.IsActive.ShouldBeTrue();
+        var updatedSub = await verifyContext.Subscriptions.FindAsync(subIds[0]);
+        updatedSub!.IsActive.ShouldBeTrue();
     }
 
     [Theory]
@@ -244,221 +190,83 @@ public sealed class SubscriptionEndpointsTests : IDisposable
     public async Task Should_Return400BadRequestHtml_WhenUnsubscribeTokenIsMissingOrEmpty(string? token)
     {
         using var context = CreateContext();
-
         var result = await SubscriptionEndpoints.Unsubscribe(token, null, context);
-
-        result.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
-        result.ContentType.ShouldBe("text/html; charset=utf-8");
-        result.ResponseContent.ShouldNotBeNull();
-        result.ResponseContent.ShouldContain("Invalid unsubscribe request");
+        AssertHtml(result, StatusCodes.Status400BadRequest, "Invalid unsubscribe request");
     }
 
     [Fact]
     public async Task Should_Return404NotFoundHtml_WhenUnsubscribeTokenIsInvalidOrNotFound()
     {
         using var context = CreateContext();
-
         var result = await SubscriptionEndpoints.Unsubscribe("non-existent-token", null, context);
-
-        result.StatusCode.ShouldBe(StatusCodes.Status404NotFound);
-        result.ContentType.ShouldBe("text/html; charset=utf-8");
-        result.ResponseContent.ShouldNotBeNull();
-        result.ResponseContent.ShouldContain("Invalid or expired unsubscribe link");
+        AssertHtml(result, StatusCodes.Status404NotFound, "Invalid or expired unsubscribe link");
     }
 
     [Fact]
     public async Task Should_DeactivateSpecificSubscription_WhenTokenAndArtistAreValid()
     {
-        var userId = Guid.NewGuid();
-        var sub1Id = Guid.NewGuid();
-        var sub2Id = Guid.NewGuid();
-        using (var seedContext = CreateContext())
-        {
-            seedContext.Users.Add(
-                new User
-                {
-                    Id = userId,
-                    Email = "fan@electroniclive.com",
-                    UnsubscribeToken = "valid-token-123",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            seedContext.Subscriptions.AddRange(
-                new Subscription
-                {
-                    Id = sub1Id,
-                    UserId = userId,
-                    ArtistName = "bicep",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                },
-                new Subscription
-                {
-                    Id = sub2Id,
-                    UserId = userId,
-                    ArtistName = "charlotte de witte",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            await seedContext.SaveChangesAsync();
-        }
+        var (_, subIds) = await SeedUser(
+            "fan@electroniclive.com",
+            "valid-token-123",
+            ("bicep", "London", true),
+            ("charlotte de witte", "London", true)
+        );
 
         using var context = CreateContext();
-
         var result = await SubscriptionEndpoints.Unsubscribe("valid-token-123", "Bicep", context);
-
-        result.StatusCode.ShouldBe(StatusCodes.Status200OK);
-        result.ContentType.ShouldBe("text/html; charset=utf-8");
-        result.ResponseContent.ShouldNotBeNull();
-        result.ResponseContent.ShouldContain("unsubscribed from alerts for Bicep");
+        AssertHtml(result, StatusCodes.Status200OK, "unsubscribed from alerts for Bicep");
 
         using var verifyContext = CreateContext();
-        var verifiedSub1 = await verifyContext.Subscriptions.FindAsync(sub1Id);
-        var verifiedSub2 = await verifyContext.Subscriptions.FindAsync(sub2Id);
-        verifiedSub1.ShouldNotBeNull();
-        verifiedSub1.IsActive.ShouldBeFalse();
-        verifiedSub2.ShouldNotBeNull();
-        verifiedSub2.IsActive.ShouldBeTrue();
+        (await verifyContext.Subscriptions.FindAsync(subIds[0]))!.IsActive.ShouldBeFalse();
+        (await verifyContext.Subscriptions.FindAsync(subIds[1]))!.IsActive.ShouldBeTrue();
     }
 
     [Fact]
     public async Task Should_DeactivateAllSubscriptions_WhenTokenIsValidAndArtistIsOmitted()
     {
-        var userId = Guid.NewGuid();
-        var sub1Id = Guid.NewGuid();
-        var sub2Id = Guid.NewGuid();
-        using (var seedContext = CreateContext())
-        {
-            seedContext.Users.Add(
-                new User
-                {
-                    Id = userId,
-                    Email = "fan@electroniclive.com",
-                    UnsubscribeToken = "valid-token-all",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            seedContext.Subscriptions.AddRange(
-                new Subscription
-                {
-                    Id = sub1Id,
-                    UserId = userId,
-                    ArtistName = "bicep",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                },
-                new Subscription
-                {
-                    Id = sub2Id,
-                    UserId = userId,
-                    ArtistName = "overmono",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            await seedContext.SaveChangesAsync();
-        }
+        var (_, subIds) = await SeedUser(
+            "fan@electroniclive.com",
+            "valid-token-all",
+            ("bicep", "London", true),
+            ("overmono", "London", true)
+        );
 
         using var context = CreateContext();
-
         var result = await SubscriptionEndpoints.Unsubscribe("valid-token-all", null, context);
-
-        result.StatusCode.ShouldBe(StatusCodes.Status200OK);
-        result.ContentType.ShouldBe("text/html; charset=utf-8");
-        result.ResponseContent.ShouldNotBeNull();
-        result.ResponseContent.ShouldContain("unsubscribed from all artist alerts");
+        AssertHtml(result, StatusCodes.Status200OK, "unsubscribed from all artist alerts");
 
         using var verifyContext = CreateContext();
-        var verifiedSub1 = await verifyContext.Subscriptions.FindAsync(sub1Id);
-        var verifiedSub2 = await verifyContext.Subscriptions.FindAsync(sub2Id);
-        verifiedSub1!.IsActive.ShouldBeFalse();
-        verifiedSub2!.IsActive.ShouldBeFalse();
+        (await verifyContext.Subscriptions.FindAsync(subIds[0]))!.IsActive.ShouldBeFalse();
+        (await verifyContext.Subscriptions.FindAsync(subIds[1]))!.IsActive.ShouldBeFalse();
     }
 
     [Fact]
     public async Task Should_DeactivateAllCitySubscriptions_WhenUnsubscribingByArtistWithMultipleCities()
     {
-        var userId = Guid.NewGuid();
-        var subLondonId = Guid.NewGuid();
-        var subMcrId = Guid.NewGuid();
-        using (var seedContext = CreateContext())
-        {
-            seedContext.Users.Add(
-                new User
-                {
-                    Id = userId,
-                    Email = "fan@electroniclive.com",
-                    UnsubscribeToken = "valid-token-cities",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            seedContext.Subscriptions.AddRange(
-                new Subscription
-                {
-                    Id = subLondonId,
-                    UserId = userId,
-                    ArtistName = "bicep",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                },
-                new Subscription
-                {
-                    Id = subMcrId,
-                    UserId = userId,
-                    ArtistName = "bicep",
-                    City = "Manchester",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            await seedContext.SaveChangesAsync();
-        }
+        var (_, subIds) = await SeedUser(
+            "fan@electroniclive.com",
+            "valid-token-cities",
+            ("bicep", "London", true),
+            ("bicep", "Manchester", true)
+        );
 
         using var context = CreateContext();
-
         var result = await SubscriptionEndpoints.Unsubscribe("valid-token-cities", "Bicep", context);
-
         result.StatusCode.ShouldBe(StatusCodes.Status200OK);
 
         using var verifyContext = CreateContext();
-        var londonSub = await verifyContext.Subscriptions.FindAsync(subLondonId);
-        var mcrSub = await verifyContext.Subscriptions.FindAsync(subMcrId);
-        londonSub!.IsActive.ShouldBeFalse();
-        mcrSub!.IsActive.ShouldBeFalse();
+        (await verifyContext.Subscriptions.FindAsync(subIds[0]))!.IsActive.ShouldBeFalse();
+        (await verifyContext.Subscriptions.FindAsync(subIds[1]))!.IsActive.ShouldBeFalse();
     }
 
     [Fact]
     public async Task Should_ReturnHtmlSuccess_WhenUnsubscribingArtistUserIsNotSubscribedTo()
     {
-        var userId = Guid.NewGuid();
-        using (var seedContext = CreateContext())
-        {
-            seedContext.Users.Add(
-                new User
-                {
-                    Id = userId,
-                    Email = "fan@electroniclive.com",
-                    UnsubscribeToken = "valid-token-not-subbed",
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            await seedContext.SaveChangesAsync();
-        }
+        await SeedUser("fan@electroniclive.com", "valid-token-not-subbed");
 
         using var context = CreateContext();
-
         var result = await SubscriptionEndpoints.Unsubscribe("valid-token-not-subbed", "Fred Again..", context);
-
-        result.StatusCode.ShouldBe(StatusCodes.Status200OK);
-        result.ContentType.ShouldBe("text/html; charset=utf-8");
-        result.ResponseContent.ShouldNotBeNull();
-        result.ResponseContent.ShouldContain("not currently subscribed");
+        AssertHtml(result, StatusCodes.Status200OK, "not currently subscribed");
     }
 
     [Fact]
@@ -472,5 +280,51 @@ public sealed class SubscriptionEndpointsTests : IDisposable
         await SubscriptionEndpoints.Subscribe(request, context, _artistVerificationService, cts.Token);
 
         await _artistVerificationService.Received(1).VerifyArtistExistsAsync("Bicep", cts.Token);
+    }
+
+    private async Task<(Guid UserId, List<Guid> SubIds)> SeedUser(
+        string email,
+        string token,
+        params (string Artist, string City, bool IsActive)[] subscriptions
+    )
+    {
+        using var context = CreateContext();
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            UnsubscribeToken = token,
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        context.Users.Add(user);
+
+        var subIds = new List<Guid>(subscriptions.Length);
+        foreach (var (artist, city, isActive) in subscriptions)
+        {
+            var subId = Guid.NewGuid();
+            subIds.Add(subId);
+            context.Subscriptions.Add(
+                new Subscription
+                {
+                    Id = subId,
+                    UserId = user.Id,
+                    ArtistName = artist,
+                    City = city,
+                    IsActive = isActive,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                }
+            );
+        }
+
+        await context.SaveChangesAsync();
+        return (user.Id, subIds);
+    }
+
+    private static void AssertHtml(ContentHttpResult result, int expectedStatusCode, string expectedSnippet)
+    {
+        result.StatusCode.ShouldBe(expectedStatusCode);
+        result.ContentType.ShouldBe("text/html; charset=utf-8");
+        result.ResponseContent.ShouldNotBeNull();
+        result.ResponseContent.ShouldContain(expectedSnippet);
     }
 }

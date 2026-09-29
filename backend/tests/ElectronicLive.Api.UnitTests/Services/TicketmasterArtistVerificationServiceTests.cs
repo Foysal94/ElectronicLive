@@ -16,7 +16,6 @@ public class TicketmasterArtistVerificationServiceTests
     public async Task Should_ReturnFalse_WhenArtistNameIsNullOrEmpty(string? artistName)
     {
         var (service, handler) = CreateService();
-
         var result = await service.VerifyArtistExistsAsync(artistName!);
 
         result.ShouldBeFalse();
@@ -32,7 +31,6 @@ public class TicketmasterArtistVerificationServiceTests
     public async Task Should_ReturnFalse_WhenApiKeyMissingOrNone(string? apiKey)
     {
         var (service, handler) = CreateService(apiKey: apiKey!);
-
         var result = await service.VerifyArtistExistsAsync("Bicep");
 
         result.ShouldBeFalse();
@@ -42,18 +40,7 @@ public class TicketmasterArtistVerificationServiceTests
     [Fact]
     public async Task Should_ConstructExpectedRequestUrl()
     {
-        const string json = """
-            {
-              "_embedded": {
-                "attractions": [
-                  { "id": "attr-1", "name": "Bicep" }
-                ]
-              },
-              "page": { "totalElements": 1 }
-            }
-            """;
-        var (service, handler) = CreateService(responseBody: json);
-
+        var (service, handler) = CreateService(responseBody: AttractionJson("Bicep"));
         var result = await service.VerifyArtistExistsAsync("Bicep & Hammer");
 
         result.ShouldBeTrue();
@@ -68,20 +55,9 @@ public class TicketmasterArtistVerificationServiceTests
     }
 
     [Fact]
-    public async Task Should_ReturnTrue_WhenAttractionsFoundInEmbedded()
+    public async Task Should_ReturnTrue_WhenAttractionNameMatches()
     {
-        const string json = """
-            {
-              "_embedded": {
-                "attractions": [
-                  { "id": "attr-1", "name": "Charlotte de Witte" }
-                ]
-              },
-              "page": { "totalElements": 1 }
-            }
-            """;
-        var (service, _) = CreateService(responseBody: json);
-
+        var (service, _) = CreateService(responseBody: AttractionJson("Charlotte de Witte"));
         var result = await service.VerifyArtistExistsAsync("Charlotte de Witte");
 
         result.ShouldBeTrue();
@@ -90,18 +66,7 @@ public class TicketmasterArtistVerificationServiceTests
     [Fact]
     public async Task Should_ReturnFalse_WhenAttractionsDoNotMatchArtistName()
     {
-        const string json = """
-            {
-              "_embedded": {
-                "attractions": [
-                  { "id": "attr-1", "name": "Completely Unrelated Artist" }
-                ]
-              },
-              "page": { "totalElements": 1 }
-            }
-            """;
-        var (service, _) = CreateService(responseBody: json);
-
+        var (service, _) = CreateService(responseBody: AttractionJson("Completely Unrelated Artist"));
         var result = await service.VerifyArtistExistsAsync("Bicep");
 
         result.ShouldBeFalse();
@@ -110,13 +75,7 @@ public class TicketmasterArtistVerificationServiceTests
     [Fact]
     public async Task Should_ReturnFalse_WhenNoAttractionsFound()
     {
-        const string json = """
-            {
-              "page": { "totalElements": 0 }
-            }
-            """;
-        var (service, _) = CreateService(responseBody: json);
-
+        var (service, _) = CreateService(responseBody: AttractionJson(totalElements: 0));
         var result = await service.VerifyArtistExistsAsync("FakeArtist12345");
 
         result.ShouldBeFalse();
@@ -126,7 +85,6 @@ public class TicketmasterArtistVerificationServiceTests
     public async Task Should_ReturnFalse_WhenHttpCallFails()
     {
         var (service, _) = CreateService(statusCode: HttpStatusCode.InternalServerError);
-
         var result = await service.VerifyArtistExistsAsync("Bicep");
 
         result.ShouldBeFalse();
@@ -164,6 +122,11 @@ public class TicketmasterArtistVerificationServiceTests
         );
         handler.WasCanceledDuringSend.ShouldBeTrue();
     }
+
+    private static string AttractionJson(string? artistName = null, int totalElements = 1) =>
+        artistName is null
+            ? $"{{\"page\":{{\"totalElements\":{totalElements}}}}}"
+            : $"{{\"_embedded\":{{\"attractions\":[{{\"id\":\"attr-1\",\"name\":\"{artistName}\"}}]}},\"page\":{{\"totalElements\":{totalElements}}}}}";
 
     private static (TicketmasterArtistVerificationService Service, CapturingHttpMessageHandler Handler) CreateService(
         HttpStatusCode statusCode = HttpStatusCode.OK,
