@@ -47,6 +47,9 @@ builder.Services.AddPersistence(builder.Configuration);
 
 var app = builder.Build();
 
+// Temporary deployment guardrail: Allows initial deployment of the persistence layer to Azure
+// without crashing on unprovisioned database connection strings. Once Neon credentials and Terraform
+// wiring are complete in #51, this catch guardrail will be removed in favor of fail-fast startup.
 using (var scope = app.Services.CreateScope())
 {
     try
