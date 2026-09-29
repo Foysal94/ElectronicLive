@@ -86,6 +86,7 @@ app.UseHttpsRedirection();
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
 
 app.MapEventEndpoints();
+app.MapSubscriptionEndpoints();
 
 await app.RunAsync();
 
