@@ -1,10 +1,10 @@
-using ElectronicLive.Api.Background.Scanning;
+using ElectronicLive.Api.Background.Scanner;
 using ElectronicLive.Api.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace ElectronicLive.Api.UnitTests.Background.Scanning;
+namespace ElectronicLive.Api.UnitTests.Background.Scanner;
 
 public sealed class ScanningServicesRegistrationTests
 {

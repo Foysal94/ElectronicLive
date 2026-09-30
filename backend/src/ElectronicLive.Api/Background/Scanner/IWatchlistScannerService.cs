@@ -1,4 +1,4 @@
-namespace ElectronicLive.Api.Background.Scanning;
+namespace ElectronicLive.Api.Background.Scanner;
 
 public interface IWatchlistScannerService
 {

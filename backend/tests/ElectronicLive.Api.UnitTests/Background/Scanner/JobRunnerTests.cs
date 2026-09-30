@@ -1,10 +1,10 @@
-using ElectronicLive.Api.Background.Scanning;
+using ElectronicLive.Api.Background.Scanner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute.ExceptionExtensions;
 
-namespace ElectronicLive.Api.UnitTests.Background.Scanning;
+namespace ElectronicLive.Api.UnitTests.Background.Scanner;
 
 public sealed class JobRunnerTests
 {

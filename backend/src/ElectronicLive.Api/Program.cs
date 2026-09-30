@@ -1,5 +1,5 @@
 using ElectronicLive.Api.Background.Email;
-using ElectronicLive.Api.Background.Scanning;
+using ElectronicLive.Api.Background.Scanner;
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Data;
 using ElectronicLive.Api.Endpoints;

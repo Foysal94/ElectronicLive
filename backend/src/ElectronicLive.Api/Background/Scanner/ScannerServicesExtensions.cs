@@ -1,8 +1,8 @@
 using ElectronicLive.Api.Configuration;
 
-namespace ElectronicLive.Api.Background.Scanning;
+namespace ElectronicLive.Api.Background.Scanner;
 
-public static class ScanningServicesExtensions
+public static class ScannerServicesExtensions
 {
     public static IServiceCollection AddWatchlistScanner(this IServiceCollection services, IConfiguration configuration)
     {
