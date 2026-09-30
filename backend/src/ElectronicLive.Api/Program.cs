@@ -43,6 +43,7 @@ if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
 builder.Services.AddEventClients(builder.Configuration);
 builder.Services.AddEventServices();
 builder.Services.AddEventCaching(builder.Configuration);
+builder.Services.AddEmailDispatching(builder.Configuration);
 builder.Services.AddPersistence(builder.Configuration);
 
 var app = builder.Build();
