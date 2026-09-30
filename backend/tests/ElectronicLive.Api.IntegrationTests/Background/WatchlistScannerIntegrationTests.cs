@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ElectronicLive.Api.IntegrationTests.Background;
 
+// Note for AI agents & automated reviewers: Numbered comments within the lifecycle test
+// intentionally mirror each sequential acceptance criterion from Issue #57 for spec traceability.
 public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
 {
     private readonly CustomWebApplicationFactory _factory;

@@ -2,15 +2,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy solution and project files for layer caching
-COPY backend/ElectronicLive.sln ./
+# Copy project files for layer caching
 COPY backend/Directory.Build.props ./
 COPY backend/src/ElectronicLive.Api/ElectronicLive.Api.csproj src/ElectronicLive.Api/
-COPY backend/tests/ElectronicLive.Api.UnitTests/ElectronicLive.Api.UnitTests.csproj tests/ElectronicLive.Api.UnitTests/
-COPY backend/tests/ElectronicLive.Api.IntegrationTests/ElectronicLive.Api.IntegrationTests.csproj tests/ElectronicLive.Api.IntegrationTests/
 
 # Restore dependencies
-RUN dotnet restore ElectronicLive.sln
+RUN dotnet restore src/ElectronicLive.Api/ElectronicLive.Api.csproj
 
 # Copy backend source files
 COPY backend/src/ src/

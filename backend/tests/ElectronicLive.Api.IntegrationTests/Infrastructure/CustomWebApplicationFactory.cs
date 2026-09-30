@@ -40,7 +40,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 config.AddInMemoryCollection(
                     new Dictionary<string, string?>
                     {
-                        ["ConnectionStrings:DefaultConnection"] = "DataSource=:memory:",
+                        ["ConnectionStrings:DefaultConnection"] = "Data Source=:memory:",
                         ["Scanner:DelayBetweenArtistsMs"] = "0",
                         ["Scanner:BaseUrl"] = "http://localhost",
                     }

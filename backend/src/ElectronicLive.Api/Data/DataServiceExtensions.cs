@@ -34,6 +34,7 @@ public static class DataServiceExtensions
     private static bool IsSqliteConnectionString(string connectionString)
     {
         return connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase)
+            || connectionString.Contains("DataSource=", StringComparison.OrdinalIgnoreCase)
             || connectionString.Contains("Filename=", StringComparison.OrdinalIgnoreCase)
             || connectionString.EndsWith(".db", StringComparison.OrdinalIgnoreCase);
     }

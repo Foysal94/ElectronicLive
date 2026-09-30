@@ -25,6 +25,5 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ElectronicLive.Api.UnitTests" />
-    <InternalsVisibleTo Include="ElectronicLive.Api.IntegrationTests" />
   </ItemGroup>
 </Project>

@@ -248,6 +248,21 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
     }
 
     [Fact]
+    public async Task Should_ReturnOkNotSubscribedHtml_WhenUnsubscribingFromArtistUserIsNotSubscribedTo()
+    {
+        var subId = Guid.NewGuid();
+        const string token = "token-artist-diff-1234567890123456789012345678901234567890";
+        await SeedUserWithSubscriptionAsync("fan@electroniclive.com", token, subId, "bicep", "London", isActive: true);
+
+        var response = await _client.GetAsync($"/api/subscriptions/unsubscribe?token={token}&artist=overmono");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("text/html");
+        var html = await response.Content.ReadAsStringAsync();
+        html.ShouldContain("not currently subscribed");
+    }
+
+    [Fact]
     public async Task Should_ReturnBadRequestHtml_WhenUnsubscribeTokenIsMissing()
     {
         var response = await _client.GetAsync("/api/subscriptions/unsubscribe?artist=bicep");
