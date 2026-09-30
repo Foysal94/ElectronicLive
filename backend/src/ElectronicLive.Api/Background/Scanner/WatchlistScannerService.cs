@@ -1,3 +1,4 @@
+using System.Globalization;
 using ElectronicLive.Api.Background.Email;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Data;
@@ -33,7 +34,11 @@ public sealed class WatchlistScannerService(
             watchedArtists.Count
         );
 
-        var totalResult = ScanResult.Empty;
+        var artistsScanned = 0;
+        var subscriptionsProcessed = 0;
+        var digestsSent = 0;
+        var errorsCount = 0;
+
         var delayMs = options.Value.DelayBetweenArtistsMs;
         var baseUrl = options.Value.BaseUrl.TrimEnd('/');
 
@@ -42,6 +47,7 @@ public sealed class WatchlistScannerService(
             ct.ThrowIfCancellationRequested();
 
             var artist = watchedArtists[i];
+            artistsScanned++;
 
             if (i > 0 && delayMs > 0)
             {
@@ -57,10 +63,17 @@ public sealed class WatchlistScannerService(
             );
 
             var artistResult = await ProcessArtistAsync(artist, baseUrl, ct);
-            totalResult += artistResult;
+            subscriptionsProcessed += artistResult.SubscriptionsProcessed;
+            digestsSent += artistResult.DigestsSent;
+            errorsCount += artistResult.ErrorsCount;
         }
 
-        return totalResult;
+        return new ScanResult(
+            ArtistsScanned: artistsScanned,
+            SubscriptionsProcessed: subscriptionsProcessed,
+            DigestsSent: digestsSent,
+            ErrorsCount: errorsCount
+        );
     }
 
     private async Task<ArtistScanResult> ProcessArtistAsync(string artist, string baseUrl, CancellationToken ct)
@@ -73,13 +86,13 @@ public sealed class WatchlistScannerService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to search events for artist '{Artist}'. Skipping artist.", artist);
-            return ArtistScanResult.Failed;
+            return new ArtistScanResult(SubscriptionsProcessed: 0, DigestsSent: 0, ErrorsCount: 1);
         }
 
         if (events.Count == 0)
         {
             logger.LogInformation("No events found in {City} for artist '{Artist}'.", TargetCity, artist);
-            return ArtistScanResult.Empty;
+            return new ArtistScanResult(SubscriptionsProcessed: 0, DigestsSent: 0, ErrorsCount: 0);
         }
 
         var subscriptions = await dbContext
@@ -95,13 +108,13 @@ public sealed class WatchlistScannerService(
         foreach (var subscription in subscriptions)
         {
             ct.ThrowIfCancellationRequested();
-            processedCount++;
 
             if (subscription.User == null || string.IsNullOrWhiteSpace(subscription.User.Email))
             {
                 continue;
             }
 
+            processedCount++;
             var outcome = await ProcessSubscriptionAsync(subscription, artist, events, baseUrl, ct);
             switch (outcome)
             {
@@ -127,6 +140,12 @@ public sealed class WatchlistScannerService(
         CancellationToken ct
     )
     {
+        var user = subscription.User;
+        if (user == null || string.IsNullOrWhiteSpace(user.Email))
+        {
+            return SubscriptionProcessOutcome.NoNewEvents;
+        }
+
         var existingFingerprints = subscription
             .NotificationLogs.Select(nl => nl.EventFingerprint)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -134,7 +153,7 @@ public sealed class WatchlistScannerService(
         var unsentEvents = new List<(EventResponse Event, string Fingerprint)>();
         foreach (var evt in events)
         {
-            var fingerprint = NotificationLog.GenerateFingerprint(evt, artist);
+            var fingerprint = BuildEventFingerprint(evt, artist);
             if (!existingFingerprints.Contains(fingerprint))
             {
                 unsentEvents.Add((evt, fingerprint));
@@ -147,11 +166,11 @@ public sealed class WatchlistScannerService(
         }
 
         var newEventsList = unsentEvents.Select(u => u.Event).ToList();
-        var unsubscribeUrl = subscription.BuildUnsubscribeUrl(baseUrl);
+        var unsubscribeUrl = BuildUnsubscribeUrl(baseUrl, user.UnsubscribeToken, artist);
 
         try
         {
-            await emailDispatcher.SendDigestAsync(subscription.User!.Email, artist, newEventsList, unsubscribeUrl, ct);
+            await emailDispatcher.SendDigestAsync(user.Email, artist, newEventsList, unsubscribeUrl, ct);
 
             var newLogs = unsentEvents.Select(u => new NotificationLog
             {
@@ -173,10 +192,34 @@ public sealed class WatchlistScannerService(
                 ex,
                 "Failed to send digest or save notification log for subscription {SubscriptionId} (User: {Email}, Artist: {Artist}).",
                 subscription.Id,
-                subscription.User!.Email,
+                user.Email,
                 artist
             );
             return SubscriptionProcessOutcome.Failed;
         }
+    }
+
+    internal static string BuildEventFingerprint(EventResponse evt, string artist)
+    {
+        var datePart = evt.Date.HasValue ? evt.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "tba";
+        var venuePart = evt.VenueName.Trim().ToLowerInvariant();
+        var artistPart = artist.Trim().ToLowerInvariant();
+
+        return $"{datePart}_{venuePart}_{artistPart}";
+    }
+
+    internal static string BuildUnsubscribeUrl(string baseUrl, string unsubscribeToken, string artist)
+    {
+        var encodedArtist = Uri.EscapeDataString(artist.Trim().ToLowerInvariant());
+        return $"{baseUrl.TrimEnd('/')}/api/subscriptions/unsubscribe?token={unsubscribeToken.Trim()}&artist={encodedArtist}";
+    }
+
+    private sealed record ArtistScanResult(int SubscriptionsProcessed, int DigestsSent, int ErrorsCount);
+
+    private enum SubscriptionProcessOutcome
+    {
+        Sent,
+        NoNewEvents,
+        Failed,
     }
 }

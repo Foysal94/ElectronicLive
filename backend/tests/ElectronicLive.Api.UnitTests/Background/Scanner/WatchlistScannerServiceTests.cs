@@ -384,7 +384,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         DateOnly? date = dateString != null ? DateOnly.Parse(dateString, CultureInfo.InvariantCulture) : null;
         var evt = CreateEvent(venue: venue, date: date, useExplicitDate: true);
 
-        var fingerprint = NotificationLog.GenerateFingerprint(evt, artist);
+        var fingerprint = WatchlistScannerService.BuildEventFingerprint(evt, artist);
 
         fingerprint.ShouldBe(expectedFingerprint);
     }
@@ -392,10 +392,11 @@ public sealed class WatchlistScannerServiceTests : IDisposable
     [Fact]
     public void Should_BuildCorrectUnsubscribeUrl()
     {
-        var user = new User { UnsubscribeToken = "test-token" };
-        var subscription = new Subscription { User = user, ArtistName = "Four Tet" };
-
-        var url = subscription.BuildUnsubscribeUrl("https://electroniclive.co.uk/");
+        var url = WatchlistScannerService.BuildUnsubscribeUrl(
+            "https://electroniclive.co.uk/",
+            "test-token",
+            "Four Tet"
+        );
 
         url.ShouldBe("https://electroniclive.co.uk/api/subscriptions/unsubscribe?token=test-token&artist=four%20tet");
     }

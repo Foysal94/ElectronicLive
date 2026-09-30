@@ -23,17 +23,4 @@ public class Subscription
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<NotificationLog> NotificationLogs { get; set; } = [];
-
-    public string BuildUnsubscribeUrl(string baseUrl)
-    {
-        var token = User?.UnsubscribeToken ?? string.Empty;
-        var encodedArtist = Uri.EscapeDataString(ArtistName);
-        return $"{baseUrl.TrimEnd('/')}/api/subscriptions/unsubscribe?token={token}&artist={encodedArtist}";
-    }
-
-    public static string BuildUnsubscribeUrl(string baseUrl, string token, string artist)
-    {
-        var encodedArtist = Uri.EscapeDataString(artist.Trim().ToLowerInvariant());
-        return $"{baseUrl.TrimEnd('/')}/api/subscriptions/unsubscribe?token={token.Trim()}&artist={encodedArtist}";
-    }
 }
