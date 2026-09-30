@@ -10,14 +10,21 @@
 
 ## Architecture & Code Boundaries
 - **Endpoints Over Controllers:** Map endpoints using static extension methods on `IEndpointRouteBuilder` inside `Endpoints/` (e.g., `Endpoints/EventEndpoints.cs`, `Endpoints/SubscriptionEndpoints.cs`). Never place full endpoint implementations in `Program.cs`.
+- **No Direct Persistence in Endpoints:** Endpoints are strictly HTTP transport adapters (routing, model binding, returning `TypedResults`). Never execute raw `DbContext` queries in `Endpoints/`. Delegate all database and domain orchestration to `Services/` so logic is isolated and reusable by background jobs (`Background/`).
 - **Unit-Testable Handlers:** Endpoint logic must reside in `internal static` handler methods so they can be unit-tested directly without spinning up HTTP test servers. `[InternalsVisibleTo]` must target `ElectronicLive.Api.UnitTests`.
 - **Encapsulated Clients:** Place external provider integrations under `src/ElectronicLive.Api/Clients/` (e.g., `ITicketmasterClient`, `ISkiddleClient`, `IResidentAdvisorClient`). Each external vendor gets its own typed client interface and resilience policies.
 - **Core Domain Services:** Synchronous business capabilities and aggregators reside under `src/ElectronicLive.Api/Services/` (e.g., `IEventSearchService`, `ISubscriptionService`, `IArtistVerificationService`).
+- **Pragmatic Return Types:** Return domain records or simple status flags directly; do not create artificial `Result<T>`, `StatusEnum`, or `Contracts/` wrapper layers for straightforward domain operations.
+- **Layered Validation & Guard Clauses:** Validate request syntax on DTOs (e.g., `TryValidate()`) returning `TypedResults.ValidationProblem()` immediately; keep semantic and business checks inside domain services using flat early-return guard clauses.
 - **Background & Notification Pipelines:** Background processing, scheduled jobs (ACA Jobs), and email dispatching reside under `src/ElectronicLive.Api/Background/` (e.g., `Background/Email/` for `IEmailDispatcher`, `ResendEmailDispatcher`, `LoggingEmailDispatcher`, `EmailTemplateBuilder` and `Background/Scanner/` for `WatchlistScannerService`).
 - **Embedded Resource Templates:** Email and HTML notification templates must be stored under `src/ElectronicLive.Api/Background/Email/Templates/` and compiled as an `<EmbeddedResource>` in the `.csproj` to prevent runtime `FileNotFoundException` path failures in containerized (Docker/ACA) environments.
 - **DTOs & Schema Separation:** Separate raw upstream third-party models (`Clients/*/Models.cs`) from exposed API contracts (`Models/`). Never expose raw third-party schemas directly to callers.
+- **One Type Per File (`SA1649`):** Never declare records, DTOs, or enums inside interface files or leak private loop types. Every public/internal type gets its own dedicated file named after the type.
+- **Feature-Scoped Models:** Root `Models/` is strictly for public HTTP API contracts across endpoint boundaries. Client and feature DTOs stay flat in their feature root (e.g., `Clients/*/Models.cs`, `ScanResult.cs`); no nested `Models/` folders unless 5+ DTOs.
+- **Records Over Tuples:** Use immutable `record` or `enum` types for method returns—never multi-element tuples (e.g., `(int, int, int)`).
+- **No Test-Driven Visibility Widening:** Never widen method access modifiers (e.g., making methods `public` or `public static`) purely to facilitate unit tests. Keep pure algorithmic helpers `internal static` (covered by `[InternalsVisibleTo]`), and test orchestration through public service interfaces.
 - **Async Execution:** Always accept and forward `CancellationToken`. Use `Task.WhenAll` when querying multiple independent gig providers concurrently.
-- **Testing Conventions:** All test methods must strictly follow the naming pattern `Should_....`
+- **Testing Conventions:** All test methods must strictly follow the naming pattern `Should_....` Never duplicate manual entity or DTO construction across test files; maintain shared test factories in `TestHelpers/` (e.g., `EventTestFactory`) and assert observable state/side-effects rather than internal mock mechanics.
 
 ## Guardrails
 - Handle external upstream failures gracefully; a failure from one gig provider or email recipient must not crash the entire endpoint or abort processing for other subscribers.
