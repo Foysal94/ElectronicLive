@@ -1,8 +1,8 @@
+using ElectronicLive.Api.Background.Email;
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
 using Microsoft.Extensions.Logging;
 
-namespace ElectronicLive.Api.UnitTests.Services;
+namespace ElectronicLive.Api.UnitTests.Background.Email;
 
 public sealed class LoggingEmailDispatcherTests : IDisposable
 {

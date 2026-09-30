@@ -3,7 +3,7 @@ using System.Net;
 using System.Text;
 using ElectronicLive.Api.Models;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Background.Email;
 
 public static class EmailTemplateBuilder
 {
@@ -134,7 +134,7 @@ public static class EmailTemplateBuilder
     private static string LoadTemplate()
     {
         var assembly = typeof(EmailTemplateBuilder).Assembly;
-        const string resourceName = "ElectronicLive.Api.Templates.DigestEmailTemplate.html";
+        const string resourceName = "ElectronicLive.Api.Background.Email.Templates.DigestEmailTemplate.html";
 
         using var stream =
             assembly.GetManifestResourceStream(resourceName)

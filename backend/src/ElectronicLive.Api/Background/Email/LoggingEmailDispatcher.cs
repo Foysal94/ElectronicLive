@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using ElectronicLive.Api.Models;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Background.Email;
 
 public sealed partial class LoggingEmailDispatcher(
     ILogger<LoggingEmailDispatcher> logger,

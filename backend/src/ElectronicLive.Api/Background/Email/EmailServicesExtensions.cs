@@ -1,7 +1,7 @@
 using ElectronicLive.Api.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Background.Email;
 
 public static class EmailServicesExtensions
 {

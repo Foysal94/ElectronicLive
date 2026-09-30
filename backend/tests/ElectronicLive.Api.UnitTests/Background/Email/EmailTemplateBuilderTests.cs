@@ -1,7 +1,7 @@
+using ElectronicLive.Api.Background.Email;
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
 
-namespace ElectronicLive.Api.UnitTests.Services;
+namespace ElectronicLive.Api.UnitTests.Background.Email;
 
 public sealed class EmailTemplateBuilderTests
 {

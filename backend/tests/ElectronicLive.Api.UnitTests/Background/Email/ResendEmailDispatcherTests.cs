@@ -1,13 +1,13 @@
 using System.Net;
 using System.Text.Json;
+using ElectronicLive.Api.Background.Email;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
 using ElectronicLive.Api.UnitTests.TestHelpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
-namespace ElectronicLive.Api.UnitTests.Services;
+namespace ElectronicLive.Api.UnitTests.Background.Email;
 
 public sealed class ResendEmailDispatcherTests
 {

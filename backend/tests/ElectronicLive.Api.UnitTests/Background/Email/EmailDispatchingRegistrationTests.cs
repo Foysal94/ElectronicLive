@@ -1,8 +1,8 @@
-using ElectronicLive.Api.Services;
+using ElectronicLive.Api.Background.Email;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ElectronicLive.Api.UnitTests.Services;
+namespace ElectronicLive.Api.UnitTests.Background.Email;
 
 public sealed class EmailDispatchingRegistrationTests
 {

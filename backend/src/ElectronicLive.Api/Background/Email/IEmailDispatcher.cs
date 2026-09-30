@@ -1,6 +1,6 @@
 using ElectronicLive.Api.Models;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Background.Email;
 
 public interface IEmailDispatcher
 {

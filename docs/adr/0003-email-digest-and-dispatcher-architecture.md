@@ -22,7 +22,7 @@ Key technical requirements and constraints:
    - Register `ResendEmailDispatcher` when `Resend:ApiKey` is present in configuration; automatically fallback to `LoggingEmailDispatcher` when the key is missing or blank.
    - Default "From" sender address configured as `ElectronicLive <alerts@electroniclive.co.uk>`, overrideable via `Resend:FromEmail` in `appsettings.secrets.json` for sandbox testing (`onboarding@resend.dev`).
 4. **Embedded Resource Template (`EmailTemplateBuilder`):**
-   - Place the dark-mode responsive HTML/CSS template in `Templates/DigestEmailTemplate.html` marked as an `EmbeddedResource` in `ElectronicLive.Api.csproj`.
+   - Place the dark-mode responsive HTML/CSS template in `Background/Email/Templates/DigestEmailTemplate.html` marked as an `EmbeddedResource` in `ElectronicLive.Api.csproj`.
    - `EmailTemplateBuilder` loads the embedded template stream from the assembly and performs safe HTML encoding and token substitution for brand header, event cards, multi-provider ticket buttons, and unsubscribe links.
 5. **Digest Content & Copy:**
    - Subject line: `New shows announced: {artistName}`.

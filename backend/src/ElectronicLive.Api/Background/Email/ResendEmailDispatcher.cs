@@ -3,7 +3,7 @@ using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Models;
 using Microsoft.Extensions.Options;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Background.Email;
 
 public sealed class ResendEmailDispatcher(
     HttpClient httpClient,
