@@ -17,12 +17,16 @@
 - Lint & Typecheck: `npm run lint && npm run typecheck`
 
 ## Architecture & Code Boundaries
+- **API Client Layer (`src/api/client.ts`):** All HTTP requests must be encapsulated in typed functions within `src/api/client.ts`. Never execute raw `fetch()` or `axios` in components or hooks.
 - **Single Target:** All client fetch requests must target the local .NET Web API. Never query external third-party vendor APIs directly from the browser.
-- **Server State & Mutation Scope:**
-  - **Queries & Shared Mutations:** Encapsulate all queries and cache-invalidating mutations in custom hooks under `src/hooks/` (or query options factories) using TanStack Query v5 object syntax. Never place raw fetch calls directly inside UI components.
-  - **Isolated Mutations:** Inline `useMutation` directly inside leaf UI components (e.g. modals, isolated forms) when the mutation is single-use and has zero query cache side-effects, avoiding redundant 1-line wrapper hooks.
+- **Queries (`src/hooks/` or `queryOptions`):** Encapsulate all `GET` queries and cache-orchestration in dedicated hooks under `src/hooks/` using TanStack Query v5 object syntax.
+- **Mutations (`useMutation`):**
+  - **Shared / Cache-Invalidating:** Encapsulate in `src/hooks/` when mutations invalidate queries (`queryClient.invalidateQueries`) or are shared across multiple views.
+  - **Isolated / Single-View:** Inline `useMutation` directly in parent container/dialog components when single-use with zero query cache side-effects (avoids redundant 1-line wrapper hooks).
+- **Form & Mutation Error Synchronization:** When a form displays a mutation error banner (`mutation.error`), always reset the mutation state (`mutation.reset()`) inside the input `onChange` handler so stale server errors do not remain frozen on screen while the user is actively typing a correction.
 - **Domain-Organized Components:** Organize UI components by feature domain under `components/<domain>/`, with shared primitives under `components/common/` and global chrome under `components/layout/`.
 - **Pure Leaf Components & Container Boundaries:** Presentational leaf components (e.g. buttons, rows, badges, forms) must remain pure, deterministic functions (props in -> JSX out). Keep server state, caching, and query orchestration isolated in parent container views (such as pages or dialog wrappers) or dedicated custom hooks.
+- **Native `<dialog>` Modal Management:** Trigger modals using imperative `.showModal()` on mount and handle dismissal via native events / backdrop clicks. Never pass `open={isOpen}` as a JSX attribute on `<dialog>`, as it marks the element open before `showModal()` runs and prevents native top-layer modal behavior, backdrop styling, and focus traps.
 - **Resilience UI:** Views consuming asynchronous data must cleanly render:
   1. Loading skeleton states gated strictly on active network fetching (`fetchStatus === 'fetching'` or `isFetching`). Never gate skeletons on `isPending` when `enabled` can be false (in TanStack Query v5, `isPending` is true for unexecuted queries).
   2. Partial or empty data states with an explicit idle state (`const isIdle = !query.trim()`).
@@ -57,7 +61,6 @@
 
 ## Guardrails
 - Build UI controls directly using Tailwind CSS primitives to avoid runtime CSS-in-JS bloat. For complex accessible widgets, prefer headless primitives (Radix UI) styled with Tailwind rather than monolithic opinionated suites (MUI, Chakra, AntD).
-- DO NOT use raw `fetch()` or `axios` inside `useEffect`.
 - NEVER render empty or null `href` on ticket buttons; if `ticketUrl` is missing or empty, render an unclickable disabled state (`Tickets TBA`).
 
 ## Comment Policy (Why, Never What)
