@@ -74,7 +74,6 @@ export function EventList({
             <TrackArtistButton
               artistName={trimmedQuery}
               onClick={() => onTrackArtist(trimmedQuery)}
-              label={`Track ${trimmedQuery}`}
             />
           )}
         </div>

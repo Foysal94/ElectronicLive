@@ -2,16 +2,14 @@ interface TrackArtistButtonProps {
   artistName: string
   onClick: () => void
   className?: string
-  label?: string
 }
 
 export function TrackArtistButton({
   artistName,
   onClick,
   className = '',
-  label,
 }: TrackArtistButtonProps) {
-  const displayLabel = label || `Track ${artistName}`
+  const displayLabel = `Track ${artistName}`
 
   return (
     <button

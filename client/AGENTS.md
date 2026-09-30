@@ -18,7 +18,9 @@
 
 ## Architecture & Code Boundaries
 - **Single Target:** All client fetch requests must target the local .NET Web API. Never query external third-party vendor APIs directly from the browser.
-- **Dedicated Data Hooks:** Encapsulate all API queries in custom hooks under `src/hooks/` using TanStack Query v5 object syntax (`useQuery({ queryKey, queryFn })`). Never place raw fetch calls or `useQuery` invocations directly inside UI components.
+- **Server State & Mutation Scope:**
+  - **Queries & Shared Mutations:** Encapsulate all queries and cache-invalidating mutations in custom hooks under `src/hooks/` (or query options factories) using TanStack Query v5 object syntax. Never place raw fetch calls directly inside UI components.
+  - **Isolated Mutations:** Inline `useMutation` directly inside leaf UI components (e.g. modals, isolated forms) when the mutation is single-use and has zero query cache side-effects, avoiding redundant 1-line wrapper hooks.
 - **Domain-Organized Components:** Organize UI components by feature domain under `components/<domain>/`, with shared primitives under `components/common/` and global chrome under `components/layout/`.
 - **Pure Leaf Components:** Presentational components must remain pure, deterministic functions (props in -> JSX out). Keep server state, caching, and query orchestration isolated in parent views or custom hooks.
 - **Resilience UI:** Views consuming asynchronous data must cleanly render:

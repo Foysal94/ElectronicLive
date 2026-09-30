@@ -13,17 +13,17 @@ describe('TrackArtistButton Component', () => {
     expect(button.className).toContain('min-h-[44px]')
   })
 
-  it('Should_render_custom_label_when_provided', () => {
+  it('Should_apply_custom_className_when_provided', () => {
     render(
       <TrackArtistButton
         artistName="Overmono"
-        label="Track Artist"
+        className="custom-class"
         onClick={vi.fn()}
       />
     )
 
     const button = screen.getByRole('button', { name: 'Track Overmono' })
-    expect(button).toHaveTextContent('Track Artist')
+    expect(button.className).toContain('custom-class')
   })
 
   it('Should_trigger_onClick_handler_when_clicked', async () => {

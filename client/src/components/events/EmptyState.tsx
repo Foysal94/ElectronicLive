@@ -61,7 +61,6 @@ export function EmptyState({
           <TrackArtistButton
             artistName={trimmedQuery}
             onClick={() => onTrackArtist(trimmedQuery)}
-            label={`Track ${trimmedQuery}`}
           />
         </div>
       )}

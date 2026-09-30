@@ -25,7 +25,6 @@ export function TrackArtistModal({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [email, setEmail] = useState('')
-  const [submittedEmail, setSubmittedEmail] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
   const mutation = useMutation({
@@ -35,13 +34,11 @@ export function TrackArtistModal({
 
   const handleClose = useCallback(() => {
     setEmail('')
-    setSubmittedEmail('')
     setValidationError(null)
     resetMutation()
     onClose()
   }, [resetMutation, onClose])
 
-  // Synchronize native HTML5 dialog element open state with isOpen prop
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
@@ -56,7 +53,6 @@ export function TrackArtistModal({
     }
   }, [isOpen])
 
-  // Global Escape key listener to ensure modal dismissal
   useEffect(() => {
     if (!isOpen) return
 
@@ -89,8 +85,6 @@ export function TrackArtistModal({
       return
     }
 
-    setSubmittedEmail(trimmedEmail)
-
     mutation.mutate(
       {
         email: trimmedEmail,
@@ -116,7 +110,6 @@ export function TrackArtistModal({
   return (
     <dialog
       ref={dialogRef}
-      open={isOpen}
       onCancel={(e) => {
         e.preventDefault()
         handleClose()
@@ -163,7 +156,7 @@ export function TrackArtistModal({
                 You're tracking {artistName}!
               </h3>
               <p className="text-sm text-gray-300 max-w-sm mx-auto leading-relaxed">
-                We'll email <span className="text-emerald-300 font-semibold">{submittedEmail}</span> when new London shows or ticket drops are announced.
+                We'll email <span className="text-emerald-300 font-semibold">{mutation.variables?.email}</span> when new London shows or ticket drops are announced.
               </p>
             </div>
             <div className="pt-2">

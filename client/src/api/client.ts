@@ -69,9 +69,6 @@ export async function fetchEvents(
   return data
 }
 
-/**
- * Dispatches a watchlist alert subscription request to the backend API.
- */
 export async function createSubscription(
   payload: CreateSubscriptionRequest,
   signal?: AbortSignal
