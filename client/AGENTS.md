@@ -17,15 +17,16 @@
 - Lint & Typecheck: `npm run lint && npm run typecheck`
 
 ## Architecture & Code Boundaries
+- **API Client Layer (`src/api/client.ts`):** All HTTP requests must be encapsulated in typed functions within `src/api/client.ts`. Never execute raw `fetch()` or `axios` in components or hooks.
 - **Single Target:** All client fetch requests must target the local .NET Web API. Never query external third-party vendor APIs directly from the browser.
-- **Dedicated Data Hooks:** Encapsulate all API queries in custom hooks under `src/hooks/` using TanStack Query v5 object syntax (`useQuery({ queryKey, queryFn })`). Never place raw fetch calls or `useQuery` invocations directly inside UI components.
+- **Server State & Mutation Scope:** Encapsulate `GET` queries and cache-invalidating mutations in custom hooks under `src/hooks/` using TanStack Query v5 object syntax. Inline single-use mutations with zero query cache side-effects directly in parent container/dialog views to avoid 1-line wrapper hook proliferation.
+- **Pure Leaf Components & Container Boundaries:** Presentational leaf components (e.g. buttons, rows, badges, forms) must remain pure, deterministic functions (props in -> JSX out). Keep server state, caching, and mutation orchestration isolated in parent container views or custom hooks.
 - **Domain-Organized Components:** Organize UI components by feature domain under `components/<domain>/`, with shared primitives under `components/common/` and global chrome under `components/layout/`.
-- **Pure Leaf Components:** Presentational components must remain pure, deterministic functions (props in -> JSX out). Keep server state, caching, and query orchestration isolated in parent views or custom hooks.
 - **Resilience UI:** Views consuming asynchronous data must cleanly render:
-  1. Loading skeleton states gated strictly on active network fetching (`fetchStatus === 'fetching'` or `isFetching`). Never gate skeletons on `isPending` when `enabled` can be false (in TanStack Query v5, `isPending` is true for unexecuted queries).
+  1. Loading skeleton states gated strictly on active network fetching (`fetchStatus === 'fetching'` or `isFetching`), never `isPending`.
   2. Partial or empty data states with an explicit idle state (`const isIdle = !query.trim()`).
   3. Network error boundaries with user-friendly retry actions.
-- **Timezone-Safe Date Parsing:** Never parse `"YYYY-MM-DD"` date strings using `new Date(...)` with local getters (`getDate()`, `getDay()`), which causes day-shifts in non-UTC timezones. Parse components directly (`dateStr.split('-')`) or use UTC getters (`getUTCDate()`, `getUTCMonth()`).
+- **Timezone-Safe Date Parsing:** Never parse `"YYYY-MM-DD"` date strings using `new Date(...)` with local getters. Parse components directly (`dateStr.split('-')`) or use UTC getters (`getUTCDate()`, `getUTCMonth()`).
 
 ## React 19 & TypeScript Conventions
 - **No `React.FC`:** Define components using standard function syntax with explicit typed interfaces:
@@ -37,26 +38,19 @@
   ```
 - **React 19 Native Refs:** Pass `ref` directly as a standard component prop; do not wrap components in `forwardRef` (deprecated in React 19).
 - **Zero Derived State in `useEffect`:** Never sync props to state or compute derived values inside `useEffect`. Calculate derivations synchronously during render.
-- **Controlled Event Triggers:** Only trigger data fetches on explicit user submissions (form submit, button click, or preset selection). Never trigger network requests on input `onChange`.
 - **Strict Typing:** DO NOT use the `any` type or unsafe `as` type assertions.
 
 ## Styling & Accessibility Guardrails
-- **Tailwind Utility Discipline:** All styling must strictly use Tailwind utility classes. DO NOT create custom `.css` or `.module.css` stylesheets.
+- **Tailwind Utility Discipline:** All styling must strictly use Tailwind utility classes. DO NOT create custom `.css` or `.module.css` stylesheets or import heavy monolithic UI component libraries.
 - **Mobile Touch Targets:** Interactive controls (buttons, inputs, selectables) must provide a minimum tap target height of 44px (`min-h-[44px]`).
 - **Semantic HTML & A11y:** Use semantic elements (`<header>`, `<main>`, `<section>`, `<article>`, `<button type="button">`, `<input type="search">`). All icon-only interactive controls must declare an explicit `aria-label`.
+- **Native `<dialog>` Management:** Trigger modals using imperative `.showModal()` on mount and handle dismissal via native events/backdrop clicks. Never pass `open={isOpen}` as a JSX attribute on `<dialog>`.
 
 ## Testing Standards
-- **Test Structure (Pattern B):** All unit and component tests must be placed in dedicated `__tests__/` subdirectories within their corresponding domain or component folders (e.g., `src/components/events/__tests__/EventRow.test.tsx`). Keep component directory listings clean and free of spec files.
-- **Test Naming:** All test cases in Vitest must strictly follow the naming pattern of `Should_...` (e.g., `it('Should_render_results_when_query_succeeds', ...)`).
-- **Tooling:** Use Vitest + React Testing Library + `@testing-library/user-event`. Enzyme is strictly forbidden.
-- **User-Centric Queries:** Always query the DOM via Testing Library user-facing roles (`getByRole`, `getByLabelText`). Never query by CSS class names, element IDs, or DOM hierarchy.
-- **Realistic Events:** Use `@testing-library/user-event` rather than `fireEvent` to simulate realistic browser interactions.
-- **Contract Mocks via MSW:** Test data fetching hooks against MSW network handlers. Do not manually mock `fetch` using `vi.fn()`.
-
-## Guardrails
-- Build UI controls directly using Tailwind CSS primitives to avoid runtime CSS-in-JS bloat. For complex accessible widgets, prefer headless primitives (Radix UI) styled with Tailwind rather than monolithic opinionated suites (MUI, Chakra, AntD).
-- DO NOT use raw `fetch()` or `axios` inside `useEffect`.
-- NEVER render empty or null `href` on ticket buttons; if `ticketUrl` is missing or empty, render an unclickable disabled state (`Tickets TBA`).
+- **Test Structure (Pattern B):** All unit and component tests must be placed in dedicated `__tests__/` subdirectories within their corresponding domain or component folders (e.g., `src/components/events/__tests__/EventRow.test.tsx`).
+- **Test Naming:** All test cases in Vitest must strictly follow the naming pattern of `Should_...`.
+- **User-Centric Queries & Realistic Events:** Always query the DOM via Testing Library user-facing roles (`getByRole`, `getByLabelText`) and simulate user actions with `@testing-library/user-event` rather than `fireEvent`.
+- **Contract Mocks via MSW:** Test data fetching hooks and API client functions against MSW network handlers. Do not manually mock `fetch` using `vi.fn()`.
 
 ## Comment Policy (Why, Never What)
-- Write clean, self-documenting code with expressive naming so comments are rarely needed. Strictly forbid tautological comments (e.g., `// render row`, `// call api`, `// set state`). Comments are only permitted to explain the "why"—such as workarounds for third-party browser quirks (e.g., popup blocker behavior on external ticket links), non-obvious date formatting edge cases, or upstream vendor payload anomalies. Delete boilerplate comments immediately.
+- Write clean, self-documenting code with expressive naming so comments are rarely needed. Strictly forbid tautological comments (e.g., `// render row`, `// call api`, `// set state`). Comments are only permitted to explain the "why"—such as workarounds for third-party browser quirks, non-obvious date formatting edge cases, or upstream vendor payload anomalies. Delete boilerplate comments immediately.

@@ -8,6 +8,10 @@ export function createTestQueryClient(): QueryClient {
         retry: false,
         gcTime: 0,
       },
+      mutations: {
+        retry: false,
+        gcTime: 0,
+      },
     },
   })
 }
@@ -18,6 +22,11 @@ interface QueryWrapperProps {
 
 export function createQueryWrapper(queryClient = createTestQueryClient()) {
   return function QueryWrapper({ children }: QueryWrapperProps) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    return (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    )
   }
 }
+

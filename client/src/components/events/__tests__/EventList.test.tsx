@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { EventResponse } from '../../../api/types'
 import { mockMultiProviderEvent, mockSingleProviderEvent } from '../../../test/mocks/fixtures'
@@ -106,4 +107,41 @@ describe('EventList Component', () => {
     expect(sorted[1]?.name).toBe('Later Event')
     expect(sorted[2]?.name).toBe('Undated Event')
   })
+
+  it('Should_render_track_artist_button_in_header_when_query_is_present', async () => {
+    const user = userEvent.setup()
+    const handleTrack = vi.fn()
+    render(
+      <EventList
+        events={[mockSingleProviderEvent]}
+        isIdle={false}
+        isFetching={false}
+        isError={false}
+        query="Bicep"
+        onTrackArtist={handleTrack}
+      />
+    )
+
+    const trackBtn = screen.getByRole('button', { name: 'Track Bicep' })
+    expect(trackBtn).toBeInTheDocument()
+    await user.click(trackBtn)
+    expect(handleTrack).toHaveBeenCalledWith('Bicep')
+  })
+
+  it('Should_hide_track_artist_button_when_query_is_empty', () => {
+    render(
+      <EventList
+        events={[mockSingleProviderEvent]}
+        isIdle={false}
+        isFetching={false}
+        isError={false}
+        query=""
+        onTrackArtist={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /track/i })).not.toBeInTheDocument()
+  })
 })
+
+

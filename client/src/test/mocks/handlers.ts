@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { isValidEmail } from '../../utils/validation'
 import { mockDefaultEvents } from './fixtures'
 
 export const handlers = [
@@ -87,4 +88,76 @@ export const handlers = [
 
     return HttpResponse.json(matchingEvents)
   }),
+
+  http.post('*/api/subscriptions', async ({ request }) => {
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { request: ['Malformed JSON body.'] },
+        },
+        { status: 400 }
+      )
+    }
+
+    const { email, artistName, city = 'London' } = (body as Record<string, unknown>) || {}
+    const emailStr = typeof email === 'string' ? email.trim() : ''
+    const artistStr = typeof artistName === 'string' ? artistName.trim() : ''
+
+    if (!isValidEmail(emailStr)) {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { email: ['A valid email address is required.'] },
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!artistStr) {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { artistName: ['Artist name is required.'] },
+        },
+        { status: 400 }
+      )
+    }
+
+    if (artistStr.toLowerCase() === 'unknownartist' || artistStr.toLowerCase() === 'unverified') {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { artistName: [`Artist '${artistStr}' could not be verified as a genuine music entity.`] },
+        },
+        { status: 400 }
+      )
+    }
+
+    if (emailStr === 'existing@example.com') {
+      return HttpResponse.json(
+        {
+          subscriptionId: '123e4567-e89b-12d3-a456-426614174000',
+          message: `Already subscribed to ${artistStr} in ${city || 'London'}.`,
+        },
+        { status: 200 }
+      )
+    }
+
+    return HttpResponse.json(
+      {
+        subscriptionId: '123e4567-e89b-12d3-a456-426614174000',
+        message: 'Subscribed successfully',
+      },
+      { status: 201 }
+    )
+  }),
 ]
+

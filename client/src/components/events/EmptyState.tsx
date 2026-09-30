@@ -1,12 +1,16 @@
+import { TrackArtistButton } from '../watchlist/TrackArtistButton'
+
 interface EmptyStateProps {
   isIdle?: boolean
   query?: string
+  onTrackArtist?: (artistName: string) => void
   className?: string
 }
 
 export function EmptyState({
   isIdle = false,
   query = '',
+  onTrackArtist,
   className = '',
 }: EmptyStateProps) {
   if (isIdle) {
@@ -27,6 +31,8 @@ export function EmptyState({
     )
   }
 
+  const trimmedQuery = query.trim()
+
   return (
     <div
       role="status"
@@ -40,12 +46,24 @@ export function EmptyState({
       </h3>
       <p className="text-sm text-[#9ca3af] max-w-md">
         No upcoming London gigs found for{' '}
-        <span className="text-white font-medium">"{query}"</span> across Resident
+        <span className="text-white font-medium">"{trimmedQuery || 'selected filter'}"</span> across Resident
         Advisor, Ticketmaster, or Skiddle.
       </p>
       <p className="text-xs text-gray-500">
         Try searching for another artist or choose one of the curated venue pills above.
       </p>
+
+      {trimmedQuery && onTrackArtist && (
+        <div className="pt-3 flex flex-col items-center gap-2">
+          <p className="text-xs text-gray-400">
+            Track <span className="text-white font-medium">{trimmedQuery}</span> to get alerted when a show is announced:
+          </p>
+          <TrackArtistButton
+            artistName={trimmedQuery}
+            onClick={() => onTrackArtist(trimmedQuery)}
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -1,11 +1,15 @@
+import { useState } from 'react'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/search/SearchBar'
 import { QuickPills } from '../components/search/QuickPills'
 import { EventList } from '../components/events/EventList'
+import { TrackArtistModal } from '../components/watchlist/TrackArtistModal'
 import { useEventsSearch } from '../hooks/useEventsSearch'
 import { useEventSearchState } from '../hooks/useEventSearchState'
 
 export default function App() {
+  const [trackingArtist, setTrackingArtist] = useState<string | null>(null)
+
   const {
     searchTerm,
     activeQuery,
@@ -20,8 +24,6 @@ export default function App() {
     query: activeQuery,
     genre: activeGenre || undefined,
   })
-
-  const displayQuery = activeQuery || (activeGenre ? activeGenre.toUpperCase() : '')
 
   return (
     <div className="min-h-screen bg-[#181b1f] text-[#f3f4f6] flex flex-col selection:bg-emerald-500/20 selection:text-emerald-300">
@@ -50,10 +52,17 @@ export default function App() {
             isError={isError}
             error={error}
             onRetry={refetch}
-            query={displayQuery}
+            query={activeQuery}
+            onTrackArtist={(artist) => setTrackingArtist(artist)}
           />
         </section>
       </main>
+
+      <TrackArtistModal
+        isOpen={Boolean(trackingArtist)}
+        artistName={trackingArtist || ''}
+        onClose={() => setTrackingArtist(null)}
+      />
     </div>
   )
 }

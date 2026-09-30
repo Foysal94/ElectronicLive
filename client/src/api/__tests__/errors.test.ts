@@ -25,6 +25,17 @@ describe('ApiError and Problem Details Extraction', () => {
     expect(error.errors).toEqual({ query: ['Cannot be empty'] })
   })
 
+  it('Should_instantiate_ApiError_with_first_validation_error_when_detail_is_omitted', () => {
+    const error = new ApiError(400, {
+      title: 'One or more validation errors occurred.',
+      errors: { email: ['A valid email address is required.'] },
+    })
+
+    expect(error.status).toBe(400)
+    expect(error.message).toBe('A valid email address is required.')
+  })
+
+
   it('Should_extract_problem_details_from_rfc_payload', () => {
     const payload = {
       title: 'Bad Gateway',

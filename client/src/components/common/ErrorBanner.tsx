@@ -3,6 +3,7 @@ export interface ErrorBannerProps {
   message?: string
   onRetry?: () => void
   className?: string
+  id?: string
 }
 
 export function ErrorBanner({
@@ -10,9 +11,11 @@ export function ErrorBanner({
   message = 'Unable to reach the London events service. Please ensure the backend API is running or try again.',
   onRetry,
   className = '',
+  id,
 }: ErrorBannerProps) {
   return (
     <aside
+      id={id}
       role="alert"
       className={`rounded-xl border border-rose-900/50 bg-[#22262d] p-5 text-center shadow-lg ${className}`}
     >

@@ -204,4 +204,62 @@ describe('App Integration Suite', () => {
       expect(screen.getAllByText('Hospitality London - Drum & Bass Special').length).toBeGreaterThan(0)
     })
   })
+
+  it('Should_open_modal_and_subscribe_successfully_from_search_results', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/?q=Bicep')
+
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Bicep (DJ Set)').length).toBeGreaterThan(0)
+    })
+
+    const trackButton = screen.getByRole('button', { name: 'Track Bicep' })
+    await user.click(trackButton)
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+
+    const emailInput = screen.getByLabelText(/email address/i)
+    await user.type(emailInput, 'fan@example.com')
+
+    const subscribeBtn = screen.getByRole('button', { name: /^subscribe$/i })
+    await user.click(subscribeBtn)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 3, name: "You're tracking Bicep!" })).toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/fan@example\.com/)).toBeInTheDocument()
+
+    const doneBtn = screen.getByRole('button', { name: /^done$/i })
+    await user.click(doneBtn)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('Should_open_tracking_modal_from_empty_state_action', async () => {
+    const user = userEvent.setup()
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    const input = screen.getByRole('searchbox', { name: 'Search artist, event, or venue in London' })
+    await user.type(input, 'Floating Points')
+
+    const searchButton = screen.getByRole('button', { name: 'Search' })
+    await user.click(searchButton)
+
+    await waitFor(() => {
+      expect(screen.getByText('No Gigs Found')).toBeInTheDocument()
+    })
+
+    const trackButton = screen.getByRole('button', { name: 'Track Floating Points' })
+    await user.click(trackButton)
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /track floating points/i })).toBeInTheDocument()
+  })
 })
+
