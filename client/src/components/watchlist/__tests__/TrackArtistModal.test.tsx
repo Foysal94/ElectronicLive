@@ -59,7 +59,7 @@ describe('TrackArtistModal Component', () => {
     expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument()
   })
 
-  it('Should_submit_subscription_successfully_and_close_modal', async () => {
+  it('Should_show_success_view_on_submission_and_close_when_done_clicked', async () => {
     const user = userEvent.setup()
     const handleClose = vi.fn()
     const handleSubscribed = vi.fn()
@@ -81,15 +81,22 @@ describe('TrackArtistModal Component', () => {
     await user.click(submitBtn)
 
     await waitFor(() => {
-      expect(handleClose).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole('heading', { level: 3, name: "You're tracking Bicep!" })).toBeInTheDocument()
     })
 
+    expect(screen.getByText(/valid@example\.com/)).toBeInTheDocument()
     expect(handleSubscribed).toHaveBeenCalledWith(
       expect.objectContaining({
         subscriptionId: '123e4567-e89b-12d3-a456-426614174000',
         message: 'Subscribed successfully',
       })
     )
+    expect(handleClose).not.toHaveBeenCalled()
+
+    const doneBtn = screen.getByRole('button', { name: /^done$/i })
+    await user.click(doneBtn)
+
+    expect(handleClose).toHaveBeenCalledTimes(1)
   })
 
   it('Should_display_api_error_banner_when_submission_fails', async () => {

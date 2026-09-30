@@ -228,10 +228,17 @@ describe('App Integration Suite', () => {
     await user.click(subscribeBtn)
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 3, name: "You're tracking Bicep!" })).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Subscribed successfully')).toBeInTheDocument()
+    expect(screen.getByText(/fan@example\.com/)).toBeInTheDocument()
+
+    const doneBtn = screen.getByRole('button', { name: /^done$/i })
+    await user.click(doneBtn)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 
   it('Should_open_modal_and_subscribe_successfully_from_empty_state', async () => {
@@ -260,10 +267,17 @@ describe('App Integration Suite', () => {
     await user.click(subscribeBtn)
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 3, name: "You're tracking Floating Points!" })).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Subscribed successfully')).toBeInTheDocument()
+    expect(screen.getByText(/fan@example\.com/)).toBeInTheDocument()
+
+    const doneBtn = screen.getByRole('button', { name: /^done$/i })
+    await user.click(doneBtn)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
   })
 
 

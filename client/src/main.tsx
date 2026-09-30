@@ -4,8 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import App from './app/App.tsx'
 import { ErrorBoundary } from './components/common/ErrorBoundary.tsx'
-import { ToastProvider } from './context/ToastProvider.tsx'
-
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,9 +19,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
+        <App />
       </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,

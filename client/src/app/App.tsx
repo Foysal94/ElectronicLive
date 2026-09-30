@@ -4,7 +4,6 @@ import { SearchBar } from '../components/search/SearchBar'
 import { QuickPills } from '../components/search/QuickPills'
 import { EventList } from '../components/events/EventList'
 import { TrackArtistModal } from '../components/watchlist/TrackArtistModal'
-import { ToastContainer } from '../components/common/ToastContainer'
 import { useEventsSearch } from '../hooks/useEventsSearch'
 import { useEventSearchState } from '../hooks/useEventSearchState'
 
@@ -64,8 +63,6 @@ export default function App() {
         artistName={trackingArtist || ''}
         onClose={() => setTrackingArtist(null)}
       />
-
-      <ToastContainer />
     </div>
   )
 }

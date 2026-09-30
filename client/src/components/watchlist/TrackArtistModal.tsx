@@ -24,12 +24,14 @@ export function TrackArtistModal({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [email, setEmail] = useState('')
+  const [submittedEmail, setSubmittedEmail] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
   const mutation = useCreateSubscription()
 
   const handleClose = useCallback(() => {
     setEmail('')
+    setSubmittedEmail('')
     setValidationError(null)
     mutation.reset()
     onClose()
@@ -83,6 +85,8 @@ export function TrackArtistModal({
       return
     }
 
+    setSubmittedEmail(trimmedEmail)
+
     mutation.mutate(
       {
         email: trimmedEmail,
@@ -92,7 +96,6 @@ export function TrackArtistModal({
       {
         onSuccess: (data) => {
           onSubscribed?.(data)
-          handleClose()
         },
       }
     )
@@ -143,20 +146,51 @@ export function TrackArtistModal({
           </button>
         </div>
 
-        {errorMessage && <ErrorBanner message={errorMessage} />}
+        {mutation.isSuccess ? (
+          <div className="text-center space-y-5 py-2">
+            <div
+              aria-hidden="true"
+              className="w-14 h-14 rounded-full bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-2xl mx-auto shadow-inner"
+            >
+              ✓
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white">
+                You're tracking {artistName}!
+              </h3>
+              <p className="text-sm text-gray-300 max-w-sm mx-auto leading-relaxed">
+                We'll email <span className="text-emerald-300 font-semibold">{submittedEmail}</span> when new London shows or ticket drops are announced.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                autoFocus
+                className="w-full min-h-[44px] px-6 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-gray-950 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {errorMessage && <ErrorBanner message={errorMessage} />}
 
-        <SubscriptionForm
-          email={email}
-          onChangeEmail={(val) => {
-            setEmail(val)
-            if (validationError) setValidationError(null)
-          }}
-          onSubmit={handleSubmit}
-          onCancel={handleClose}
-          isPending={mutation.isPending}
-          hasError={Boolean(errorMessage)}
-          inputRef={inputRef}
-        />
+            <SubscriptionForm
+              email={email}
+              onChangeEmail={(val) => {
+                setEmail(val)
+                if (validationError) setValidationError(null)
+              }}
+              onSubmit={handleSubmit}
+              onCancel={handleClose}
+              isPending={mutation.isPending}
+              hasError={Boolean(errorMessage)}
+              inputRef={inputRef}
+            />
+          </>
+        )}
       </div>
     </dialog>
   )
