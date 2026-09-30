@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-import type { SubscriptionResponse } from '../../api/types'
-import { useCreateSubscription } from '../../hooks/useCreateSubscription'
+import { useMutation } from '@tanstack/react-query'
+import { createSubscription } from '../../api/client'
+import type { CreateSubscriptionRequest, SubscriptionResponse } from '../../api/types'
 import { ErrorBanner } from '../common/ErrorBanner'
 import { SubscriptionForm } from './SubscriptionForm'
 
@@ -27,15 +28,18 @@ export function TrackArtistModal({
   const [submittedEmail, setSubmittedEmail] = useState('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  const mutation = useCreateSubscription()
+  const mutation = useMutation({
+    mutationFn: (payload: CreateSubscriptionRequest) => createSubscription(payload),
+  })
+  const { reset: resetMutation } = mutation
 
   const handleClose = useCallback(() => {
     setEmail('')
     setSubmittedEmail('')
     setValidationError(null)
-    mutation.reset()
+    resetMutation()
     onClose()
-  }, [mutation, onClose])
+  }, [resetMutation, onClose])
 
   // Synchronize native HTML5 dialog element open state with isOpen prop
   useEffect(() => {
