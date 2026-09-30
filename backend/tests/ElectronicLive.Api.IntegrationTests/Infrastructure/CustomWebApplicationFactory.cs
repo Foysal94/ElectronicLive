@@ -99,11 +99,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         await action(context);
     }
 
-    public async Task<T> ExecuteDbContextAsync<T>(Func<ElectronicLiveDbContext, Task<T>> action)
+    public override async ValueTask DisposeAsync()
     {
-        using var scope = Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ElectronicLiveDbContext>();
-        return await action(context);
+        await _connection.DisposeAsync();
+        await base.DisposeAsync();
+        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)

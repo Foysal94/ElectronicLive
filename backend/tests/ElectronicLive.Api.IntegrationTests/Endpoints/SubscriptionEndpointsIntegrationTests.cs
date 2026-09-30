@@ -63,29 +63,14 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
     public async Task Should_ReturnOk_WhenSubscriptionAlreadyExists()
     {
         var existingSubId = Guid.NewGuid();
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                Email = "fan@electroniclive.com",
-                UnsubscribeToken = "existingtoken123456789012345678901234567890123456789012345678901234",
-                CreatedAt = DateTimeOffset.UtcNow,
-            };
-            user.Subscriptions.Add(
-                new Subscription
-                {
-                    Id = existingSubId,
-                    UserId = user.Id,
-                    ArtistName = "bicep",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
-        });
+        await SeedUserWithSubscriptionAsync(
+            "fan@electroniclive.com",
+            "token123",
+            existingSubId,
+            "bicep",
+            "London",
+            isActive: true
+        );
 
         _factory.ArtistVerificationService.VerifyArtistExistsAsync("Bicep", Arg.Any<CancellationToken>()).Returns(true);
 
@@ -102,6 +87,38 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
         {
             var subs = await db.Subscriptions.Where(s => s.ArtistName == "bicep").ToListAsync();
             subs.Count.ShouldBe(1);
+            subs[0].IsActive.ShouldBeTrue();
+        });
+    }
+
+    [Fact]
+    public async Task Should_ReactivateSubscription_AndReturnOk_WhenSubscribingToPreviouslyDeactivatedSubscription()
+    {
+        var deactivatedSubId = Guid.NewGuid();
+        await SeedUserWithSubscriptionAsync(
+            "fan@electroniclive.com",
+            "token123",
+            deactivatedSubId,
+            "bicep",
+            "London",
+            isActive: false
+        );
+
+        _factory.ArtistVerificationService.VerifyArtistExistsAsync("Bicep", Arg.Any<CancellationToken>()).Returns(true);
+
+        var payload = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
+        var response = await _client.PostAsJsonAsync("/api/subscriptions", payload);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SubscribeResponse>();
+        body.ShouldNotBeNull();
+        body.SubscriptionId.ShouldBe(deactivatedSubId);
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var sub = await db.Subscriptions.FindAsync(deactivatedSubId);
+            sub.ShouldNotBeNull();
+            sub.IsActive.ShouldBeTrue();
         });
     }
 
@@ -144,29 +161,7 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
     {
         var subId = Guid.NewGuid();
         const string token = "token-unsubscribe-test-1234567890123456789012345678901234567890";
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                Email = "fan@electroniclive.com",
-                UnsubscribeToken = token,
-                CreatedAt = DateTimeOffset.UtcNow,
-            };
-            user.Subscriptions.Add(
-                new Subscription
-                {
-                    Id = subId,
-                    UserId = user.Id,
-                    ArtistName = "bicep",
-                    City = "London",
-                    IsActive = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }
-            );
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
-        });
+        await SeedUserWithSubscriptionAsync("fan@electroniclive.com", token, subId, "bicep", "London", isActive: true);
 
         var response = await _client.GetAsync($"/api/subscriptions/unsubscribe?token={token}&artist=bicep");
 
@@ -180,6 +175,64 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
             var sub = await db.Subscriptions.FindAsync(subId);
             sub.ShouldNotBeNull();
             sub.IsActive.ShouldBeFalse();
+        });
+    }
+
+    [Fact]
+    public async Task Should_DeactivateAllSubscriptions_WhenArtistParameterIsOmitted()
+    {
+        var sub1Id = Guid.NewGuid();
+        var sub2Id = Guid.NewGuid();
+        const string token = "token-global-unsubscribe-1234567890123456789012345678901234567890";
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "fan@electroniclive.com",
+                UnsubscribeToken = token,
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
+            user.Subscriptions.Add(
+                new Subscription
+                {
+                    Id = sub1Id,
+                    UserId = user.Id,
+                    ArtistName = "bicep",
+                    City = "London",
+                    IsActive = true,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                }
+            );
+            user.Subscriptions.Add(
+                new Subscription
+                {
+                    Id = sub2Id,
+                    UserId = user.Id,
+                    ArtistName = "overmono",
+                    City = "London",
+                    IsActive = true,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                }
+            );
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+        });
+
+        var response = await _client.GetAsync($"/api/subscriptions/unsubscribe?token={token}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("text/html");
+        var html = await response.Content.ReadAsStringAsync();
+        html.ShouldContain("unsubscribed from all artist alerts");
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var sub1 = await db.Subscriptions.FindAsync(sub1Id);
+            var sub2 = await db.Subscriptions.FindAsync(sub2Id);
+            sub1!.IsActive.ShouldBeFalse();
+            sub2!.IsActive.ShouldBeFalse();
         });
     }
 
@@ -203,5 +256,39 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
         response.Content.Headers.ContentType?.MediaType.ShouldBe("text/html");
         var html = await response.Content.ReadAsStringAsync();
         html.ShouldContain("An unsubscribe token is required");
+    }
+
+    private async Task SeedUserWithSubscriptionAsync(
+        string email,
+        string token,
+        Guid subscriptionId,
+        string artist,
+        string city,
+        bool isActive
+    )
+    {
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                UnsubscribeToken = token,
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
+            user.Subscriptions.Add(
+                new Subscription
+                {
+                    Id = subscriptionId,
+                    UserId = user.Id,
+                    ArtistName = artist,
+                    City = city,
+                    IsActive = isActive,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                }
+            );
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+        });
     }
 }

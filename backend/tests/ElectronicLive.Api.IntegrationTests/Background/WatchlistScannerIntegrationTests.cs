@@ -124,6 +124,8 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         });
 
         // 6. Execute IWatchlistScannerService.ExecuteScanAsync() a second time
+        _factory.EmailDispatcher.ClearReceivedCalls();
+
         using (var scope = _factory.Services.CreateScope())
         {
             var scanner = scope.ServiceProvider.GetRequiredService<IWatchlistScannerService>();
@@ -137,14 +139,8 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
 
         // 7. Assert IEmailDispatcher received 0 additional emails (idempotency verified)
         await _factory
-            .EmailDispatcher.Received(1)
-            .SendDigestAsync(
-                Arg.Any<string>(),
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyList<EventResponse>>(),
-                Arg.Any<string>(),
-                Arg.Any<CancellationToken>()
-            );
+            .EmailDispatcher.DidNotReceiveWithAnyArgs()
+            .SendDigestAsync(default!, default!, default!, default!, default);
 
         // 8. Deactivate subscription via unsubscribe endpoint
         var unsubResponse = await _client.GetAsync($"/api/subscriptions/unsubscribe?token={token}&artist={artist}");
@@ -173,6 +169,8 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
             .EventSearchService.SearchEventsAsync(artist, null, "London", Arg.Any<CancellationToken>())
             .Returns(new List<EventResponse> { event1, event2, event3 });
 
+        _factory.EmailDispatcher.ClearReceivedCalls();
+
         using (var scope = _factory.Services.CreateScope())
         {
             var scanner = scope.ServiceProvider.GetRequiredService<IWatchlistScannerService>();
@@ -185,14 +183,8 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
 
         // 10. Assert 0 emails dispatched for the deactivated subscriber
         await _factory
-            .EmailDispatcher.Received(1)
-            .SendDigestAsync(
-                Arg.Any<string>(),
-                Arg.Any<string>(),
-                Arg.Any<IReadOnlyList<EventResponse>>(),
-                Arg.Any<string>(),
-                Arg.Any<CancellationToken>()
-            );
+            .EmailDispatcher.DidNotReceiveWithAnyArgs()
+            .SendDigestAsync(default!, default!, default!, default!, default);
     }
 
     [Fact]
@@ -203,21 +195,23 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         const string user1Token = "token-user-1-1234567890123456789012345678901234567890";
         const string user2Email = "user2@electroniclive.com";
         const string user2Token = "token-user-2-1234567890123456789012345678901234567890";
+        var sub1Id = Guid.NewGuid();
+        var sub2Id = Guid.NewGuid();
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var u1 = new User
+            var firstUser = new User
             {
                 Id = Guid.NewGuid(),
                 Email = user1Email,
                 UnsubscribeToken = user1Token,
                 CreatedAt = DateTimeOffset.UtcNow,
             };
-            u1.Subscriptions.Add(
+            firstUser.Subscriptions.Add(
                 new Subscription
                 {
-                    Id = Guid.NewGuid(),
-                    UserId = u1.Id,
+                    Id = sub1Id,
+                    UserId = firstUser.Id,
                     ArtistName = artist,
                     City = "London",
                     IsActive = true,
@@ -225,18 +219,18 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
                 }
             );
 
-            var u2 = new User
+            var secondUser = new User
             {
                 Id = Guid.NewGuid(),
                 Email = user2Email,
                 UnsubscribeToken = user2Token,
                 CreatedAt = DateTimeOffset.UtcNow,
             };
-            u2.Subscriptions.Add(
+            secondUser.Subscriptions.Add(
                 new Subscription
                 {
-                    Id = Guid.NewGuid(),
-                    UserId = u2.Id,
+                    Id = sub2Id,
+                    UserId = secondUser.Id,
                     ArtistName = artist,
                     City = "London",
                     IsActive = true,
@@ -244,7 +238,7 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
                 }
             );
 
-            db.Users.AddRange(u1, u2);
+            db.Users.AddRange(firstUser, secondUser);
             await db.SaveChangesAsync();
         });
 
@@ -292,25 +286,35 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
                 Arg.Is<string>(url => url.Contains(user2Token)),
                 Arg.Any<CancellationToken>()
             );
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var logs = await db.NotificationLogs.ToListAsync();
+            logs.Count.ShouldBe(2);
+            logs.ShouldContain(l => l.SubscriptionId == sub1Id);
+            logs.ShouldContain(l => l.SubscriptionId == sub2Id);
+        });
     }
 
     [Fact]
     public async Task Should_ContinueScanningRemainingArtists_WhenOneArtistFails()
     {
+        var fourTetSubId = Guid.NewGuid();
+
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var u1 = new User
+            var firstUser = new User
             {
                 Id = Guid.NewGuid(),
                 Email = "bicep-fan@electroniclive.com",
                 UnsubscribeToken = "token-bicep-fail-12345678901234567890123456789012",
                 CreatedAt = DateTimeOffset.UtcNow,
             };
-            u1.Subscriptions.Add(
+            firstUser.Subscriptions.Add(
                 new Subscription
                 {
                     Id = Guid.NewGuid(),
-                    UserId = u1.Id,
+                    UserId = firstUser.Id,
                     ArtistName = "bicep",
                     City = "London",
                     IsActive = true,
@@ -318,18 +322,18 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
                 }
             );
 
-            var u2 = new User
+            var secondUser = new User
             {
                 Id = Guid.NewGuid(),
                 Email = "fourtet-fan@electroniclive.com",
                 UnsubscribeToken = "token-fourtet-ok-12345678901234567890123456789012",
                 CreatedAt = DateTimeOffset.UtcNow,
             };
-            u2.Subscriptions.Add(
+            secondUser.Subscriptions.Add(
                 new Subscription
                 {
-                    Id = Guid.NewGuid(),
-                    UserId = u2.Id,
+                    Id = fourTetSubId,
+                    UserId = secondUser.Id,
                     ArtistName = "four tet",
                     City = "London",
                     IsActive = true,
@@ -337,7 +341,7 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
                 }
             );
 
-            db.Users.AddRange(u1, u2);
+            db.Users.AddRange(firstUser, secondUser);
             await db.SaveChangesAsync();
         });
 
@@ -345,7 +349,7 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
             .EventSearchService.SearchEventsAsync("bicep", null, "London", Arg.Any<CancellationToken>())
             .Returns(Task.FromException<IReadOnlyList<EventResponse>>(new HttpRequestException("Upstream timeout")));
 
-        var ftEvt = new EventResponse(
+        var fourTetEvent = new EventResponse(
             Id: "evt-ft-1",
             Name: "Four Tet All Nighter",
             VenueName: "Brixton Academy",
@@ -358,7 +362,7 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
 
         _factory
             .EventSearchService.SearchEventsAsync("four tet", null, "London", Arg.Any<CancellationToken>())
-            .Returns(new List<EventResponse> { ftEvt });
+            .Returns(new List<EventResponse> { fourTetEvent });
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -389,5 +393,13 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
                 Arg.Any<string>(),
                 Arg.Any<CancellationToken>()
             );
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var logs = await db.NotificationLogs.ToListAsync();
+            logs.Count.ShouldBe(1);
+            logs[0].SubscriptionId.ShouldBe(fourTetSubId);
+            logs[0].EventTitle.ShouldBe("Four Tet All Nighter");
+        });
     }
 }
