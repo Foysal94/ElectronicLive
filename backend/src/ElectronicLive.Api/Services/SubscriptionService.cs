@@ -115,38 +115,24 @@ public sealed class SubscriptionService(
             return new UnsubscribeResult(UnsubscribeStatus.InvalidToken, "Invalid or expired unsubscribe link.");
         }
 
-        if (!string.IsNullOrWhiteSpace(artist))
+        var targetSubscriptions = !string.IsNullOrWhiteSpace(artist)
+            ? user.Subscriptions.Where(s =>
+                string.Equals(s.ArtistName, artist.Trim(), StringComparison.OrdinalIgnoreCase) && s.IsActive
+            )
+            : user.Subscriptions.Where(s => s.IsActive);
+
+        var toDeactivate = targetSubscriptions.ToList();
+        if (toDeactivate.Count > 0)
         {
-            var targetArtist = artist.Trim().ToLowerInvariant();
-            var matched = user
-                .Subscriptions.Where(s =>
-                    string.Equals(s.ArtistName, targetArtist, StringComparison.OrdinalIgnoreCase) && s.IsActive
-                )
-                .ToList();
-
-            if (matched.Count > 0)
-            {
-                matched.ForEach(s => s.IsActive = false);
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
-
-            return new UnsubscribeResult(
-                UnsubscribeStatus.Success,
-                $"You have successfully unsubscribed from alerts for {artist.Trim()}."
-            );
-        }
-
-        var activeSubscriptions = user.Subscriptions.Where(s => s.IsActive).ToList();
-        if (activeSubscriptions.Count > 0)
-        {
-            activeSubscriptions.ForEach(s => s.IsActive = false);
+            toDeactivate.ForEach(s => s.IsActive = false);
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        return new UnsubscribeResult(
-            UnsubscribeStatus.Success,
-            "You have successfully unsubscribed from all artist alerts."
-        );
+        var message = !string.IsNullOrWhiteSpace(artist)
+            ? $"You have successfully unsubscribed from alerts for {artist.Trim()}."
+            : "You have successfully unsubscribed from all artist alerts.";
+
+        return new UnsubscribeResult(UnsubscribeStatus.Success, message);
     }
 
     // 32-byte cryptographic random entropy (64 hex chars) ensures unsubscribe tokens cannot be enumerated via URL guessing

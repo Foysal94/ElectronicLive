@@ -22,6 +22,11 @@ public static class SubscriptionEndpoints
         CancellationToken cancellationToken = default
     )
     {
+        if (!request.TryValidate(out var validationErrors))
+        {
+            return TypedResults.ValidationProblem(validationErrors);
+        }
+
         var result = await subscriptionService.SubscribeAsync(request, cancellationToken);
 
         return result.Status switch
