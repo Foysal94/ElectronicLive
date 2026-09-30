@@ -1,4 +1,3 @@
-using System.Globalization;
 using ElectronicLive.Api.Background.Email;
 using ElectronicLive.Api.Configuration;
 using ElectronicLive.Api.Data;
@@ -34,11 +33,7 @@ public sealed class WatchlistScannerService(
             watchedArtists.Count
         );
 
-        var artistsScanned = 0;
-        var subscriptionsProcessed = 0;
-        var digestsSent = 0;
-        var errorsCount = 0;
-
+        var totalResult = ScanResult.Empty;
         var delayMs = options.Value.DelayBetweenArtistsMs;
         var baseUrl = options.Value.BaseUrl.TrimEnd('/');
 
@@ -47,7 +42,6 @@ public sealed class WatchlistScannerService(
             ct.ThrowIfCancellationRequested();
 
             var artist = watchedArtists[i];
-            artistsScanned++;
 
             if (i > 0 && delayMs > 0)
             {
@@ -63,24 +57,13 @@ public sealed class WatchlistScannerService(
             );
 
             var artistResult = await ProcessArtistAsync(artist, baseUrl, ct);
-            subscriptionsProcessed += artistResult.SubscriptionsProcessed;
-            digestsSent += artistResult.DigestsSent;
-            errorsCount += artistResult.ErrorsCount;
+            totalResult += artistResult;
         }
 
-        return new ScanResult(
-            ArtistsScanned: artistsScanned,
-            SubscriptionsProcessed: subscriptionsProcessed,
-            DigestsSent: digestsSent,
-            ErrorsCount: errorsCount
-        );
+        return totalResult;
     }
 
-    private async Task<(int SubscriptionsProcessed, int DigestsSent, int ErrorsCount)> ProcessArtistAsync(
-        string artist,
-        string baseUrl,
-        CancellationToken ct
-    )
+    private async Task<ArtistScanResult> ProcessArtistAsync(string artist, string baseUrl, CancellationToken ct)
     {
         IReadOnlyList<EventResponse> events;
         try
@@ -90,13 +73,13 @@ public sealed class WatchlistScannerService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to search events for artist '{Artist}'. Skipping artist.", artist);
-            return (0, 0, 1);
+            return ArtistScanResult.Failed;
         }
 
         if (events.Count == 0)
         {
             logger.LogInformation("No events found in {City} for artist '{Artist}'.", TargetCity, artist);
-            return (0, 0, 0);
+            return ArtistScanResult.Empty;
         }
 
         var subscriptions = await dbContext
@@ -119,24 +102,24 @@ public sealed class WatchlistScannerService(
                 continue;
             }
 
-            var sent = await ProcessSubscriptionAsync(subscription, artist, events, baseUrl, ct);
-            if (sent.HasValue)
+            var outcome = await ProcessSubscriptionAsync(subscription, artist, events, baseUrl, ct);
+            switch (outcome)
             {
-                if (sent.Value)
-                {
+                case SubscriptionProcessOutcome.Sent:
                     sentCount++;
-                }
-            }
-            else
-            {
-                errorCount++;
+                    break;
+                case SubscriptionProcessOutcome.Failed:
+                    errorCount++;
+                    break;
+                case SubscriptionProcessOutcome.NoNewEvents:
+                    break;
             }
         }
 
-        return (processedCount, sentCount, errorCount);
+        return new ArtistScanResult(processedCount, sentCount, errorCount);
     }
 
-    private async Task<bool?> ProcessSubscriptionAsync(
+    private async Task<SubscriptionProcessOutcome> ProcessSubscriptionAsync(
         Subscription subscription,
         string artist,
         IReadOnlyList<EventResponse> events,
@@ -151,7 +134,7 @@ public sealed class WatchlistScannerService(
         var unsentEvents = new List<(EventResponse Event, string Fingerprint)>();
         foreach (var evt in events)
         {
-            var fingerprint = BuildEventFingerprint(evt, artist);
+            var fingerprint = NotificationLog.GenerateFingerprint(evt, artist);
             if (!existingFingerprints.Contains(fingerprint))
             {
                 unsentEvents.Add((evt, fingerprint));
@@ -160,15 +143,15 @@ public sealed class WatchlistScannerService(
 
         if (unsentEvents.Count == 0)
         {
-            return false;
+            return SubscriptionProcessOutcome.NoNewEvents;
         }
 
         var newEventsList = unsentEvents.Select(u => u.Event).ToList();
-        var unsubscribeUrl = BuildUnsubscribeUrl(baseUrl, subscription.User!.UnsubscribeToken, artist);
+        var unsubscribeUrl = subscription.BuildUnsubscribeUrl(baseUrl);
 
         try
         {
-            await emailDispatcher.SendDigestAsync(subscription.User.Email, artist, newEventsList, unsubscribeUrl, ct);
+            await emailDispatcher.SendDigestAsync(subscription.User!.Email, artist, newEventsList, unsubscribeUrl, ct);
 
             var newLogs = unsentEvents.Select(u => new NotificationLog
             {
@@ -182,7 +165,7 @@ public sealed class WatchlistScannerService(
             dbContext.NotificationLogs.AddRange(newLogs);
             await dbContext.SaveChangesAsync(ct);
 
-            return true;
+            return SubscriptionProcessOutcome.Sent;
         }
         catch (Exception ex)
         {
@@ -190,25 +173,10 @@ public sealed class WatchlistScannerService(
                 ex,
                 "Failed to send digest or save notification log for subscription {SubscriptionId} (User: {Email}, Artist: {Artist}).",
                 subscription.Id,
-                subscription.User.Email,
+                subscription.User!.Email,
                 artist
             );
-            return null;
+            return SubscriptionProcessOutcome.Failed;
         }
-    }
-
-    public static string BuildUnsubscribeUrl(string baseUrl, string unsubscribeToken, string artist)
-    {
-        var encodedArtist = Uri.EscapeDataString(artist);
-        return $"{baseUrl}/api/subscriptions/unsubscribe?token={unsubscribeToken}&artist={encodedArtist}";
-    }
-
-    public static string BuildEventFingerprint(EventResponse evt, string artist)
-    {
-        var datePart = evt.Date.HasValue ? evt.Date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "tba";
-        var venuePart = evt.VenueName.Trim().ToLowerInvariant();
-        var artistPart = artist.Trim().ToLowerInvariant();
-
-        return $"{datePart}_{venuePart}_{artistPart}";
     }
 }

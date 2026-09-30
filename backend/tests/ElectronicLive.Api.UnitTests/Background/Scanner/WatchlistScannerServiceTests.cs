@@ -384,8 +384,19 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         DateOnly? date = dateString != null ? DateOnly.Parse(dateString, CultureInfo.InvariantCulture) : null;
         var evt = CreateEvent(venue: venue, date: date, useExplicitDate: true);
 
-        var fingerprint = WatchlistScannerService.BuildEventFingerprint(evt, artist);
+        var fingerprint = NotificationLog.GenerateFingerprint(evt, artist);
 
         fingerprint.ShouldBe(expectedFingerprint);
+    }
+
+    [Fact]
+    public void Should_BuildCorrectUnsubscribeUrl()
+    {
+        var user = new User { UnsubscribeToken = "test-token" };
+        var subscription = new Subscription { User = user, ArtistName = "Four Tet" };
+
+        var url = subscription.BuildUnsubscribeUrl("https://electroniclive.co.uk/");
+
+        url.ShouldBe("https://electroniclive.co.uk/api/subscriptions/unsubscribe?token=test-token&artist=four%20tet");
     }
 }
