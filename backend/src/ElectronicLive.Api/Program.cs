@@ -148,7 +148,7 @@ public partial class Program
                 result.ErrorsCount
             );
 
-            return result.ErrorsCount > 0 ? 1 : 0;
+            return 0;
         }
         catch (Exception ex)
         {

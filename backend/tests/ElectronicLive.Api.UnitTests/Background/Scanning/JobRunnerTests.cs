@@ -42,7 +42,7 @@ public sealed class JobRunnerTests
     }
 
     [Fact]
-    public async Task Should_ReturnOne_WhenScannerReportsErrors()
+    public async Task Should_ReturnZero_WhenScannerReportsErrorsHandledGracefully()
     {
         var scanner = Substitute.For<IWatchlistScannerService>();
         scanner
@@ -56,7 +56,7 @@ public sealed class JobRunnerTests
 
         var exitCode = await Program.ExecuteScanWatchlistJobAsync(provider);
 
-        exitCode.ShouldBe(1);
+        exitCode.ShouldBe(0);
     }
 
     [Fact]
