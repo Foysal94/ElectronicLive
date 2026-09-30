@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { createSubscription } from '../../api/client'
 import type { CreateSubscriptionRequest, SubscriptionResponse } from '../../api/types'
+import { isValidEmail } from '../../utils/validation'
 import { ErrorBanner } from '../common/ErrorBanner'
 import { SubscriptionForm } from './SubscriptionForm'
 
@@ -12,10 +13,6 @@ interface TrackArtistModalProps {
   onClose: () => void
   onSubscribed?: (response: SubscriptionResponse) => void
 }
-
-// RFC 5322 standard regex for client-side structural validation
-const RFC_EMAIL_REGEX =
-  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
 
 export function TrackArtistModal({
   isOpen,
@@ -43,16 +40,12 @@ export function TrackArtistModal({
 
   useEffect(() => {
     const dialog = dialogRef.current
-    if (!dialog) return
+    if (!dialog || !isOpen) return
 
-    if (isOpen) {
-      if (typeof dialog.showModal === 'function' && !dialog.open) {
-        dialog.showModal()
-      }
-      inputRef.current?.focus()
-    } else if (typeof dialog.close === 'function' && dialog.open) {
-      dialog.close()
+    if (typeof dialog.showModal === 'function' && !dialog.open) {
+      dialog.showModal()
     }
+    inputRef.current?.focus()
   }, [isOpen])
 
   useEffect(() => {
@@ -82,7 +75,7 @@ export function TrackArtistModal({
       return
     }
 
-    if (!RFC_EMAIL_REGEX.test(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       setValidationError('Please enter a valid email address.')
       return
     }

@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { isValidEmail } from '../../utils/validation'
 import { mockDefaultEvents } from './fixtures'
 
 export const handlers = [
@@ -107,7 +108,7 @@ export const handlers = [
     const emailStr = typeof email === 'string' ? email.trim() : ''
     const artistStr = typeof artistName === 'string' ? artistName.trim() : ''
 
-    if (!emailStr || !emailStr.includes('@')) {
+    if (!isValidEmail(emailStr)) {
       return HttpResponse.json(
         {
           title: 'One or more validation errors occurred.',

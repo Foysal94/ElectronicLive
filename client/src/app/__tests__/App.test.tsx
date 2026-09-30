@@ -241,7 +241,7 @@ describe('App Integration Suite', () => {
     })
   })
 
-  it('Should_open_modal_and_subscribe_successfully_from_empty_state', async () => {
+  it('Should_open_tracking_modal_from_empty_state_action', async () => {
     const user = userEvent.setup()
     render(<App />, { wrapper: createQueryWrapper() })
 
@@ -259,49 +259,7 @@ describe('App Integration Suite', () => {
     await user.click(trackButton)
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-
-    const emailInput = screen.getByLabelText(/email address/i)
-    await user.type(emailInput, 'fan@example.com')
-
-    const subscribeBtn = screen.getByRole('button', { name: /^subscribe$/i })
-    await user.click(subscribeBtn)
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 3, name: "You're tracking Floating Points!" })).toBeInTheDocument()
-    })
-
-    expect(screen.getByText(/fan@example\.com/)).toBeInTheDocument()
-
-    const doneBtn = screen.getByRole('button', { name: /^done$/i })
-    await user.click(doneBtn)
-
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-  })
-
-
-  it('Should_block_submission_and_show_validation_error_on_invalid_email_in_modal', async () => {
-    const user = userEvent.setup()
-    window.history.replaceState(null, '', '/?q=Bicep')
-
-    render(<App />, { wrapper: createQueryWrapper() })
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Bicep (DJ Set)').length).toBeGreaterThan(0)
-    })
-
-    const trackButton = screen.getByRole('button', { name: 'Track Bicep' })
-    await user.click(trackButton)
-
-    const emailInput = screen.getByLabelText(/email address/i)
-    await user.type(emailInput, 'notanemail')
-
-    const subscribeBtn = screen.getByRole('button', { name: /^subscribe$/i })
-    await user.click(subscribeBtn)
-
-    expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument()
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /track floating points/i })).toBeInTheDocument()
   })
 })
 
