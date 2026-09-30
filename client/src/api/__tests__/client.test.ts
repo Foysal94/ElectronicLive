@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '../../test/mocks/server'
-import { fetchEvents } from '../client'
+import { createSubscription, fetchEvents } from '../client'
 import { ApiError } from '../errors'
 
 describe('fetchEvents Client', () => {
@@ -92,3 +92,78 @@ describe('fetchEvents Client', () => {
     expect(url.searchParams.get('city')).toBe('Manchester')
   })
 })
+
+describe('createSubscription Client', () => {
+  it('Should_create_subscription_successfully_for_valid_payload', async () => {
+    const response = await createSubscription({
+      email: 'user@example.com',
+      artistName: 'Bicep',
+    })
+
+    expect(response.subscriptionId).toBe('123e4567-e89b-12d3-a456-426614174000')
+    expect(response.message).toBe('Subscribed successfully')
+  })
+
+  it('Should_return_success_message_when_already_subscribed', async () => {
+    const response = await createSubscription({
+      email: 'existing@example.com',
+      artistName: 'Bicep',
+    })
+
+    expect(response.subscriptionId).toBe('123e4567-e89b-12d3-a456-426614174000')
+    expect(response.message).toContain('Already subscribed')
+  })
+
+  it('Should_throw_ApiError_when_validation_fails', async () => {
+    const promise = createSubscription({
+      email: 'invalid-email',
+      artistName: 'Bicep',
+    })
+
+    await expect(promise).rejects.toThrow(ApiError)
+    await expect(promise).rejects.toMatchObject({
+      status: 400,
+      errors: { email: ['A valid email address is required.'] },
+    })
+  })
+
+  it('Should_throw_ApiError_when_artist_is_unverified', async () => {
+    const promise = createSubscription({
+      email: 'user@example.com',
+      artistName: 'UnknownArtist',
+    })
+
+    await expect(promise).rejects.toThrow(ApiError)
+    await expect(promise).rejects.toMatchObject({
+      status: 400,
+      errors: { artistName: ["Artist 'UnknownArtist' could not be verified as a genuine music entity."] },
+    })
+  })
+
+  it('Should_throw_ApiError_when_server_returns_500', async () => {
+    const promise = createSubscription({
+      email: 'server-error@example.com',
+      artistName: 'Bicep',
+    })
+
+    await expect(promise).rejects.toThrow(ApiError)
+    await expect(promise).rejects.toMatchObject({
+      status: 500,
+      detail: 'Failed to create subscription.',
+    })
+  })
+
+  it('Should_throw_ApiError_when_response_schema_is_invalid', async () => {
+    const promise = createSubscription({
+      email: 'invalid-schema@example.com',
+      artistName: 'Bicep',
+    })
+
+    await expect(promise).rejects.toThrow(ApiError)
+    await expect(promise).rejects.toMatchObject({
+      status: 200,
+      title: 'Invalid Schema',
+    })
+  })
+})
+

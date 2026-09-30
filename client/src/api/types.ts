@@ -108,3 +108,28 @@ export function isEventResponse(value: unknown): value is EventResponse {
 export function isEventResponseList(value: unknown): value is EventResponse[] {
   return Array.isArray(value) && value.every(isEventResponse)
 }
+
+export interface CreateSubscriptionRequest {
+  email: string
+  artistName: string
+  city?: string
+}
+
+export interface SubscriptionResponse {
+  subscriptionId: string
+  message: string
+}
+
+export function isSubscriptionResponse(value: unknown): value is SubscriptionResponse {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  return (
+    'subscriptionId' in value &&
+    typeof value.subscriptionId === 'string' &&
+    'message' in value &&
+    typeof value.message === 'string'
+  )
+}
+

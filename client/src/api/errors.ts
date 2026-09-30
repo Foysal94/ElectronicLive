@@ -12,7 +12,8 @@ export class ApiError extends Error {
   readonly errors?: Record<string, string[]>
 
   constructor(status: number, problem?: ApiProblemDetails) {
-    super(problem?.detail || problem?.title || `Request failed with status ${status}`)
+    const firstFieldError = problem?.errors ? Object.values(problem.errors).flat()[0] : undefined
+    super(problem?.detail || firstFieldError || problem?.title || `Request failed with status ${status}`)
     this.name = 'ApiError'
     this.status = status
     this.title = problem?.title
@@ -20,6 +21,7 @@ export class ApiError extends Error {
     this.errors = problem?.errors
   }
 }
+
 
 export function extractProblemDetails(json: unknown): ApiProblemDetails {
   if (typeof json !== 'object' || json === null) {

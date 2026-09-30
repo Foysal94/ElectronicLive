@@ -106,4 +106,40 @@ describe('EventList Component', () => {
     expect(sorted[1]?.name).toBe('Later Event')
     expect(sorted[2]?.name).toBe('Undated Event')
   })
+
+  it('Should_render_track_artist_button_in_header_when_query_is_present', async () => {
+    const handleTrack = vi.fn()
+    render(
+      <EventList
+        events={[mockSingleProviderEvent]}
+        isIdle={false}
+        isFetching={false}
+        isError={false}
+        query="Bicep"
+        onTrackArtist={handleTrack}
+      />
+    )
+
+    const trackBtn = screen.getByRole('button', { name: 'Track Bicep' })
+    expect(trackBtn).toBeInTheDocument()
+    trackBtn.click()
+    expect(handleTrack).toHaveBeenCalledWith('Bicep')
+  })
+
+  it('Should_hide_track_artist_button_when_isGenreSearch_is_true', () => {
+    render(
+      <EventList
+        events={[mockSingleProviderEvent]}
+        isIdle={false}
+        isFetching={false}
+        isError={false}
+        query="TECHNO"
+        isGenreSearch={true}
+        onTrackArtist={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /track/i })).not.toBeInTheDocument()
+  })
 })
+

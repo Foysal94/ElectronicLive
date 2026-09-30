@@ -1,5 +1,12 @@
 import { ApiError, extractProblemDetails } from './errors'
-import { type EventResponse, type EventSearchParams, isEventResponseList } from './types'
+import {
+  type CreateSubscriptionRequest,
+  type EventResponse,
+  type EventSearchParams,
+  type SubscriptionResponse,
+  isEventResponseList,
+  isSubscriptionResponse,
+} from './types'
 
 const API_BASE_URL =
   (import.meta.env.VITE_ELECTRONICLIVE_API_URL as string | undefined)?.replace(/\/+$/, '') || ''
@@ -61,3 +68,38 @@ export async function fetchEvents(
 
   return data
 }
+
+/**
+ * Dispatches a watchlist alert subscription request to the backend API.
+ */
+export async function createSubscription(
+  payload: CreateSubscriptionRequest,
+  signal?: AbortSignal
+): Promise<SubscriptionResponse> {
+  const endpoint = `${API_BASE_URL}/api/subscriptions`
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(payload),
+    signal,
+  })
+
+  if (!response.ok) {
+    const json: unknown = await response.json().catch(() => null)
+    throw new ApiError(response.status, extractProblemDetails(json))
+  }
+
+  const data: unknown = await response.json()
+  if (!isSubscriptionResponse(data)) {
+    throw new ApiError(response.status, {
+      title: 'Invalid Schema',
+      detail: 'The server response did not match the expected SubscriptionResponse contract.',
+    })
+  }
+
+  return data
+}
+

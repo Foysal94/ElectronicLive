@@ -6,7 +6,9 @@ import {
   isEventResponseList,
   isEventStatus,
   isEventTicketOffer,
+  isSubscriptionResponse,
 } from '../types'
+
 
 describe('Domain Type Guards', () => {
   it('Should_validate_valid_event_genres', () => {
@@ -124,4 +126,22 @@ describe('Domain Type Guards', () => {
     expect(isEventResponseList([1, 2, 3])).toBe(false)
     expect(isEventResponseList('not an array')).toBe(false)
   })
+
+  it('Should_validate_valid_subscription_responses', () => {
+    const validSubscription = {
+      subscriptionId: '123e4567-e89b-12d3-a456-426614174000',
+      message: 'Subscribed successfully',
+    }
+    expect(isSubscriptionResponse(validSubscription)).toBe(true)
+  })
+
+  it('Should_reject_malformed_subscription_responses', () => {
+    expect(isSubscriptionResponse(null)).toBe(false)
+    expect(isSubscriptionResponse({})).toBe(false)
+    expect(isSubscriptionResponse({ subscriptionId: '123' })).toBe(false)
+    expect(isSubscriptionResponse({ message: 'Subscribed successfully' })).toBe(false)
+    expect(isSubscriptionResponse({ subscriptionId: 123, message: 'Valid message' })).toBe(false)
+    expect(isSubscriptionResponse({ subscriptionId: '123', message: 456 })).toBe(false)
+  })
 })
+
