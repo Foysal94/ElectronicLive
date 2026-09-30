@@ -12,6 +12,7 @@ export class ApiError extends Error {
   readonly errors?: Record<string, string[]>
 
   constructor(status: number, problem?: ApiProblemDetails) {
+    // ASP.NET Core ValidationProblem returns field error arrays without a top-level detail string
     const firstFieldError = problem?.errors ? Object.values(problem.errors).flat()[0] : undefined
     super(problem?.detail || firstFieldError || problem?.title || `Request failed with status ${status}`)
     this.name = 'ApiError'
