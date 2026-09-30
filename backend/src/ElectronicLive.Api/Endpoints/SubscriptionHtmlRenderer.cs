@@ -9,9 +9,6 @@ internal static class SubscriptionHtmlRenderer
     public static ContentHttpResult Success(string message) =>
         Render("Unsubscribed", message, isSuccess: true, StatusCodes.Status200OK);
 
-    public static ContentHttpResult NotSubscribed(string message) =>
-        Render("Not Subscribed", message, isSuccess: true, StatusCodes.Status200OK);
-
     public static ContentHttpResult NotFound(string message) =>
         Render("Unsubscribe Error", message, isSuccess: false, StatusCodes.Status404NotFound);
 

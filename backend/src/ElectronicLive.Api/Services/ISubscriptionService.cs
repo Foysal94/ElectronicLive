@@ -4,12 +4,9 @@ namespace ElectronicLive.Api.Services;
 
 public interface ISubscriptionService
 {
-    Task<(Guid SubscriptionId, bool IsNew)> SubscribeAsync(
-        SubscribeRequest request,
-        CancellationToken cancellationToken = default
-    );
+    Task<SubscribeResult> SubscribeAsync(SubscribeRequest request, CancellationToken cancellationToken = default);
 
-    Task<(bool Success, string Message)> UnsubscribeAsync(
+    Task<UnsubscribeResult> UnsubscribeAsync(
         string? token,
         string? artist,
         CancellationToken cancellationToken = default
