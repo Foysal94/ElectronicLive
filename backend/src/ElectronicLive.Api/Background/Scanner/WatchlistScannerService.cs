@@ -22,6 +22,8 @@ public sealed class WatchlistScannerService(
 
     public async Task<ScanResult> ExecuteScanAsync(CancellationToken ct = default)
     {
+        // Query distinct artists across all active subscriptions to minimize upstream API calls,
+        // ensuring each artist is searched only once per scan cycle regardless of subscriber count.
         var watchedArtists = await dbContext
             .Subscriptions.AsNoTracking()
             .Where(s => s.IsActive)
@@ -49,6 +51,7 @@ public sealed class WatchlistScannerService(
             var artist = watchedArtists[i];
             artistsScanned++;
 
+            // Pacing delay between sequential artist searches to prevent hitting upstream provider rate limits.
             if (i > 0 && delayMs > 0)
             {
                 await Task.Delay(delayMs, ct);
@@ -146,6 +149,7 @@ public sealed class WatchlistScannerService(
             return SubscriptionProcessOutcome.NoNewEvents;
         }
 
+        // Deduplicate against previously notified events using deterministic composite fingerprint: {yyyy-MM-dd}_{venue}_{artist}
         var existingFingerprints = subscription
             .NotificationLogs.Select(nl => nl.EventFingerprint)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -188,6 +192,8 @@ public sealed class WatchlistScannerService(
         }
         catch (Exception ex)
         {
+            // Isolate dispatch failures per subscription so a downstream email rejection or DB commit failure
+            // does not abort scanning or notifications for other active subscribers.
             logger.LogError(
                 ex,
                 "Failed to send digest or save notification log for subscription {SubscriptionId} (User: {Email}, Artist: {Artist}).",
