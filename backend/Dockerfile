@@ -7,6 +7,7 @@ COPY backend/ElectronicLive.sln ./
 COPY backend/Directory.Build.props ./
 COPY backend/src/ElectronicLive.Api/ElectronicLive.Api.csproj src/ElectronicLive.Api/
 COPY backend/tests/ElectronicLive.Api.UnitTests/ElectronicLive.Api.UnitTests.csproj tests/ElectronicLive.Api.UnitTests/
+COPY backend/tests/ElectronicLive.Api.IntegrationTests/ElectronicLive.Api.IntegrationTests.csproj tests/ElectronicLive.Api.IntegrationTests/
 
 # Restore dependencies
 RUN dotnet restore ElectronicLive.sln
