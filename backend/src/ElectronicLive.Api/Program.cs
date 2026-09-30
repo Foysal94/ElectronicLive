@@ -1,3 +1,4 @@
+using ElectronicLive.Api.Background.Email;
 using ElectronicLive.Api.Clients;
 using ElectronicLive.Api.Data;
 using ElectronicLive.Api.Endpoints;
@@ -43,6 +44,7 @@ if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
 builder.Services.AddEventClients(builder.Configuration);
 builder.Services.AddEventServices();
 builder.Services.AddEventCaching(builder.Configuration);
+builder.Services.AddEmailDispatching(builder.Configuration);
 builder.Services.AddPersistence(builder.Configuration);
 
 var app = builder.Build();

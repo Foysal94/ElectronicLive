@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Background\Email\Templates\**\*.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="ElectronicLive.Api.UnitTests" />
   </ItemGroup>
 </Project>

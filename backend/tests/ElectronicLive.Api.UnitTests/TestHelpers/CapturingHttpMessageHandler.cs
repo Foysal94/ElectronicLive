@@ -4,15 +4,22 @@ public sealed class CapturingHttpMessageHandler(Func<HttpRequestMessage, HttpRes
     : HttpMessageHandler
 {
     public HttpRequestMessage? LastRequest { get; private set; }
+    public string? LastRequestBody { get; private set; }
     public bool WasCanceledDuringSend { get; private set; }
 
-    protected override Task<HttpResponseMessage> SendAsync(
+    protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken
     )
     {
         LastRequest = request;
         WasCanceledDuringSend = cancellationToken.IsCancellationRequested;
-        return Task.FromResult(handler(request));
+
+        if (request.Content != null)
+        {
+            LastRequestBody = await request.Content.ReadAsStringAsync(cancellationToken);
+        }
+
+        return handler(request);
     }
 }
