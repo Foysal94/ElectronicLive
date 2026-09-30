@@ -89,7 +89,7 @@ public static class EmailTemplateBuilder
 
         foreach (var offer in offers)
         {
-            var providerName = FormatProviderName(offer.Provider);
+            var (providerName, buttonColor) = GetProviderMetadata(offer.Provider);
             var isSoldOut = offer.Status == EventStatus.SoldOut;
             var ticketUrl = offer.TicketUrl;
 
@@ -107,7 +107,6 @@ public static class EmailTemplateBuilder
             else if (!string.IsNullOrWhiteSpace(ticketUrl))
             {
                 var encodedUrl = WebUtility.HtmlEncode(ticketUrl);
-                var buttonColor = GetProviderButtonColor(offer.Provider);
 
                 sb.Append(
                     CultureInfo.InvariantCulture,
@@ -123,22 +122,13 @@ public static class EmailTemplateBuilder
         return sb.ToString();
     }
 
-    private static string FormatProviderName(EventProvider provider) =>
+    private static (string Name, string Color) GetProviderMetadata(EventProvider provider) =>
         provider switch
         {
-            EventProvider.Ticketmaster => "Ticketmaster",
-            EventProvider.ResidentAdvisor => "Resident Advisor",
-            EventProvider.Skiddle => "Skiddle",
-            _ => provider.ToString(),
-        };
-
-    private static string GetProviderButtonColor(EventProvider provider) =>
-        provider switch
-        {
-            EventProvider.Ticketmaster => "#026cdf",
-            EventProvider.ResidentAdvisor => "#059669",
-            EventProvider.Skiddle => "#7c3aed",
-            _ => "#2563eb",
+            EventProvider.Ticketmaster => ("Ticketmaster", "#026cdf"),
+            EventProvider.ResidentAdvisor => ("Resident Advisor", "#059669"),
+            EventProvider.Skiddle => ("Skiddle", "#7c3aed"),
+            _ => (provider.ToString(), "#2563eb"),
         };
 
     private static string LoadTemplate()
