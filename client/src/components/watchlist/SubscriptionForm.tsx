@@ -34,6 +34,7 @@ export function SubscriptionForm({
           placeholder="you@example.com"
           disabled={isPending}
           aria-invalid={hasError}
+          aria-describedby={hasError ? 'track-error-message' : undefined}
           className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-[#181b1f] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-all"
         />
       </div>

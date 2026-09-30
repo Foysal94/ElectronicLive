@@ -124,6 +124,36 @@ describe('TrackArtistModal Component', () => {
     })
   })
 
+  it('Should_clear_api_error_banner_when_user_edits_email', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TrackArtistModal
+        isOpen={true}
+        artistName="UnknownArtist"
+        onClose={vi.fn()}
+      />,
+      { wrapper: createQueryWrapper() }
+    )
+
+    const input = screen.getByLabelText(/email address/i)
+    const submitBtn = screen.getByRole('button', { name: /^subscribe$/i })
+
+    await user.type(input, 'user@example.com')
+    await user.click(submitBtn)
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Artist 'UnknownArtist' could not be verified as a genuine music entity.")
+      ).toBeInTheDocument()
+    })
+
+    await user.type(input, 'x')
+    expect(
+      screen.queryByText("Artist 'UnknownArtist' could not be verified as a genuine music entity.")
+    ).not.toBeInTheDocument()
+  })
+
   it('Should_close_modal_when_clicking_close_or_cancel_button', async () => {
     const user = userEvent.setup()
     const handleClose = vi.fn()

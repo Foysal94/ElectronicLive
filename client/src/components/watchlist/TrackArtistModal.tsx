@@ -8,6 +8,7 @@ import { SubscriptionForm } from './SubscriptionForm'
 interface TrackArtistModalProps {
   isOpen: boolean
   artistName: string
+  city?: string
   onClose: () => void
   onSubscribed?: (response: SubscriptionResponse) => void
 }
@@ -19,6 +20,7 @@ const RFC_EMAIL_REGEX =
 export function TrackArtistModal({
   isOpen,
   artistName,
+  city = 'London',
   onClose,
   onSubscribed,
 }: TrackArtistModalProps) {
@@ -89,7 +91,7 @@ export function TrackArtistModal({
       {
         email: trimmedEmail,
         artistName: artistName.trim(),
-        city: 'London',
+        city,
       },
       {
         onSuccess: (data) => {
@@ -139,7 +141,7 @@ export function TrackArtistModal({
             aria-label="Close modal"
             className="min-h-[44px] min-w-[44px] -mr-2 -mt-2 flex items-center justify-center text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -172,13 +174,14 @@ export function TrackArtistModal({
           </div>
         ) : (
           <>
-            {errorMessage && <ErrorBanner message={errorMessage} />}
+            {errorMessage && <ErrorBanner id="track-error-message" message={errorMessage} />}
 
             <SubscriptionForm
               email={email}
               onChangeEmail={(val) => {
                 setEmail(val)
                 if (validationError) setValidationError(null)
+                if (mutation.isError) resetMutation()
               }}
               onSubmit={handleSubmit}
               onCancel={handleClose}

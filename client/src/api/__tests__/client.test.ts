@@ -141,8 +141,21 @@ describe('createSubscription Client', () => {
   })
 
   it('Should_throw_ApiError_when_server_returns_500', async () => {
+    server.use(
+      http.post('*/api/subscriptions', () => {
+        return HttpResponse.json(
+          {
+            title: 'Internal Server Error',
+            status: 500,
+            detail: 'Failed to create subscription.',
+          },
+          { status: 500 }
+        )
+      })
+    )
+
     const promise = createSubscription({
-      email: 'server-error@example.com',
+      email: 'user@example.com',
       artistName: 'Bicep',
     })
 
@@ -154,8 +167,14 @@ describe('createSubscription Client', () => {
   })
 
   it('Should_throw_ApiError_when_response_schema_is_invalid', async () => {
+    server.use(
+      http.post('*/api/subscriptions', () => {
+        return HttpResponse.json({ invalid: 'schema' })
+      })
+    )
+
     const promise = createSubscription({
-      email: 'invalid-schema@example.com',
+      email: 'user@example.com',
       artistName: 'Bicep',
     })
 

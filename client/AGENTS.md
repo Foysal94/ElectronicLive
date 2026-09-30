@@ -22,7 +22,7 @@
   - **Queries & Shared Mutations:** Encapsulate all queries and cache-invalidating mutations in custom hooks under `src/hooks/` (or query options factories) using TanStack Query v5 object syntax. Never place raw fetch calls directly inside UI components.
   - **Isolated Mutations:** Inline `useMutation` directly inside leaf UI components (e.g. modals, isolated forms) when the mutation is single-use and has zero query cache side-effects, avoiding redundant 1-line wrapper hooks.
 - **Domain-Organized Components:** Organize UI components by feature domain under `components/<domain>/`, with shared primitives under `components/common/` and global chrome under `components/layout/`.
-- **Pure Leaf Components:** Presentational components must remain pure, deterministic functions (props in -> JSX out). Keep server state, caching, and query orchestration isolated in parent views or custom hooks.
+- **Pure Leaf Components & Container Boundaries:** Presentational leaf components (e.g. buttons, rows, badges, forms) must remain pure, deterministic functions (props in -> JSX out). Keep server state, caching, and query orchestration isolated in parent container views (such as pages or dialog wrappers) or dedicated custom hooks.
 - **Resilience UI:** Views consuming asynchronous data must cleanly render:
   1. Loading skeleton states gated strictly on active network fetching (`fetchStatus === 'fetching'` or `isFetching`). Never gate skeletons on `isPending` when `enabled` can be false (in TanStack Query v5, `isPending` is true for unexecuted queries).
   2. Partial or empty data states with an explicit idle state (`const isIdle = !query.trim()`).
