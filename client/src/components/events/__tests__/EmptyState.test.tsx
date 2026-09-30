@@ -49,11 +49,10 @@ describe('EmptyState Component', () => {
     expect(handleTrack).toHaveBeenCalledWith('Overmono')
   })
 
-  it('Should_not_render_track_button_when_isGenreSearch_is_true', () => {
+  it('Should_not_render_track_button_when_query_is_empty', () => {
     render(
       <EmptyState
-        query="TECHNO"
-        isGenreSearch={true}
+        query=""
         onTrackArtist={vi.fn()}
       />
     )
@@ -61,3 +60,4 @@ describe('EmptyState Component', () => {
     expect(screen.queryByRole('button', { name: /track/i })).not.toBeInTheDocument()
   })
 })
+

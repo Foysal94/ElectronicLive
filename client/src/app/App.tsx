@@ -26,9 +26,6 @@ export default function App() {
     genre: activeGenre || undefined,
   })
 
-  const displayQuery = activeQuery || (activeGenre ? activeGenre.toUpperCase() : '')
-  const isGenreOnly = Boolean(activeGenre && !activeQuery)
-
   return (
     <div className="min-h-screen bg-[#181b1f] text-[#f3f4f6] flex flex-col selection:bg-emerald-500/20 selection:text-emerald-300">
       <Header />
@@ -56,8 +53,7 @@ export default function App() {
             isError={isError}
             error={error}
             onRetry={refetch}
-            query={displayQuery}
-            isGenreSearch={isGenreOnly}
+            query={activeQuery}
             onTrackArtist={(artist) => setTrackingArtist(artist)}
           />
         </section>
@@ -73,4 +69,3 @@ export default function App() {
     </div>
   )
 }
-

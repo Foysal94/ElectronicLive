@@ -13,7 +13,6 @@ interface EventListProps {
   isError: boolean
   error?: Error | null
   query?: string
-  isGenreSearch?: boolean
   onTrackArtist?: (artistName: string) => void
   onRetry?: () => void
   className?: string
@@ -26,13 +25,11 @@ export function EventList({
   isError,
   error = null,
   query = '',
-  isGenreSearch = false,
   onTrackArtist,
   onRetry,
   className = '',
 }: EventListProps) {
   const trimmedQuery = query.trim()
-  const canTrack = Boolean(trimmedQuery && !isGenreSearch && onTrackArtist)
 
   const renderContent = () => {
     if (isError) {
@@ -56,7 +53,6 @@ export function EventList({
       return (
         <EmptyState
           query={query}
-          isGenreSearch={isGenreSearch}
           onTrackArtist={onTrackArtist}
         />
       )
@@ -74,10 +70,10 @@ export function EventList({
             <span className="text-xs text-gray-500 font-mono">Chronological</span>
           </div>
 
-          {canTrack && (
+          {trimmedQuery && onTrackArtist && (
             <TrackArtistButton
               artistName={trimmedQuery}
-              onClick={() => onTrackArtist?.(trimmedQuery)}
+              onClick={() => onTrackArtist(trimmedQuery)}
               label={`Track ${trimmedQuery}`}
             />
           )}
@@ -101,4 +97,3 @@ export function EventList({
     </section>
   )
 }
-

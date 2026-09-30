@@ -126,15 +126,14 @@ describe('EventList Component', () => {
     expect(handleTrack).toHaveBeenCalledWith('Bicep')
   })
 
-  it('Should_hide_track_artist_button_when_isGenreSearch_is_true', () => {
+  it('Should_hide_track_artist_button_when_query_is_empty', () => {
     render(
       <EventList
         events={[mockSingleProviderEvent]}
         isIdle={false}
         isFetching={false}
         isError={false}
-        query="TECHNO"
-        isGenreSearch={true}
+        query=""
         onTrackArtist={vi.fn()}
       />
     )
@@ -142,4 +141,5 @@ describe('EventList Component', () => {
     expect(screen.queryByRole('button', { name: /track/i })).not.toBeInTheDocument()
   })
 })
+
 

@@ -3,7 +3,6 @@ import { TrackArtistButton } from '../watchlist/TrackArtistButton'
 interface EmptyStateProps {
   isIdle?: boolean
   query?: string
-  isGenreSearch?: boolean
   onTrackArtist?: (artistName: string) => void
   className?: string
 }
@@ -11,7 +10,6 @@ interface EmptyStateProps {
 export function EmptyState({
   isIdle = false,
   query = '',
-  isGenreSearch = false,
   onTrackArtist,
   className = '',
 }: EmptyStateProps) {
@@ -34,7 +32,6 @@ export function EmptyState({
   }
 
   const trimmedQuery = query.trim()
-  const canTrack = Boolean(trimmedQuery && onTrackArtist && !isGenreSearch)
 
   return (
     <div
@@ -56,14 +53,14 @@ export function EmptyState({
         Try searching for another artist or choose one of the curated venue pills above.
       </p>
 
-      {canTrack && (
+      {trimmedQuery && onTrackArtist && (
         <div className="pt-3 flex flex-col items-center gap-2">
           <p className="text-xs text-gray-400">
             Track <span className="text-white font-medium">{trimmedQuery}</span> to get alerted when a show is announced:
           </p>
           <TrackArtistButton
             artistName={trimmedQuery}
-            onClick={() => onTrackArtist?.(trimmedQuery)}
+            onClick={() => onTrackArtist(trimmedQuery)}
             label={`Track ${trimmedQuery}`}
           />
         </div>
@@ -71,4 +68,3 @@ export function EmptyState({
     </div>
   )
 }
-
