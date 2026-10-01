@@ -7,13 +7,37 @@ export const handlers = [
     const url = new URL(request.url)
     const query = url.searchParams.get('query')?.trim() || ''
     const genre = url.searchParams.get('genre')?.trim().toLowerCase() || ''
+    const from = url.searchParams.get('from')?.trim() || ''
+    const to = url.searchParams.get('to')?.trim() || ''
 
-    if (!query && !genre) {
+    if (!query && !genre && !from && !to) {
       return HttpResponse.json(
         {
           title: 'One or more validation errors occurred.',
           status: 400,
-          errors: { query: ['At least one of query or genre parameter must be provided.'] },
+          errors: { query: ['At least one of query, genre, or date parameters must be provided.'] },
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!query && !genre && (!from || !to)) {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { date: ["Both 'from' and 'to' date parameters are required for date-only queries."] },
+        },
+        { status: 400 }
+      )
+    }
+
+    if (from && to && from > to) {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { to: ["'to' date must be greater than or equal to 'from' date."] },
         },
         { status: 400 }
       )
@@ -47,12 +71,19 @@ export const handlers = [
       return HttpResponse.json({ unexpected: 'malformed_payload' })
     }
 
-    if (trimmed === 'all' || trimmed === '*') {
-      return HttpResponse.json(mockDefaultEvents)
+    let results = mockDefaultEvents
+
+    if (from || to) {
+      results = results.filter((ev) => {
+        if (!ev.date) return false
+        if (from && ev.date < from) return false
+        if (to && ev.date > to) return false
+        return true
+      })
     }
 
     if (genre) {
-      let genreEvents = mockDefaultEvents.filter((ev) => {
+      results = results.filter((ev) => {
         const evName = ev.name.toLowerCase()
         if (genre === 'techno') {
           return evName.includes('techno') || evName.includes('amelie') || evName.includes('charlotte')
@@ -68,25 +99,17 @@ export const handlers = [
         }
         return false
       })
-
-      if (query) {
-        genreEvents = genreEvents.filter(
-          (ev) =>
-            ev.name.toLowerCase().includes(trimmed) ||
-            ev.venueName.toLowerCase().includes(trimmed)
-        )
-      }
-
-      return HttpResponse.json(genreEvents)
     }
 
-    const matchingEvents = mockDefaultEvents.filter(
-      (ev) =>
-        ev.name.toLowerCase().includes(trimmed) ||
-        ev.venueName.toLowerCase().includes(trimmed)
-    )
+    if (trimmed && trimmed !== 'all' && trimmed !== '*') {
+      results = results.filter(
+        (ev) =>
+          ev.name.toLowerCase().includes(trimmed) ||
+          ev.venueName.toLowerCase().includes(trimmed)
+      )
+    }
 
-    return HttpResponse.json(matchingEvents)
+    return HttpResponse.json(results)
   }),
 
   http.post('*/api/subscriptions', async ({ request }) => {

@@ -22,6 +22,8 @@ export interface EventSearchParams {
   query?: string
   genre?: EventGenre
   city?: string
+  from?: string
+  to?: string
 }
 
 export interface EventTicketOffer {

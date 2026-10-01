@@ -107,4 +107,186 @@ describe('useEventSearchState Hook', () => {
     expect(result.current.activeQuery).toBe('')
     expect(result.current.searchTerm).toBe('')
   })
+
+  it('Should_extract_initial_from_and_to_parameters_from_url', () => {
+    window.history.replaceState(null, '', '/?from=2026-10-10&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+    expect(result.current.activeQuery).toBe('')
+    expect(result.current.activeGenre).toBe('')
+  })
+
+  it('Should_extract_both_query_and_date_parameters_from_url', () => {
+    window.history.replaceState(null, '', '/?q=Bicep&from=2026-10-10&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeQuery).toBe('Bicep')
+    expect(result.current.searchTerm).toBe('Bicep')
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+  })
+
+  it('Should_ignore_invalid_date_format_in_url_parameters', () => {
+    window.history.replaceState(null, '', '/?from=invalid-date&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('2026-10-12')
+  })
+
+  it('Should_update_date_range_and_sync_with_url', () => {
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange('2026-11-01', '2026-11-03')
+    })
+
+    expect(result.current.activeFrom).toBe('2026-11-01')
+    expect(result.current.activeTo).toBe('2026-11-03')
+    expect(window.location.search).toBe('?from=2026-11-01&to=2026-11-03')
+  })
+
+  it('Should_combine_date_range_orthogonally_with_active_query', () => {
+    window.history.replaceState(null, '', '/?q=Bicep')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange('2026-10-10', '2026-10-12')
+    })
+
+    expect(result.current.activeQuery).toBe('Bicep')
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+    expect(window.location.search).toBe('?q=Bicep&from=2026-10-10&to=2026-10-12')
+  })
+
+  it('Should_combine_date_range_orthogonally_with_active_genre', () => {
+    window.history.replaceState(null, '', '/?genre=techno')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange('2026-10-10', '2026-10-12')
+    })
+
+    expect(result.current.activeGenre).toBe('techno')
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+    expect(window.location.search).toBe('?genre=techno&from=2026-10-10&to=2026-10-12')
+  })
+
+  it('Should_preserve_date_range_when_searching_new_query', () => {
+    window.history.replaceState(null, '', '/?from=2026-10-10&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.handleSearch('Charlotte')
+    })
+
+    expect(result.current.activeQuery).toBe('Charlotte')
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+    expect(window.location.search).toBe('?q=Charlotte&from=2026-10-10&to=2026-10-12')
+  })
+
+  it('Should_preserve_date_range_when_selecting_genre', () => {
+    window.history.replaceState(null, '', '/?from=2026-10-10&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.handleSelectGenre('house')
+    })
+
+    expect(result.current.activeGenre).toBe('house')
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+    expect(window.location.search).toBe('?genre=house&from=2026-10-10&to=2026-10-12')
+  })
+
+  it('Should_preserve_date_range_when_clearing_query_via_handleClear', () => {
+    window.history.replaceState(null, '', '/?q=Bicep&from=2026-10-10&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.handleClear()
+    })
+
+    expect(result.current.activeQuery).toBe('')
+    expect(result.current.searchTerm).toBe('')
+    expect(result.current.activeGenre).toBe('')
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+    expect(window.location.search).toBe('?from=2026-10-10&to=2026-10-12')
+  })
+
+  it('Should_clear_date_range_when_calling_setDateRange_with_undefined', () => {
+    window.history.replaceState(null, '', '/?q=Bicep&from=2026-10-10&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange(undefined, undefined)
+    })
+
+    expect(result.current.activeQuery).toBe('Bicep')
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('')
+    expect(window.location.search).toBe('?q=Bicep')
+  })
+
+  it('Should_sync_dates_on_browser_popstate', () => {
+    window.history.replaceState(null, '', '/?from=2026-10-10&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('2026-10-10')
+    expect(result.current.activeTo).toBe('2026-10-12')
+
+    act(() => {
+      window.history.replaceState(null, '', '/?from=2026-11-01&to=2026-11-03')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    expect(result.current.activeFrom).toBe('2026-11-01')
+    expect(result.current.activeTo).toBe('2026-11-03')
+  })
+
+  it('Should_ignore_invalid_calendar_dates_such_as_february_31', () => {
+    window.history.replaceState(null, '', '/?from=2026-02-31&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('2026-10-12')
+  })
+
+  it('Should_discard_inverted_date_bounds_where_from_is_after_to', () => {
+    window.history.replaceState(null, '', '/?from=2026-12-01&to=2026-10-01')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('')
+  })
+
+  it('Should_discard_inverted_bounds_when_calling_setDateRange', () => {
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange('2026-12-01', '2026-10-01')
+    })
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('')
+    expect(window.location.search).toBe('')
+  })
+
+  it('Should_preserve_url_hash_when_updating_date_range', () => {
+    window.history.replaceState(null, '', '/#section-events')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange('2026-10-10', '2026-10-12')
+    })
+
+    expect(window.location.search).toBe('?from=2026-10-10&to=2026-10-12')
+    expect(window.location.hash).toBe('#section-events')
+  })
 })
