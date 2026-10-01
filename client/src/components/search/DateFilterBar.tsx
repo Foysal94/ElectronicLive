@@ -27,7 +27,7 @@ export function DateFilterBar({
   const activePreset = matchActivePreset(activeFrom, activeTo)
   const isCustomActive = Boolean(activeFrom && activeTo && !activePreset)
 
-  const handlePresetClick = (presetId: string) => {
+  const handlePresetClick = (presetId: DatePresetKey) => {
     if (activePreset === presetId) {
       onSelectDateRange('', '')
       return
@@ -91,6 +91,7 @@ export function DateFilterBar({
               <button
                 key={preset.id}
                 type="button"
+                aria-pressed={isActive}
                 disabled={isDisabled}
                 onClick={() => handlePresetClick(preset.id)}
                 title={
@@ -115,10 +116,13 @@ export function DateFilterBar({
             type="button"
             onClick={handleCustomToggle}
             aria-expanded={isCustomTrayOpen}
+            aria-pressed={isCustomActive}
             className={`min-h-[44px] px-4 py-2 rounded-full text-xs sm:text-sm font-medium border transition-colors flex items-center justify-center ${
-              isCustomActive || isCustomTrayOpen
+              isCustomActive
                 ? 'bg-emerald-950 text-emerald-400 border-emerald-800 shadow-sm'
-                : 'bg-[#22262d] text-gray-300 border-white/10 hover:bg-[#2b3039] hover:text-white hover:border-white/20'
+                : isCustomTrayOpen
+                  ? 'bg-[#2b3039] text-white border-white/30'
+                  : 'bg-[#22262d] text-gray-300 border-white/10 hover:bg-[#2b3039] hover:text-white hover:border-white/20'
             }`}
           >
             Custom...

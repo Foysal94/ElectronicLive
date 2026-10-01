@@ -12,9 +12,9 @@ export interface DatePresetDefinition {
 }
 
 export function formatDateOnly(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
@@ -25,12 +25,12 @@ export function parseDateOnly(dateString: string): Date | null {
   const year = Number(match[1])
   const month = Number(match[2])
   const day = Number(match[3])
-  const date = new Date(year, month - 1, day)
+  const date = new Date(Date.UTC(year, month - 1, day))
 
   if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
   ) {
     return null
   }
@@ -47,25 +47,24 @@ export function getDaysDifference(fromIso: string, toIso: string): number {
   return Math.round(diffMs / (1000 * 60 * 60 * 24))
 }
 
-/**
- * Calculates Friday and Sunday of the current week.
- * Week starts Monday, with Sunday considered the end of the week.
- * Always yields Friday through Sunday of the current week regardless of today's day.
- */
 function getThisWeekendRange(referenceDate: Date): DateRange {
-  const dayOfWeek = referenceDate.getDay() // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const dayOfWeek = referenceDate.getUTCDay()
   const fridayOffset = dayOfWeek === 0 ? -2 : 5 - dayOfWeek
 
   const friday = new Date(
-    referenceDate.getFullYear(),
-    referenceDate.getMonth(),
-    referenceDate.getDate() + fridayOffset
+    Date.UTC(
+      referenceDate.getUTCFullYear(),
+      referenceDate.getUTCMonth(),
+      referenceDate.getUTCDate() + fridayOffset
+    )
   )
 
   const sunday = new Date(
-    friday.getFullYear(),
-    friday.getMonth(),
-    friday.getDate() + 2
+    Date.UTC(
+      friday.getUTCFullYear(),
+      friday.getUTCMonth(),
+      friday.getUTCDate() + 2
+    )
   )
 
   return {
@@ -79,15 +78,19 @@ function getNextWeekendRange(referenceDate: Date): DateRange {
   const thisFriday = parseDateOnly(thisWeekend.from) ?? referenceDate
 
   const nextFriday = new Date(
-    thisFriday.getFullYear(),
-    thisFriday.getMonth(),
-    thisFriday.getDate() + 7
+    Date.UTC(
+      thisFriday.getUTCFullYear(),
+      thisFriday.getUTCMonth(),
+      thisFriday.getUTCDate() + 7
+    )
   )
 
   const nextSunday = new Date(
-    nextFriday.getFullYear(),
-    nextFriday.getMonth(),
-    nextFriday.getDate() + 2
+    Date.UTC(
+      nextFriday.getUTCFullYear(),
+      nextFriday.getUTCMonth(),
+      nextFriday.getUTCDate() + 2
+    )
   )
 
   return {
@@ -119,7 +122,9 @@ export const DATE_PRESETS: DatePresetDefinition[] = [
     id: 'next-30-days',
     label: 'Next 30 Days',
     getRange: (ref = new Date()) => {
-      const toDate = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + 30)
+      const toDate = new Date(
+        Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + 30)
+      )
       return {
         from: formatDateOnly(ref),
         to: formatDateOnly(toDate),

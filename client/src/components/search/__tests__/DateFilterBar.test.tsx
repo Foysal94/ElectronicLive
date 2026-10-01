@@ -52,6 +52,28 @@ describe('DateFilterBar Component', () => {
     expect(tonightBtn).not.toHaveClass('bg-emerald-950')
   })
 
+  it('Should_not_apply_active_emerald_styling_to_custom_button_when_merely_expanded_while_preset_is_active', async () => {
+    vi.useRealTimers()
+    const tonightRange = DATE_PRESETS.find((p) => p.id === 'tonight')!.getRange()
+
+    render(
+      <DateFilterBar
+        activeFrom={tonightRange.from}
+        activeTo={tonightRange.to}
+        onSelectDateRange={() => {}}
+        hasSearchContext={true}
+      />
+    )
+
+    const user = userEvent.setup()
+    const customBtn = screen.getByRole('button', { name: 'Custom...' })
+    await user.click(customBtn)
+
+    expect(customBtn).not.toHaveClass('bg-emerald-950')
+    const tonightBtn = screen.getByRole('button', { name: 'Tonight' })
+    expect(tonightBtn).toHaveClass('bg-emerald-950')
+  })
+
   it('Should_call_onSelectDateRange_with_calculated_bounds_when_preset_clicked', async () => {
     vi.useRealTimers() // user-event works best with real timers
     const onSelect = vi.fn()
@@ -176,7 +198,6 @@ describe('DateFilterBar Component', () => {
     await user.click(applyButton)
 
     expect(onSelect).toHaveBeenCalledWith('2026-11-01', '2026-11-15')
-    // Tray should collapse upon apply
     expect(screen.queryByLabelText('From date')).not.toBeInTheDocument()
   })
 
