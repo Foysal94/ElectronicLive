@@ -128,6 +128,14 @@ describe('useEventSearchState Hook', () => {
     expect(result.current.activeTo).toBe('2026-10-12')
   })
 
+  it('Should_ignore_invalid_date_format_in_url_parameters', () => {
+    window.history.replaceState(null, '', '/?from=invalid-date&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('2026-10-12')
+  })
+
   it('Should_update_date_range_and_sync_with_url', () => {
     const { result } = renderHook(() => useEventSearchState())
 

@@ -21,6 +21,13 @@ interface ParsedUrlState {
   to: string
 }
 
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
+
+function sanitizeDateParam(param: string | null): string {
+  const trimmed = param?.trim() || ''
+  return ISO_DATE_REGEX.test(trimmed) ? trimmed : ''
+}
+
 /**
  * Extracts initial search and date filter state from the browser URL.
  * Preserves mutual exclusivity between genre and query, while date bounds (from/to)
@@ -32,8 +39,8 @@ function parseSearchFromUrl(): ParsedUrlState {
   }
 
   const searchParams = new URLSearchParams(window.location.search)
-  const fromParam = searchParams.get('from')?.trim() || ''
-  const toParam = searchParams.get('to')?.trim() || ''
+  const fromParam = sanitizeDateParam(searchParams.get('from'))
+  const toParam = sanitizeDateParam(searchParams.get('to'))
 
   const genreParam = searchParams.get('genre')?.trim().toLowerCase()
   if (genreParam && isEventGenre(genreParam)) {
@@ -71,9 +78,6 @@ function syncUrl(query: string, genre: EventGenre | '', from: string, to: string
   window.history.replaceState(null, '', newUrl)
 }
 
-/**
- * Custom hook managing search input state, address bar synchronization, and filter exclusivity.
- */
 export function useEventSearchState(): EventSearchState {
   const [urlState, setUrlState] = useState<ParsedUrlState>(parseSearchFromUrl)
   const [searchTerm, setSearchTerm] = useState<string>(() => urlState.query)
@@ -92,35 +96,27 @@ export function useEventSearchState(): EventSearchState {
 
   const handleSearch = (rawQuery: string) => {
     const trimmed = rawQuery.trim()
-    setUrlState((prev) => {
-      syncUrl(trimmed, '', prev.from, prev.to)
-      return { ...prev, query: trimmed, genre: '' }
-    })
+    syncUrl(trimmed, '', urlState.from, urlState.to)
+    setUrlState((prev) => ({ ...prev, query: trimmed, genre: '' }))
     setSearchTerm(trimmed)
   }
 
   const handleSelectGenre = (genre: EventGenre) => {
-    setUrlState((prev) => {
-      syncUrl('', genre, prev.from, prev.to)
-      return { ...prev, query: '', genre }
-    })
+    syncUrl('', genre, urlState.from, urlState.to)
+    setUrlState((prev) => ({ ...prev, query: '', genre }))
     setSearchTerm('')
   }
 
   const setDateRange = (from?: string, to?: string) => {
-    const cleanFrom = from?.trim() || ''
-    const cleanTo = to?.trim() || ''
-    setUrlState((prev) => {
-      syncUrl(prev.query, prev.genre, cleanFrom, cleanTo)
-      return { ...prev, from: cleanFrom, to: cleanTo }
-    })
+    const cleanFrom = sanitizeDateParam(from ?? null)
+    const cleanTo = sanitizeDateParam(to ?? null)
+    syncUrl(urlState.query, urlState.genre, cleanFrom, cleanTo)
+    setUrlState((prev) => ({ ...prev, from: cleanFrom, to: cleanTo }))
   }
 
   const handleClear = () => {
-    setUrlState((prev) => {
-      syncUrl('', '', prev.from, prev.to)
-      return { ...prev, query: '', genre: '' }
-    })
+    syncUrl('', '', urlState.from, urlState.to)
+    setUrlState((prev) => ({ ...prev, query: '', genre: '' }))
     setSearchTerm('')
   }
 
