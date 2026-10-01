@@ -1,5 +1,5 @@
+import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { http, HttpResponse } from 'msw'
-import { getDaysDifference } from '../../components/search/datePresets'
 import { isValidEmail } from '../../utils/validation'
 import { mockDefaultEvents } from './fixtures'
 
@@ -45,7 +45,7 @@ export const handlers = [
     }
 
     if (!query && !genre && from && to) {
-      const diffDays = getDaysDifference(from, to)
+      const diffDays = differenceInCalendarDays(parseISO(to), parseISO(from))
       if (diffDays > 7) {
         return HttpResponse.json(
           {

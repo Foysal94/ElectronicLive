@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { type DateRange as DayPickerRange, DayPicker } from 'react-day-picker'
-import 'react-day-picker/style.css'
 import {
   DATE_PRESETS,
   type DatePresetKey,
@@ -18,6 +17,35 @@ export interface DateFilterBarProps {
   className?: string
 }
 
+interface DayPickerCssVariables extends React.CSSProperties {
+  '--rdp-accent-color'?: string
+  '--rdp-accent-background-color'?: string
+  '--rdp-range_middle-background-color'?: string
+  '--rdp-range_middle-color'?: string
+  '--rdp-day-height'?: string
+  '--rdp-day-width'?: string
+  '--rdp-day_button-height'?: string
+  '--rdp-day_button-width'?: string
+}
+
+const dayPickerDarkStyles: DayPickerCssVariables = {
+  '--rdp-accent-color': '#10b981',
+  '--rdp-accent-background-color': '#064e3b',
+  '--rdp-range_middle-background-color': '#064e3b',
+  '--rdp-range_middle-color': '#34d399',
+  '--rdp-day-height': '44px',
+  '--rdp-day-width': '44px',
+  '--rdp-day_button-height': '44px',
+  '--rdp-day_button-width': '44px',
+}
+
+function resolveRangeFromStrings(fromStr?: string, toStr?: string): DayPickerRange | undefined {
+  if (!fromStr || !toStr) return undefined
+  const from = parseDateOnly(fromStr)
+  const to = parseDateOnly(toStr)
+  return from && to ? { from, to } : undefined
+}
+
 export function DateFilterBar({
   activeFrom = '',
   activeTo = '',
@@ -26,14 +54,9 @@ export function DateFilterBar({
   className = '',
 }: DateFilterBarProps) {
   const [isCustomTrayOpen, setIsCustomTrayOpen] = useState(false)
-  const [selectedRange, setSelectedRange] = useState<DayPickerRange | undefined>(() => {
-    if (activeFrom && activeTo) {
-      const from = parseDateOnly(activeFrom)
-      const to = parseDateOnly(activeTo)
-      if (from && to) return { from, to }
-    }
-    return undefined
-  })
+  const [selectedRange, setSelectedRange] = useState<DayPickerRange | undefined>(() =>
+    resolveRangeFromStrings(activeFrom, activeTo)
+  )
 
   const activePreset = matchActivePreset(activeFrom, activeTo)
   const isCustomActive = Boolean(activeFrom && activeTo && !activePreset)
@@ -54,18 +77,14 @@ export function DateFilterBar({
 
   const handleCustomToggle = () => {
     if (!isCustomTrayOpen) {
-      const from = activeFrom ? parseDateOnly(activeFrom) ?? undefined : undefined
-      const to = activeTo ? parseDateOnly(activeTo) ?? undefined : undefined
-      setSelectedRange(from && to ? { from, to } : undefined)
+      setSelectedRange(resolveRangeFromStrings(activeFrom, activeTo))
     }
     setIsCustomTrayOpen((prev) => !prev)
   }
 
   const handleCancelCustom = () => {
     setIsCustomTrayOpen(false)
-    const from = activeFrom ? parseDateOnly(activeFrom) ?? undefined : undefined
-    const to = activeTo ? parseDateOnly(activeTo) ?? undefined : undefined
-    setSelectedRange(from && to ? { from, to } : undefined)
+    setSelectedRange(resolveRangeFromStrings(activeFrom, activeTo))
   }
 
   const handleClearCustom = () => {
@@ -159,16 +178,7 @@ export function DateFilterBar({
             selected={selectedRange}
             onSelect={setSelectedRange}
             defaultMonth={selectedRange?.from ?? new Date()}
-            style={{
-              ['--rdp-accent-color' as string]: '#10b981',
-              ['--rdp-accent-background-color' as string]: '#064e3b',
-              ['--rdp-range_middle-background-color' as string]: '#064e3b',
-              ['--rdp-range_middle-color' as string]: '#34d399',
-              ['--rdp-day-height' as string]: '44px',
-              ['--rdp-day-width' as string]: '44px',
-              ['--rdp-day_button-height' as string]: '44px',
-              ['--rdp-day_button-width' as string]: '44px',
-            }}
+            style={dayPickerDarkStyles}
             classNames={{
               root: 'p-3 bg-[#181b1f] text-gray-200 rounded-xl border border-white/10 shadow-inner inline-block',
               month_caption: 'flex justify-center items-center py-2 text-sm font-semibold text-white relative',

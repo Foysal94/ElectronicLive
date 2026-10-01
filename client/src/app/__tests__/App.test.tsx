@@ -318,8 +318,6 @@ describe('App Integration Suite', () => {
     render(<App />, { wrapper: createQueryWrapper() })
 
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
-
-    // Advance calendar to November 2026
     await user.click(screen.getByRole('button', { name: /next month/i }))
 
     const nov14 = screen.getByRole('button', { name: /November 14th,/i })

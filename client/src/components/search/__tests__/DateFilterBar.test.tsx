@@ -217,7 +217,6 @@ describe('DateFilterBar Component', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    // Click day 15 then day 5 in reverse order
     const day15 = screen.getByRole('button', { name: /October 15th,/i })
     const day5 = screen.getByRole('button', { name: /October 5th,/i })
     await user.click(day15)
