@@ -13,7 +13,7 @@ Currently, the ElectronicLive application only supports searching by free-text a
 Introduce comprehensive date range filtering across both the .NET aggregation backend and the React web client:
 
 1. **Quick Date Presets:** Enable one-click discovery for the primary London nightlife timeframes: `Tonight`, `This Weekend` (Friday–Sunday), `Next Weekend`, and `Next 30 Days`.
-2. **Custom Date Selection:** Provide a lightweight, responsive inline tray with native HTML5 `<input type="date">` fields for custom `From` and `To` boundaries.
+2. **Custom Date Selection:** Provide an anchored popover dropdown powered by `react-datepicker` (`selectsRange`, `inline`) and `date-fns` for visual calendar date range selection.
 3. **Orthogonal Filter Composition:** Allow combining date filters with existing artist/venue searches and genre pills without wiping active criteria.
 4. **Standalone Date Browsing:** Allow discovering London events by date alone without entering an artist or genre (capped at a 7-day maximum window).
 5. **Hybrid Aggregator Caching:** For artist/genre queries, cache full schedules in `HybridCache` and slice dates in memory; for broad date-only queries, forward date bounds directly to upstream ticketing providers (Ticketmaster and Skiddle).
@@ -29,7 +29,7 @@ Introduce comprehensive date range filtering across both the .NET aggregation ba
 6. As a user searching for an artist within a date range, I want to clear the search bar text without losing my selected date range so that I can easily search for another artist in the same timeframe.
 7. As a user browsing a date range, I want events that do not have a confirmed date (`Date: null`) to be excluded from the timetable so that I am not misled by unscheduled listings.
 8. As a user sharing a link with friends, I want the URL to contain `?from=YYYY-MM-DD&to=YYYY-MM-DD` so that everyone sees the exact same calendar dates regardless of when they open the link.
-9. As a mobile user, I want the custom date picker to open an inline tray with native date pickers so that I can easily enter dates using my phone's keyboard without popover clipping.
+9. As a mobile and desktop user, I want the custom date picker to open an anchored dropdown with a visual calendar grid so that I can easily select and preview my date range without clunky multi-input form steps.
 10. As a system operator, I want date-only discovery queries to be limited to at most 7 days so that upstream ticket providers are never overloaded with massive city-wide event crawls.
 11. As a system operator, I want upstream ticketing APIs that do not support date filtering (Resident Advisor) to be bypassed during date-only queries so that the aggregator does not fail or return low-quality results.
 
@@ -58,7 +58,7 @@ Introduce comprehensive date range filtering across both the .NET aggregation ba
   - `DateFilterBar` (dedicated second row with preset pills: `Tonight`, `This Weekend`, `Next Weekend`, `Next 30 Days`, and `Custom...`)
   - `QuickPills` (third row with Artists, Venues, Genres)
   - `EventList` (timetable timetable results)
-- Custom Date selection: Clicking `Custom...` expands an inline accessible tray below the pills containing native `<input type="date">` inputs for `From` and `To`, an `Apply` button, and a `Cancel` button.
+- Custom Date selection: Clicking `Custom...` expands an anchored dropdown card beneath the button containing `react-datepicker` in range mode, a live date range badge, an `Apply` button, a `Cancel` button, and a `Clear` button.
 - Interaction rules:
   - Clicking an active preset pill deselects it and clears the date parameters.
   - Clicking `Clear` in the search bar clears the search text while keeping the active date filter intact.
@@ -76,7 +76,7 @@ Introduce comprehensive date range filtering across both the .NET aggregation ba
 - Time-of-day filtering (e.g. afternoon vs. late-night clubbing hours).
 - Recurring calendar subscriptions (e.g. "Notify me about any techno show every Friday").
 - Multi-city date selection (city remains London by default).
-- Third-party calendar UI component libraries (e.g. `react-day-picker`).
+- Heavy monolithic UI design systems (e.g. Ant Design, MUI).
 
 ## Further Notes
 

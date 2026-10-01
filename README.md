@@ -29,12 +29,13 @@ Finding upcoming electronic music events across London typically requires checki
 ## ✨ Key Features
 
 * **Parallel Multi-Provider Search:** Queries Ticketmaster, Skiddle, and Resident Advisor simultaneously using non-blocking asynchronous I/O (`Task.WhenAll`).
+* **Date Range & Quick Presets:** Filter London electronic events by time window using instant one-click presets (*Tonight*, *This Weekend*, *Next Weekend*, *Next 30 Days*) or an anchored custom calendar range picker (`react-datepicker` + `date-fns` outputting ISO `YYYY-MM-DD` bounds). Supports date-only queries capped at 7 days for fast upstream indexing, and up to 30+ days when combined with artist or genre keywords.
 * **Genre Taxonomy Aggregation:** Discovers London electronic music events by standardized genre classifications (Techno, House, Drum & Bass, Trance, Garage), mapping directly to Ticketmaster music classifications, Skiddle club codes/genre IDs (`g=...`), and Resident Advisor search indexes without false-positive venue collisions.
 * **Smart Deduplication & Venue Normalization:** Merges cross-platform duplicates into a single event card with multiple ticket purchase links (e.g. matching *"Drumsheds"* against *"The Drumsheds, London"*).
 * **Artist Watchlist & Email Alerts:** Follow favourite electronic artists in London. A scheduled background scanner inspects upcoming gigs twice daily and dispatches responsive HTML email digests via Resend with deterministic event deduplication (`NotificationLog`) and one-click tokenized unsubscribe.
 * **Resilient Graceful Degradation:** Built with Polly resilience pipelines; if an upstream vendor times out or errors, the API still returns results from healthy providers.
-* **Low-Latency Response Caching:** Uses .NET 10 `HybridCache` (L1 in-memory) to serve repeated queries with near-zero latency.
-* **URL-Synced Search & UI:** React 19 client with deep-linking query parameters (`?q=...`, `?genre=...`), instant artist, venue, and genre quick-filter presets, responsive dark UI, and skeleton loading states.
+* **Low-Latency Response Caching:** Uses .NET 10 `HybridCache` (L1 in-memory) to serve repeated queries with near-zero latency. Canonical artist/genre schedules are cached and sliced in memory, while date-only searches are partitioned by date range.
+* **URL-Synced Search & UI:** React 19 client with orthogonal deep-linking query parameters (`?q=...`, `?genre=...`, `?from=...&to=...`), instant artist, venue, and genre quick-filter presets, responsive dark UI, anchored custom date range dropdown (`react-datepicker`), and skeleton loading states.
 
 ---
 
@@ -134,6 +135,44 @@ flowchart TD
 ### 3. Cross-Vendor Venue Normalization
 * **Decision:** Strip common regional suffixes (`", London"`, `", UK"`), leading articles (`"The "`), and punctuation to generate a normalized composite key (`yyyy-MM-dd_{normalizedVenue}`).
 * **Rationale:** Each ticketing vendor labels venues differently (e.g. *"The Drumsheds"* vs. *"Drumsheds London"*). Normalization enables seamless merging of duplicate event rows while retaining multi-vendor ticket purchase links.
+
+---
+
+## 📡 API Usage & Endpoints
+
+### Event Search (`GET /api/events/search`)
+
+Searches and aggregates live London EDM events across Ticketmaster, Skiddle, and Resident Advisor.
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `query` | string | Optional* | Free-text artist name or venue query (e.g. `Bicep`, `Printworks`). |
+| `genre` | string | Optional* | Curated electronic music genre (`techno`, `house`, `drum-and-bass`, `trance`, `garage`). |
+| `from` | ISO date (`YYYY-MM-DD`) | Optional* | Filter events occurring on or after this date. Required if no `query` or `genre` provided. |
+| `to` | ISO date (`YYYY-MM-DD`) | Optional* | Filter events occurring on or before this date. Required if no `query` or `genre` provided. |
+| `city` | string | Optional | Target metropolitan city area (defaults to `London`). |
+
+*\*At least one of `query`, `genre`, or a date range pair (`from` + `to`) must be provided.*
+
+#### Date Filtering Rules & Guardrails
+
+1. **Date-Only Search Cap:** When querying by date bounds without an artist `query` or `genre`, the window between `from` and `to` cannot exceed **7 days** (`to - from <= 7`). This protects upstream provider rate limits and avoids unbounded fan-out over city-wide schedules.
+2. **Context-Enriched Search:** When querying with a `query` or `genre`, date ranges can span up to 30+ days. The backend retrieves the canonical schedule, caches it in `HybridCache`, and performs precise in-memory date slicing.
+3. **Resident Advisor Upstream Bypass:** Resident Advisor's GraphQL search index requires a keyword search term and does not support date-only scans. For date-only requests (`from` + `to` without `query`/`genre`), Resident Advisor is safely bypassed while Ticketmaster and Skiddle are queried upstream.
+4. **Ordering & Validation:** `to` must be greater than or equal to `from`. Violations immediately return RFC 7807 `400 Bad Request` Problem Details.
+
+```bash
+# Search events for an artist within a date range
+curl "http://localhost:5122/api/events/search?query=Bonobo&from=2026-10-01&to=2026-10-31"
+
+# Search weekend events by genre
+curl "http://localhost:5122/api/events/search?genre=techno&from=2026-10-09&to=2026-10-11"
+
+# Date-only city search (max 7-day window)
+curl "http://localhost:5122/api/events/search?from=2026-10-01&to=2026-10-07"
+```
 
 ---
 

@@ -27,6 +27,8 @@
   2. Partial or empty data states with an explicit idle state (`const isIdle = !query.trim()`).
   3. Network error boundaries with user-friendly retry actions.
 - **Timezone-Safe Date Parsing:** Never parse `"YYYY-MM-DD"` date strings using `new Date(...)` with local getters. Parse components directly (`dateStr.split('-')`) or use UTC getters (`getUTCDate()`, `getUTCMonth()`).
+- **Orthogonal Date URL Sync:** Synchronize date range filter state with the browser address bar as orthogonal query parameters (`?from=YYYY-MM-DD&to=YYYY-MM-DD`). While artist `q` and `genre` remain mutually exclusive, date bounds persist independently across text search and genre pill selections via `window.history.replaceState`.
+- **Date Manipulation & Calendar Math (`date-fns`):** Use battle-tested, lightweight date utilities (`date-fns`) for calendar math, ISO formatting, and difference calculations rather than hand-rolling manual timestamp arithmetic or UTC offset logic.
 
 ## React 19 & TypeScript Conventions
 - **No `React.FC`:** Define components using standard function syntax with explicit typed interfaces:

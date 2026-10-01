@@ -29,11 +29,11 @@ Querying broad geographic regions (e.g. London) without dates returns tens of th
    - Represent date filters orthogonally in `useEventSearchState` as concrete ISO strings (`from` and `to`), maintaining exact 1:1 parity with the backend API contract and URL address bar (`?from=YYYY-MM-DD&to=YYYY-MM-DD`).
    - **Visual Hierarchy:** Place the `DateFilterBar` directly below `SearchBar` and above `QuickPills` (Date First), prioritizing timing filters for nightlife users.
    - **Quick Presets:** Provide quick preset pills: `Tonight`, `This Weekend` (Fri–Sun), `Next Weekend`, `Next 30 Days`, and `Custom...`.
-   - **Custom Range Tray:** Clicking "Custom..." smoothly expands an inline responsive tray below the pills with native HTML5 `<input type="date">` inputs (`From`, `To`, `Apply`, `Cancel`), preventing mobile viewport clipping and zero extra JavaScript bundle overhead.
+   - **Custom Range Popover:** Clicking "Custom..." smoothly expands an anchored dropdown popover card beneath the button. Range selection is powered by `react-datepicker` (`selectsRange`, `inline`) and `date-fns` for date calculations, with dark-theme overrides isolated in `index.css` and accessible 44px tap targets for `Apply`, `Cancel`, and `Clear` actions.
    - **Filter Interactions:** Toggling an active date preset pill clears the date filter; clearing the text search preserves active date bounds.
 
 ## Consequences
 - **Cache Hit Ratio:** High cache reuse for popular artists across different date slices.
 - **Upstream Protection:** City-wide queries are strictly bounded to 7 days, avoiding upstream timeouts and rate limits.
 - **Provider Isolation:** Resident Advisor is safely isolated from date-only queries without returning empty/failing aggregator responses.
-- **Client Bundle:** Zero external calendar library dependencies added to the frontend bundle.
+- **Component Simplicity & UX:** Adopting `react-datepicker` and `date-fns` delivers visual calendar range-selection without hand-rolling 300+ lines of brittle table DOM markup, dual-input synchronization, or custom CSS class dictionaries.
