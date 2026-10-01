@@ -75,7 +75,7 @@ describe('DateFilterBar Component', () => {
   })
 
   it('Should_call_onSelectDateRange_with_calculated_bounds_when_preset_clicked', async () => {
-    vi.useRealTimers() // user-event works best with real timers
+    vi.useRealTimers()
     const onSelect = vi.fn()
 
     render(
@@ -160,13 +160,12 @@ describe('DateFilterBar Component', () => {
       />
     )
 
-    expect(screen.queryByLabelText('From date')).not.toBeInTheDocument()
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    expect(screen.getByLabelText('From date')).toBeInTheDocument()
-    expect(screen.getByLabelText('To date')).toBeInTheDocument()
+    expect(screen.getByRole('grid')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   })
@@ -187,27 +186,30 @@ describe('DateFilterBar Component', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    const fromInput = screen.getByLabelText('From date')
-    const toInput = screen.getByLabelText('To date')
     const applyButton = screen.getByRole('button', { name: 'Apply' })
+    expect(applyButton).toBeDisabled()
 
-    await user.type(fromInput, '2026-11-01')
-    await user.type(toInput, '2026-11-15')
+    const day5 = screen.getByRole('button', { name: /October 5th,/i })
+    const day15 = screen.getByRole('button', { name: /October 15th,/i })
+    await user.click(day5)
+    await user.click(day15)
 
     expect(applyButton).toBeEnabled()
     await user.click(applyButton)
 
-    expect(onSelect).toHaveBeenCalledWith('2026-11-01', '2026-11-15')
-    expect(screen.queryByLabelText('From date')).not.toBeInTheDocument()
+    expect(onSelect).toHaveBeenCalledWith('2026-10-05', '2026-10-15')
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
   })
 
-  it('Should_disable_apply_button_when_to_date_is_before_from_date', async () => {
+  it('Should_automatically_order_range_when_dates_are_selected_in_reverse', async () => {
     vi.useRealTimers()
+    const onSelect = vi.fn()
+
     render(
       <DateFilterBar
         activeFrom=""
         activeTo=""
-        onSelectDateRange={() => {}}
+        onSelectDateRange={onSelect}
         hasSearchContext={true}
       />
     )
@@ -215,14 +217,17 @@ describe('DateFilterBar Component', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    const fromInput = screen.getByLabelText('From date')
-    const toInput = screen.getByLabelText('To date')
+    // Click day 15 then day 5 in reverse order
+    const day15 = screen.getByRole('button', { name: /October 15th,/i })
+    const day5 = screen.getByRole('button', { name: /October 5th,/i })
+    await user.click(day15)
+    await user.click(day5)
+
     const applyButton = screen.getByRole('button', { name: 'Apply' })
+    expect(applyButton).toBeEnabled()
+    await user.click(applyButton)
 
-    await user.type(fromInput, '2026-11-15')
-    await user.type(toInput, '2026-11-01')
-
-    expect(applyButton).toBeDisabled()
+    expect(onSelect).toHaveBeenCalledWith('2026-10-05', '2026-10-15')
   })
 
   it('Should_disable_apply_button_if_range_exceeds_7_days_without_search_context', async () => {
@@ -239,13 +244,12 @@ describe('DateFilterBar Component', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    const fromInput = screen.getByLabelText('From date')
-    const toInput = screen.getByLabelText('To date')
+    const day1 = screen.getByRole('button', { name: /October 1st,/i })
+    const day20 = screen.getByRole('button', { name: /October 20th,/i })
+    await user.click(day1)
+    await user.click(day20)
+
     const applyButton = screen.getByRole('button', { name: 'Apply' })
-
-    await user.type(fromInput, '2026-11-01')
-    await user.type(toInput, '2026-11-20') // 19 days
-
     expect(applyButton).toBeDisabled()
     expect(screen.getByText(/exceeds 7-day limit/i)).toBeInTheDocument()
   })
@@ -265,10 +269,10 @@ describe('DateFilterBar Component', () => {
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
-    expect(screen.getByLabelText('From date')).toBeInTheDocument()
+    expect(screen.getByRole('grid')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByLabelText('From date')).not.toBeInTheDocument()
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
     expect(onSelect).not.toHaveBeenCalled()
   })
 
@@ -294,11 +298,6 @@ describe('DateFilterBar Component', () => {
     const trayButtons = screen.getAllByRole('button')
     for (const btn of trayButtons) {
       expect(btn).toHaveClass('min-h-[44px]')
-    }
-
-    const inputs = [screen.getByLabelText('From date'), screen.getByLabelText('To date')]
-    for (const input of inputs) {
-      expect(input).toHaveClass('min-h-[44px]')
     }
   })
 })

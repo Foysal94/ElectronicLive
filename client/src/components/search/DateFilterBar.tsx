@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { type DateRange as DayPickerRange, DayPicker } from 'react-day-picker'
+import 'react-day-picker/style.css'
 import {
   DATE_PRESETS,
   type DatePresetKey,
+  formatDateOnly,
   getDaysDifference,
   matchActivePreset,
   parseDateOnly,
@@ -23,8 +26,14 @@ export function DateFilterBar({
   className = '',
 }: DateFilterBarProps) {
   const [isCustomTrayOpen, setIsCustomTrayOpen] = useState(false)
-  const [customFrom, setCustomFrom] = useState(activeFrom)
-  const [customTo, setCustomTo] = useState(activeTo)
+  const [selectedRange, setSelectedRange] = useState<DayPickerRange | undefined>(() => {
+    if (activeFrom && activeTo) {
+      const from = parseDateOnly(activeFrom)
+      const to = parseDateOnly(activeTo)
+      if (from && to) return { from, to }
+    }
+    return undefined
+  })
 
   const activePreset = matchActivePreset(activeFrom, activeTo)
   const isCustomActive = Boolean(activeFrom && activeTo && !activePreset)
@@ -45,38 +54,38 @@ export function DateFilterBar({
 
   const handleCustomToggle = () => {
     if (!isCustomTrayOpen) {
-      setCustomFrom(activeFrom)
-      setCustomTo(activeTo)
+      const from = activeFrom ? parseDateOnly(activeFrom) ?? undefined : undefined
+      const to = activeTo ? parseDateOnly(activeTo) ?? undefined : undefined
+      setSelectedRange(from && to ? { from, to } : undefined)
     }
     setIsCustomTrayOpen((prev) => !prev)
   }
 
   const handleCancelCustom = () => {
     setIsCustomTrayOpen(false)
-    setCustomFrom(activeFrom)
-    setCustomTo(activeTo)
+    const from = activeFrom ? parseDateOnly(activeFrom) ?? undefined : undefined
+    const to = activeTo ? parseDateOnly(activeTo) ?? undefined : undefined
+    setSelectedRange(from && to ? { from, to } : undefined)
   }
 
   const handleClearCustom = () => {
     onSelectDateRange('', '')
     setIsCustomTrayOpen(false)
-    setCustomFrom('')
-    setCustomTo('')
+    setSelectedRange(undefined)
   }
 
-  const parsedFrom = parseDateOnly(customFrom)
-  const parsedTo = parseDateOnly(customTo)
-  const hasBothDates = Boolean(parsedFrom && parsedTo)
-  const isOrderValid = Boolean(hasBothDates && parsedFrom && parsedTo && parsedTo >= parsedFrom)
-  const rangeDays = hasBothDates ? getDaysDifference(customFrom, customTo) : 0
+  const fromIso = selectedRange?.from ? formatDateOnly(selectedRange.from) : ''
+  const toIso = selectedRange?.to ? formatDateOnly(selectedRange.to) : ''
+  const hasBothDates = Boolean(fromIso && toIso)
+  const rangeDays = hasBothDates ? getDaysDifference(fromIso, toIso) : 0
   const exceedsDateOnlyLimit = !hasSearchContext && rangeDays > 7
-  const isApplyEnabled = isOrderValid && !exceedsDateOnlyLimit
+  const isApplyEnabled = hasBothDates && !exceedsDateOnlyLimit
 
   const handleApplyCustom = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isApplyEnabled) return
+    if (!isApplyEnabled || !fromIso || !toIso) return
 
-    onSelectDateRange(customFrom, customTo)
+    onSelectDateRange(fromIso, toIso)
     setIsCustomTrayOpen(false)
   }
 
@@ -143,68 +152,78 @@ export function DateFilterBar({
           id="custom-date-tray"
           onSubmit={handleApplyCustom}
           aria-label="Custom date range selector"
-          className="bg-[#22262d]/70 border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col gap-3 shadow-lg backdrop-blur-sm transition-all"
+          className="bg-[#22262d]/80 border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col items-center sm:items-start gap-4 shadow-xl backdrop-blur-md transition-all"
         >
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
-            <div className="flex flex-col gap-1.5 flex-1">
-              <label
-                htmlFor="custom-from-date"
-                className="text-xs font-medium text-gray-300"
-              >
-                From
-              </label>
-              <input
-                id="custom-from-date"
-                type="date"
-                aria-label="From date"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="min-h-[44px] px-3 py-2 bg-[#181b1f] border border-white/15 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-emerald-500 [color-scheme:dark] transition-colors"
-              />
-            </div>
+          <DayPicker
+            mode="range"
+            selected={selectedRange}
+            onSelect={setSelectedRange}
+            defaultMonth={selectedRange?.from ?? new Date()}
+            style={{
+              ['--rdp-accent-color' as string]: '#10b981',
+              ['--rdp-accent-background-color' as string]: '#064e3b',
+              ['--rdp-range_middle-background-color' as string]: '#064e3b',
+              ['--rdp-range_middle-color' as string]: '#34d399',
+              ['--rdp-day-height' as string]: '44px',
+              ['--rdp-day-width' as string]: '44px',
+              ['--rdp-day_button-height' as string]: '44px',
+              ['--rdp-day_button-width' as string]: '44px',
+            }}
+            classNames={{
+              root: 'p-3 bg-[#181b1f] text-gray-200 rounded-xl border border-white/10 shadow-inner inline-block',
+              month_caption: 'flex justify-center items-center py-2 text-sm font-semibold text-white relative',
+              caption_label: 'text-sm font-semibold text-white',
+              nav: 'flex items-center justify-between w-full absolute top-2 inset-x-0 px-2 pointer-events-none',
+              button_previous: 'pointer-events-auto min-h-[44px] min-w-[44px] text-gray-400 hover:text-white transition-colors flex items-center justify-center rounded-lg hover:bg-white/5',
+              button_next: 'pointer-events-auto min-h-[44px] min-w-[44px] text-gray-400 hover:text-white transition-colors flex items-center justify-center rounded-lg hover:bg-white/5',
+              month_grid: 'w-full border-collapse',
+              weekdays: 'flex text-xs text-gray-400 font-medium pb-1',
+              weekday: 'w-[44px] text-center',
+              weeks: 'flex flex-col gap-1',
+              week: 'flex w-full',
+              day: 'p-0 text-center text-sm relative flex items-center justify-center',
+              day_button: 'min-h-[44px] min-w-[44px] w-[44px] h-[44px] rounded-lg text-gray-200 hover:bg-white/10 hover:text-white flex items-center justify-center transition-colors',
+              selected: 'bg-emerald-950 text-emerald-400 font-semibold',
+              range_start: 'bg-emerald-600 text-white font-bold rounded-l-lg',
+              range_end: 'bg-emerald-600 text-white font-bold rounded-r-lg',
+              range_middle: 'bg-emerald-950 text-emerald-300 rounded-none',
+              today: 'text-emerald-400 font-bold',
+              outside: 'text-gray-600 opacity-40',
+              disabled: 'text-gray-600 opacity-30 cursor-not-allowed',
+            }}
+          />
 
-            <div className="flex flex-col gap-1.5 flex-1">
-              <label
-                htmlFor="custom-to-date"
-                className="text-xs font-medium text-gray-300"
-              >
-                To
-              </label>
-              <input
-                id="custom-to-date"
-                type="date"
-                aria-label="To date"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="min-h-[44px] px-3 py-2 bg-[#181b1f] border border-white/15 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-emerald-500 [color-scheme:dark] transition-colors"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-1 sm:pt-0">
-              <button
-                type="submit"
-                disabled={!isApplyEnabled}
-                className="min-h-[44px] px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:hover:bg-emerald-500 text-black font-semibold text-sm transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                Apply
-              </button>
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            <button
+              type="submit"
+              disabled={!isApplyEnabled}
+              className="min-h-[44px] px-6 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:hover:bg-emerald-500 text-black font-semibold text-sm transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelCustom}
+              className="min-h-[44px] px-4 py-2 rounded-lg bg-[#2a2f37] hover:bg-[#343b45] text-gray-300 hover:text-white text-sm transition-colors flex items-center justify-center"
+            >
+              Cancel
+            </button>
+            {(activeFrom || activeTo || selectedRange?.from) && (
               <button
                 type="button"
-                onClick={handleCancelCustom}
-                className="min-h-[44px] px-4 py-2 rounded-lg bg-[#2a2f37] hover:bg-[#343b45] text-gray-300 hover:text-white text-sm transition-colors flex items-center justify-center"
+                onClick={handleClearCustom}
+                className="min-h-[44px] px-3 py-2 text-xs text-gray-400 hover:text-white transition-colors flex items-center justify-center"
               >
-                Cancel
+                Clear
               </button>
-              {(activeFrom || activeTo) && (
-                <button
-                  type="button"
-                  onClick={handleClearCustom}
-                  className="min-h-[44px] px-3 py-2 text-xs text-gray-400 hover:text-white transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+            )}
+            {selectedRange?.from && (
+              <span className="text-xs text-gray-400 sm:ml-auto">
+                {selectedRange.to
+                  ? `${formatDateOnly(selectedRange.from)} to ${formatDateOnly(selectedRange.to)}`
+                  : `From: ${formatDateOnly(selectedRange.from)} (select end date)`}
+              </span>
+            )}
           </div>
 
           {exceedsDateOnlyLimit && (
@@ -213,13 +232,6 @@ export function DateFilterBar({
               <span>
                 Date-only search exceeds 7-day limit. Add an artist or genre for longer ranges.
               </span>
-            </p>
-          )}
-
-          {hasBothDates && !isOrderValid && (
-            <p role="alert" className="text-xs text-rose-400 flex items-center gap-1.5 pt-1">
-              <span>⚠️</span>
-              <span>&apos;To&apos; date must be on or after &apos;From&apos; date.</span>
             </p>
           )}
         </form>

@@ -319,13 +319,15 @@ describe('App Integration Suite', () => {
 
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    const fromInput = screen.getByLabelText('From date')
-    const toInput = screen.getByLabelText('To date')
+    // Advance calendar to November 2026
+    await user.click(screen.getByRole('button', { name: /next month/i }))
+
+    const nov14 = screen.getByRole('button', { name: /November 14th,/i })
+    const nov18 = screen.getByRole('button', { name: /November 18th,/i })
+    await user.click(nov14)
+    await user.click(nov18)
+
     const applyButton = screen.getByRole('button', { name: 'Apply' })
-
-    await user.type(fromInput, '2026-11-14')
-    await user.type(toInput, '2026-11-18')
-
     await user.click(applyButton)
 
     expect(window.location.search).toBe('?from=2026-11-14&to=2026-11-18')
