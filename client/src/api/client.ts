@@ -49,9 +49,11 @@ export async function fetchEvents(
 
   const query = searchParams.query?.trim()
   const genre = searchParams.genre?.trim()
+  const from = searchParams.from?.trim()
+  const to = searchParams.to?.trim()
   const targetCity = (searchParams.city ?? city).trim()
 
-  if (!query && !genre) {
+  if (!query && !genre && !from && !to) {
     return []
   }
 
@@ -61,6 +63,12 @@ export async function fetchEvents(
   }
   if (genre) {
     urlParams.set('genre', genre)
+  }
+  if (from) {
+    urlParams.set('from', from)
+  }
+  if (to) {
+    urlParams.set('to', to)
   }
   if (targetCity) {
     urlParams.set('city', targetCity)

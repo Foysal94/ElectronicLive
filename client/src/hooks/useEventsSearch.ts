@@ -23,16 +23,25 @@ export function useEventsSearch(
 
   const query = searchParams.query?.trim() ?? ''
   const genre = searchParams.genre
+  const from = searchParams.from?.trim() || undefined
+  const to = searchParams.to?.trim() || undefined
   const targetCity = (searchParams.city ?? city).trim() || 'London'
-  const isIdle = !query && !genre
+  const isIdle = !query && !genre && !from && !to
 
   const { data, isPending, isFetching, isError, error, refetch } = useQuery({
     queryKey: [
       'events',
       'search',
-      { query: query.toLowerCase(), genre: genre ?? null, city: targetCity.toLowerCase() },
+      {
+        query: query.toLowerCase(),
+        genre: genre ?? null,
+        city: targetCity.toLowerCase(),
+        from: from ?? null,
+        to: to ?? null,
+      },
     ],
-    queryFn: ({ signal }) => fetchEvents({ query, genre, city: targetCity }, targetCity, signal),
+    queryFn: ({ signal }) =>
+      fetchEvents({ query, genre, from, to, city: targetCity }, targetCity, signal),
     enabled: !isIdle,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

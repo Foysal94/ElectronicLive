@@ -5,50 +5,68 @@ export interface EventSearchState {
   searchTerm: string
   activeQuery: string
   activeGenre: EventGenre | ''
+  activeFrom: string
+  activeTo: string
   setSearchTerm: (term: string) => void
   handleSearch: (query: string) => void
   handleSelectGenre: (genre: EventGenre) => void
+  setDateRange: (from?: string, to?: string) => void
   handleClear: () => void
 }
 
 interface ParsedUrlState {
   query: string
   genre: EventGenre | ''
+  from: string
+  to: string
 }
 
 /**
- * Extracts initial search state from the browser URL.
- * Enforces mutual exclusivity: if a valid ?genre= is present, it takes precedence
- * over free-text ?q= to prevent mixed or conflicting search states.
+ * Extracts initial search and date filter state from the browser URL.
+ * Preserves mutual exclusivity between genre and query, while date bounds (from/to)
+ * operate orthogonally alongside them.
  */
 function parseSearchFromUrl(): ParsedUrlState {
   if (typeof window === 'undefined') {
-    return { query: '', genre: '' }
+    return { query: '', genre: '', from: '', to: '' }
   }
 
   const searchParams = new URLSearchParams(window.location.search)
+  const fromParam = searchParams.get('from')?.trim() || ''
+  const toParam = searchParams.get('to')?.trim() || ''
+
   const genreParam = searchParams.get('genre')?.trim().toLowerCase()
   if (genreParam && isEventGenre(genreParam)) {
-    return { query: '', genre: genreParam }
+    return { query: '', genre: genreParam, from: fromParam, to: toParam }
   }
 
   const queryParam = searchParams.get('q')?.trim() || ''
-  return { query: queryParam, genre: '' }
+  return { query: queryParam, genre: '', from: fromParam, to: toParam }
 }
 
 /**
- * Synchronizes search state with the browser address bar using replaceState
+ * Synchronizes search and date range state with the browser address bar using replaceState
  * to keep navigation history tidy without pushing new entries on filter tweaks.
  */
-function syncUrl(query: string, genre: EventGenre | '') {
+function syncUrl(query: string, genre: EventGenre | '', from: string, to: string) {
   if (typeof window === 'undefined') return
 
-  let newUrl = window.location.pathname
+  const queryParts: string[] = []
   if (genre) {
-    newUrl = `${window.location.pathname}?genre=${encodeURIComponent(genre)}`
+    queryParts.push(`genre=${encodeURIComponent(genre)}`)
   } else if (query) {
-    newUrl = `${window.location.pathname}?q=${encodeURIComponent(query)}`
+    queryParts.push(`q=${encodeURIComponent(query)}`)
   }
+
+  if (from) {
+    queryParts.push(`from=${encodeURIComponent(from)}`)
+  }
+  if (to) {
+    queryParts.push(`to=${encodeURIComponent(to)}`)
+  }
+
+  const qs = queryParts.join('&')
+  const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname
 
   window.history.replaceState(null, '', newUrl)
 }
@@ -74,30 +92,48 @@ export function useEventSearchState(): EventSearchState {
 
   const handleSearch = (rawQuery: string) => {
     const trimmed = rawQuery.trim()
-    setUrlState({ query: trimmed, genre: '' })
+    setUrlState((prev) => {
+      syncUrl(trimmed, '', prev.from, prev.to)
+      return { ...prev, query: trimmed, genre: '' }
+    })
     setSearchTerm(trimmed)
-    syncUrl(trimmed, '')
   }
 
   const handleSelectGenre = (genre: EventGenre) => {
-    setUrlState({ query: '', genre })
+    setUrlState((prev) => {
+      syncUrl('', genre, prev.from, prev.to)
+      return { ...prev, query: '', genre }
+    })
     setSearchTerm('')
-    syncUrl('', genre)
+  }
+
+  const setDateRange = (from?: string, to?: string) => {
+    const cleanFrom = from?.trim() || ''
+    const cleanTo = to?.trim() || ''
+    setUrlState((prev) => {
+      syncUrl(prev.query, prev.genre, cleanFrom, cleanTo)
+      return { ...prev, from: cleanFrom, to: cleanTo }
+    })
   }
 
   const handleClear = () => {
-    setUrlState({ query: '', genre: '' })
+    setUrlState((prev) => {
+      syncUrl('', '', prev.from, prev.to)
+      return { ...prev, query: '', genre: '' }
+    })
     setSearchTerm('')
-    syncUrl('', '')
   }
 
   return {
     searchTerm,
     activeQuery: urlState.query,
     activeGenre: urlState.genre,
+    activeFrom: urlState.from,
+    activeTo: urlState.to,
     setSearchTerm,
     handleSearch,
     handleSelectGenre,
+    setDateRange,
     handleClear,
   }
 }

@@ -14,6 +14,8 @@ export default function App() {
     searchTerm,
     activeQuery,
     activeGenre,
+    activeFrom,
+    activeTo,
     setSearchTerm,
     handleSearch,
     handleSelectGenre,
@@ -23,6 +25,8 @@ export default function App() {
   const { events, isFetching, isError, error, refetch, isIdle } = useEventsSearch({
     query: activeQuery,
     genre: activeGenre || undefined,
+    from: activeFrom || undefined,
+    to: activeTo || undefined,
   })
 
   return (

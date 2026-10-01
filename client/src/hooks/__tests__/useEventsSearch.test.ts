@@ -64,4 +64,50 @@ describe('useEventsSearch Hook', () => {
     expect(result.current.error).toBeInstanceOf(ApiError)
     expect(result.current.events).toEqual([])
   })
+
+  it('Should_fetch_events_for_date_range_query', async () => {
+    const { result } = renderHook(
+      () =>
+        useEventsSearch({
+          query: 'Amelie',
+          from: '2026-11-01',
+          to: '2026-11-30',
+        }),
+      {
+        wrapper: createQueryWrapper(),
+      }
+    )
+
+    expect(result.current.isIdle).toBe(false)
+
+    await waitFor(() => {
+      expect(result.current.isFetching).toBe(false)
+    })
+
+    expect(result.current.isError).toBe(false)
+    expect(result.current.events.length).toBeGreaterThan(0)
+    expect(result.current.events[0]?.name).toBe('Amelie Lens - Exhale London')
+  })
+
+  it('Should_fetch_events_for_date_only_query_without_query_or_genre', async () => {
+    const { result } = renderHook(
+      () =>
+        useEventsSearch({
+          from: '2026-11-01',
+          to: '2026-11-20',
+        }),
+      {
+        wrapper: createQueryWrapper(),
+      }
+    )
+
+    expect(result.current.isIdle).toBe(false)
+
+    await waitFor(() => {
+      expect(result.current.isFetching).toBe(false)
+    })
+
+    expect(result.current.isError).toBe(false)
+    expect(result.current.events.length).toBeGreaterThan(0)
+  })
 })

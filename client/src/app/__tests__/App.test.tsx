@@ -261,5 +261,32 @@ describe('App Integration Suite', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /track floating points/i })).toBeInTheDocument()
   })
+
+  it('Should_initialize_search_and_render_events_from_url_date_parameters', async () => {
+    window.history.replaceState(null, '', '/?from=2026-11-01&to=2026-11-20')
+
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Amelie Lens - Exhale London').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('Should_preserve_date_filter_when_clearing_search_text', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/?q=Amelie&from=2026-11-01&to=2026-11-20')
+
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Amelie Lens - Exhale London').length).toBeGreaterThan(0)
+    })
+
+    const clearButton = screen.getByRole('button', { name: 'Clear search' })
+    await user.click(clearButton)
+
+    expect(screen.getByRole('searchbox', { name: 'Search artist, event, or venue in London' })).toHaveValue('')
+    expect(window.location.search).toBe('?from=2026-11-01&to=2026-11-20')
+  })
 })
 

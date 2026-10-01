@@ -91,6 +91,48 @@ describe('fetchEvents Client', () => {
     expect(url.searchParams.get('query')).toBe('Bicep')
     expect(url.searchParams.get('city')).toBe('Manchester')
   })
+
+  it('Should_pass_from_and_to_date_parameters_in_url', async () => {
+    let capturedUrl = ''
+    server.use(
+      http.get('*/api/events/search', ({ request }) => {
+        capturedUrl = request.url
+        return HttpResponse.json([])
+      })
+    )
+
+    await fetchEvents({
+      query: 'Bicep',
+      from: '2026-10-10',
+      to: '2026-10-12',
+    })
+
+    const url = new URL(capturedUrl)
+    expect(url.searchParams.get('query')).toBe('Bicep')
+    expect(url.searchParams.get('from')).toBe('2026-10-10')
+    expect(url.searchParams.get('to')).toBe('2026-10-12')
+  })
+
+  it('Should_fetch_events_for_date_only_parameters_without_query_or_genre', async () => {
+    let capturedUrl = ''
+    server.use(
+      http.get('*/api/events/search', ({ request }) => {
+        capturedUrl = request.url
+        return HttpResponse.json([])
+      })
+    )
+
+    await fetchEvents({
+      from: '2026-10-10',
+      to: '2026-10-12',
+    })
+
+    const url = new URL(capturedUrl)
+    expect(url.searchParams.get('query')).toBeNull()
+    expect(url.searchParams.get('genre')).toBeNull()
+    expect(url.searchParams.get('from')).toBe('2026-10-10')
+    expect(url.searchParams.get('to')).toBe('2026-10-12')
+  })
 })
 
 describe('createSubscription Client', () => {
