@@ -227,6 +227,121 @@ public class TicketmasterClientTests
         handler.LastRequest.ShouldBeNull();
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Should_ReturnFalse_WhenArtistVerification_ArtistNameIsNullOrEmpty(string? artistName)
+    {
+        var (client, handler) = CreateClient();
+        var result = await client.VerifyArtistExistsAsync(artistName!);
+
+        result.ShouldBeFalse();
+        handler.LastRequest.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("none")]
+    [InlineData("NONE")]
+    public async Task Should_ReturnFalse_WhenArtistVerification_ApiKeyMissingOrNone(string? apiKey)
+    {
+        var (client, handler) = CreateClient(apiKey: apiKey!);
+        var result = await client.VerifyArtistExistsAsync("Bicep");
+
+        result.ShouldBeFalse();
+        handler.LastRequest.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Should_ConstructExpectedRequestUrl_WhenVerifyingArtist()
+    {
+        var (client, handler) = CreateClient(responseBody: AttractionJson("Bicep & Hammer"));
+        var result = await client.VerifyArtistExistsAsync("Bicep & Hammer");
+
+        result.ShouldBeTrue();
+        handler.LastRequest.ShouldNotBeNull();
+        handler.LastRequest.Method.ShouldBe(HttpMethod.Get);
+
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("attractions.json");
+        query.ShouldContain("apikey=test-key");
+        query.ShouldContain("keyword=Bicep%20%26%20Hammer");
+        query.ShouldContain("classificationName=music");
+    }
+
+    [Fact]
+    public async Task Should_ReturnTrue_WhenVerifyingArtist_AndAttractionNameMatches()
+    {
+        var (client, _) = CreateClient(responseBody: AttractionJson("Charlotte de Witte"));
+        var result = await client.VerifyArtistExistsAsync("Charlotte de Witte");
+
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_WhenVerifyingArtist_AndAttractionsDoNotMatchArtistName()
+    {
+        var (client, _) = CreateClient(responseBody: AttractionJson("Completely Unrelated Artist"));
+        var result = await client.VerifyArtistExistsAsync("Bicep");
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_WhenVerifyingArtist_AndNoAttractionsFound()
+    {
+        var (client, _) = CreateClient(responseBody: AttractionJson(totalElements: 0));
+        var result = await client.VerifyArtistExistsAsync("FakeArtist12345");
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_WhenVerifyingArtist_AndHttpCallFails()
+    {
+        var (client, _) = CreateClient(statusCode: HttpStatusCode.InternalServerError);
+        var result = await client.VerifyArtistExistsAsync("Bicep");
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_WhenVerifyingArtist_AndHttpRequestTimesOut()
+    {
+        var options = Options.Create(new TicketmasterOptions { ApiKey = "test-key" });
+        var handler = new CapturingHttpMessageHandler(_ => throw new TaskCanceledException("Timeout"));
+        var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://app.ticketmaster.com/discovery/v2/"),
+        };
+        var client = new TicketmasterClient(httpClient, options, NullLogger<TicketmasterClient>.Instance);
+
+        var result = await client.VerifyArtistExistsAsync("Bicep");
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Should_ForwardCancellationToken_WhenVerifyingArtist()
+    {
+        var (client, handler) = CreateClient();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            client.VerifyArtistExistsAsync("Bicep", cancellationToken: cts.Token)
+        );
+        handler.WasCanceledDuringSend.ShouldBeTrue();
+    }
+
+    private static string AttractionJson(string? artistName = null, int totalElements = 1) =>
+        artistName is null
+            ? $"{{\"page\":{{\"totalElements\":{totalElements}}}}}"
+            : $"{{\"_embedded\":{{\"attractions\":[{{\"id\":\"attr-1\",\"name\":\"{artistName}\"}}]}},\"page\":{{\"totalElements\":{totalElements}}}}}";
+
     private static (TicketmasterClient Client, CapturingHttpMessageHandler Handler) CreateClient(
         HttpStatusCode statusCode = HttpStatusCode.OK,
         string responseBody = "{}",

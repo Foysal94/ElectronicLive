@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace ElectronicLive.Api.Clients;
 
-public sealed class ResidentAdvisorClient : IResidentAdvisorClient
+public sealed class ResidentAdvisorClient : IEventProvider
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
