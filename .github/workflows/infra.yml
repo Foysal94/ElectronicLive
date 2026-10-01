@@ -26,6 +26,9 @@ env:
   ARM_USE_OIDC: "true"
   TF_VAR_skiddle_api_key: ${{ secrets.SKIDDLE_API_KEY }}
   TF_VAR_ticketmaster_api_key: ${{ secrets.TICKETMASTER_API_KEY }}
+  TF_VAR_db_connection_string: ${{ secrets.TF_VAR_DB_CONNECTION_STRING || secrets.DB_CONNECTION_STRING }}
+  TF_VAR_resend_api_key: ${{ secrets.TF_VAR_RESEND_API_KEY || secrets.RESEND_API_KEY }}
+
 
 jobs:
   terraform:

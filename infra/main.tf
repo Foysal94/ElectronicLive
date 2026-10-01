@@ -68,6 +68,16 @@ resource "azurerm_container_app" "api" {
     value = var.ticketmaster_api_key != "" ? var.ticketmaster_api_key : "none"
   }
 
+  secret {
+    name  = "neon-db-connection"
+    value = var.db_connection_string != "" ? var.db_connection_string : "none"
+  }
+
+  secret {
+    name  = "resend-api-key"
+    value = var.resend_api_key != "" ? var.resend_api_key : "none"
+  }
+
   template {
     min_replicas = var.min_replicas
     max_replicas = var.max_replicas
@@ -99,6 +109,16 @@ resource "azurerm_container_app" "api" {
       }
 
       env {
+        name        = "ConnectionStrings__DefaultConnection"
+        secret_name = "neon-db-connection"
+      }
+
+      env {
+        name        = "Resend__ApiKey"
+        secret_name = "resend-api-key"
+      }
+
+      env {
         name  = "Cors__AllowedOrigins__0"
         value = "https://${azurerm_static_web_app.client.default_host_name}"
       }
@@ -119,7 +139,81 @@ resource "azurerm_container_app" "api" {
   tags = azurerm_resource_group.rg.tags
 }
 
-# 6. Azure Static Web App (Frontend Host)
+# 6. Azure Container App Job (Watchlist Scanner Scheduled Runner)
+resource "azurerm_container_app_job" "scanner" {
+  name                         = "${var.app_name}-scanner-job"
+  location                     = azurerm_resource_group.rg.location
+  resource_group_name          = azurerm_resource_group.rg.name
+  container_app_environment_id = azurerm_container_app_environment.cae.id
+
+  replica_timeout_in_seconds = 180
+  replica_retry_limit        = 1
+
+  schedule_trigger_config {
+    cron_expression          = "0 8,18 * * *"
+    parallelism              = 1
+    replica_completion_count = 1
+  }
+
+  secret {
+    name  = "neon-db-connection"
+    value = var.db_connection_string != "" ? var.db_connection_string : "none"
+  }
+
+  secret {
+    name  = "resend-api-key"
+    value = var.resend_api_key != "" ? var.resend_api_key : "none"
+  }
+
+  secret {
+    name  = "skiddle-api-key"
+    value = var.skiddle_api_key != "" ? var.skiddle_api_key : "none"
+  }
+
+  secret {
+    name  = "ticketmaster-api-key"
+    value = var.ticketmaster_api_key != "" ? var.ticketmaster_api_key : "none"
+  }
+
+  template {
+    container {
+      name    = "${var.app_name}-scanner"
+      image   = var.container_image
+      cpu     = var.cpu
+      memory  = var.memory
+      command = ["dotnet", "ElectronicLive.Api.dll", "--job", "scan-watchlist"]
+
+      env {
+        name  = "ASPNETCORE_ENVIRONMENT"
+        value = "Production"
+      }
+
+      env {
+        name        = "ConnectionStrings__DefaultConnection"
+        secret_name = "neon-db-connection"
+      }
+
+      env {
+        name        = "Resend__ApiKey"
+        secret_name = "resend-api-key"
+      }
+
+      env {
+        name        = "EventProviders__Skiddle__ApiKey"
+        secret_name = "skiddle-api-key"
+      }
+
+      env {
+        name        = "EventProviders__Ticketmaster__ApiKey"
+        secret_name = "ticketmaster-api-key"
+      }
+    }
+  }
+
+  tags = azurerm_resource_group.rg.tags
+}
+
+# 7. Azure Static Web App (Frontend Host)
 resource "azurerm_static_web_app" "client" {
   name                = "swa-${local.resource_suffix}"
   resource_group_name = azurerm_resource_group.rg.name
@@ -129,4 +223,5 @@ resource "azurerm_static_web_app" "client" {
 
   tags = azurerm_resource_group.rg.tags
 }
+
 

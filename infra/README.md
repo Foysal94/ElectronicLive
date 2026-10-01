@@ -16,6 +16,15 @@ This directory contains the production Infrastructure as Code (IaC) for provisio
    - `max_replicas = 1` (limits concurrency to avoid overages).
    - Sized at `0.25 vCPU` and `0.5 GiB RAM`.
    - Image pulled from GitHub Container Registry (`ghcr.io`).
+   - Neon PostgreSQL connection string and provider API keys wired as container secrets.
+6. **Azure Container App Job (`electroniclive-scanner-job`):**
+   - Scheduled cron runner executing twice daily (`0 8,18 * * *`).
+   - Sized at `0.25 vCPU` and `0.5 GiB RAM` with 180s replica timeout.
+   - Command override: `["dotnet", "ElectronicLive.Api.dll", "--job", "scan-watchlist"]`.
+   - Wired with Neon PostgreSQL database, Resend email dispatching, and EDM provider API secrets.
+7. **Azure Static Web App (`swa-electroniclive-prod`):**
+   - Global CDN static hosting for the React/Vite frontend client.
+
 
 ---
 

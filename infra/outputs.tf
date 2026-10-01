@@ -8,6 +8,12 @@ output "container_app_name" {
   value       = azurerm_container_app.api.name
 }
 
+output "container_app_job_name" {
+  description = "The name of the deployed Azure Container App Job."
+  value       = azurerm_container_app_job.scanner.name
+}
+
+
 output "container_app_fqdn" {
   description = "The fully qualified domain name (public URL) of the deployed API."
   value       = azurerm_container_app.api.latest_revision_fqdn
