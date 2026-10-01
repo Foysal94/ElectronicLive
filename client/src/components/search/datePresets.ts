@@ -1,3 +1,13 @@
+import {
+  addDays,
+  differenceInCalendarDays,
+  format,
+  getDay,
+  isValid,
+  parseISO,
+  startOfDay,
+} from 'date-fns'
+
 export type DatePresetKey = 'tonight' | 'this-weekend' | 'next-weekend' | 'next-30-days'
 
 export interface DateRange {
@@ -12,65 +22,33 @@ export interface DatePresetDefinition {
 }
 
 export function formatDateOnly(date: Date): string {
-  const year = date.getUTCFullYear()
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return format(date, 'yyyy-MM-dd')
 }
 
 export function parseDateOnly(dateString: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString.trim())
-  if (!match) return null
-
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const day = Number(match[3])
-  const date = new Date(Date.UTC(year, month - 1, day))
-
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return null
-  }
-
-  return date
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) return null
+  const parsed = parseISO(dateString)
+  return isValid(parsed) ? parsed : null
 }
 
 export function normalizeReferenceDate(ref: Date = new Date()): Date {
-  return new Date(Date.UTC(ref.getFullYear(), ref.getMonth(), ref.getDate()))
+  return startOfDay(ref)
 }
 
 export function getDaysDifference(fromIso: string, toIso: string): number {
   const from = parseDateOnly(fromIso)
   const to = parseDateOnly(toIso)
   if (!from || !to) return 0
-
-  const diffMs = to.getTime() - from.getTime()
-  return Math.round(diffMs / (1000 * 60 * 60 * 24))
+  return differenceInCalendarDays(to, from)
 }
 
 function getThisWeekendRange(referenceDate: Date): DateRange {
   const normalized = normalizeReferenceDate(referenceDate)
-  const dayOfWeek = normalized.getUTCDay()
+  const dayOfWeek = getDay(normalized)
   const fridayOffset = dayOfWeek === 0 ? -2 : 5 - dayOfWeek
 
-  const friday = new Date(
-    Date.UTC(
-      normalized.getUTCFullYear(),
-      normalized.getUTCMonth(),
-      normalized.getUTCDate() + fridayOffset
-    )
-  )
-
-  const sunday = new Date(
-    Date.UTC(
-      friday.getUTCFullYear(),
-      friday.getUTCMonth(),
-      friday.getUTCDate() + 2
-    )
-  )
+  const friday = addDays(normalized, fridayOffset)
+  const sunday = addDays(friday, 2)
 
   return {
     from: formatDateOnly(friday),
@@ -79,24 +57,13 @@ function getThisWeekendRange(referenceDate: Date): DateRange {
 }
 
 function getNextWeekendRange(referenceDate: Date): DateRange {
-  const thisWeekend = getThisWeekendRange(referenceDate)
-  const thisFriday = parseDateOnly(thisWeekend.from) ?? normalizeReferenceDate(referenceDate)
+  const normalized = normalizeReferenceDate(referenceDate)
+  const dayOfWeek = getDay(normalized)
+  const fridayOffset = dayOfWeek === 0 ? -2 : 5 - dayOfWeek
 
-  const nextFriday = new Date(
-    Date.UTC(
-      thisFriday.getUTCFullYear(),
-      thisFriday.getUTCMonth(),
-      thisFriday.getUTCDate() + 7
-    )
-  )
-
-  const nextSunday = new Date(
-    Date.UTC(
-      nextFriday.getUTCFullYear(),
-      nextFriday.getUTCMonth(),
-      nextFriday.getUTCDate() + 2
-    )
-  )
+  const thisFriday = addDays(normalized, fridayOffset)
+  const nextFriday = addDays(thisFriday, 7)
+  const nextSunday = addDays(nextFriday, 2)
 
   return {
     from: formatDateOnly(nextFriday),
@@ -128,13 +95,7 @@ export const DATE_PRESETS: DatePresetDefinition[] = [
     label: 'Next 30 Days',
     getRange: (ref = new Date()) => {
       const normalized = normalizeReferenceDate(ref)
-      const toDate = new Date(
-        Date.UTC(
-          normalized.getUTCFullYear(),
-          normalized.getUTCMonth(),
-          normalized.getUTCDate() + 30
-        )
-      )
+      const toDate = addDays(normalized, 30)
       return {
         from: formatDateOnly(normalized),
         to: formatDateOnly(toDate),
