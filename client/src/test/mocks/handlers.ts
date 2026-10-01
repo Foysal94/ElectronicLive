@@ -21,6 +21,28 @@ export const handlers = [
       )
     }
 
+    if (!query && !genre && (!from || !to)) {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { date: ["Both 'from' and 'to' date parameters are required for date-only queries."] },
+        },
+        { status: 400 }
+      )
+    }
+
+    if (from && to && from > to) {
+      return HttpResponse.json(
+        {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { to: ["'to' date must be greater than or equal to 'from' date."] },
+        },
+        { status: 400 }
+      )
+    }
+
     const trimmed = query.toLowerCase()
 
     if (trimmed === 'error' || trimmed === 'error-500') {

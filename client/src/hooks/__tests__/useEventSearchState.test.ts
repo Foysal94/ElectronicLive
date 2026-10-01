@@ -249,4 +249,44 @@ describe('useEventSearchState Hook', () => {
     expect(result.current.activeFrom).toBe('2026-11-01')
     expect(result.current.activeTo).toBe('2026-11-03')
   })
+
+  it('Should_ignore_invalid_calendar_dates_such_as_february_31', () => {
+    window.history.replaceState(null, '', '/?from=2026-02-31&to=2026-10-12')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('2026-10-12')
+  })
+
+  it('Should_discard_inverted_date_bounds_where_from_is_after_to', () => {
+    window.history.replaceState(null, '', '/?from=2026-12-01&to=2026-10-01')
+    const { result } = renderHook(() => useEventSearchState())
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('')
+  })
+
+  it('Should_discard_inverted_bounds_when_calling_setDateRange', () => {
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange('2026-12-01', '2026-10-01')
+    })
+
+    expect(result.current.activeFrom).toBe('')
+    expect(result.current.activeTo).toBe('')
+    expect(window.location.search).toBe('')
+  })
+
+  it('Should_preserve_url_hash_when_updating_date_range', () => {
+    window.history.replaceState(null, '', '/#section-events')
+    const { result } = renderHook(() => useEventSearchState())
+
+    act(() => {
+      result.current.setDateRange('2026-10-10', '2026-10-12')
+    })
+
+    expect(window.location.search).toBe('?from=2026-10-10&to=2026-10-12')
+    expect(window.location.hash).toBe('#section-events')
+  })
 })

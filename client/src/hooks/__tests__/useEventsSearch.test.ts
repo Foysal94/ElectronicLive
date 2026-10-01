@@ -93,8 +93,8 @@ describe('useEventsSearch Hook', () => {
     const { result } = renderHook(
       () =>
         useEventsSearch({
-          from: '2026-11-01',
-          to: '2026-11-20',
+          from: '2026-11-14',
+          to: '2026-11-18',
         }),
       {
         wrapper: createQueryWrapper(),
@@ -109,5 +109,37 @@ describe('useEventsSearch Hook', () => {
 
     expect(result.current.isError).toBe(false)
     expect(result.current.events.length).toBeGreaterThan(0)
+  })
+
+  it('Should_remain_idle_when_only_from_date_provided_without_query_or_genre', () => {
+    const { result } = renderHook(
+      () =>
+        useEventsSearch({
+          from: '2026-11-14',
+        }),
+      {
+        wrapper: createQueryWrapper(),
+      }
+    )
+
+    expect(result.current.isIdle).toBe(true)
+    expect(result.current.isPending).toBe(false)
+    expect(result.current.events).toHaveLength(0)
+  })
+
+  it('Should_remain_idle_when_only_to_date_provided_without_query_or_genre', () => {
+    const { result } = renderHook(
+      () =>
+        useEventsSearch({
+          to: '2026-11-18',
+        }),
+      {
+        wrapper: createQueryWrapper(),
+      }
+    )
+
+    expect(result.current.isIdle).toBe(true)
+    expect(result.current.isPending).toBe(false)
+    expect(result.current.events).toHaveLength(0)
   })
 })

@@ -26,7 +26,11 @@ export function useEventsSearch(
   const from = searchParams.from?.trim() || undefined
   const to = searchParams.to?.trim() || undefined
   const targetCity = (searchParams.city ?? city).trim() || 'London'
-  const isIdle = !query && !genre && !from && !to
+  // Date-only queries require both 'from' and 'to' parameters per backend contract.
+  // Incomplete date bounds without query or genre remain idle to prevent 400 Bad Request errors.
+  const hasTextOrGenre = Boolean(query || genre)
+  const hasCompleteDateRange = Boolean(from && to)
+  const isIdle = !hasTextOrGenre && !hasCompleteDateRange
 
   const { data, isPending, isFetching, isError, error, refetch } = useQuery({
     queryKey: [

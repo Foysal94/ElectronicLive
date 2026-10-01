@@ -263,7 +263,7 @@ describe('App Integration Suite', () => {
   })
 
   it('Should_initialize_search_and_render_events_from_url_date_parameters', async () => {
-    window.history.replaceState(null, '', '/?from=2026-11-01&to=2026-11-20')
+    window.history.replaceState(null, '', '/?from=2026-11-14&to=2026-11-18')
 
     render(<App />, { wrapper: createQueryWrapper() })
 
@@ -274,7 +274,7 @@ describe('App Integration Suite', () => {
 
   it('Should_preserve_date_filter_when_clearing_search_text', async () => {
     const user = userEvent.setup()
-    window.history.replaceState(null, '', '/?q=Amelie&from=2026-11-01&to=2026-11-20')
+    window.history.replaceState(null, '', '/?q=Amelie&from=2026-11-14&to=2026-11-18')
 
     render(<App />, { wrapper: createQueryWrapper() })
 
@@ -286,7 +286,7 @@ describe('App Integration Suite', () => {
     await user.click(clearButton)
 
     expect(screen.getByRole('searchbox', { name: 'Search artist, event, or venue in London' })).toHaveValue('')
-    expect(window.location.search).toBe('?from=2026-11-01&to=2026-11-20')
+    expect(window.location.search).toBe('?from=2026-11-14&to=2026-11-18')
   })
 })
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { type EventGenre, isEventGenre } from '../api/types'
 
 export interface EventSearchState {
@@ -23,9 +23,34 @@ interface ParsedUrlState {
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
-function sanitizeDateParam(param: string | null): string {
+function sanitizeDateParam(param: string | null | undefined): string {
   const trimmed = param?.trim() || ''
-  return ISO_DATE_REGEX.test(trimmed) ? trimmed : ''
+  if (!ISO_DATE_REGEX.test(trimmed)) {
+    return ''
+  }
+
+  const [y, m, d] = trimmed.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d))
+  return date.getUTCFullYear() === y &&
+    date.getUTCMonth() === m - 1 &&
+    date.getUTCDate() === d
+    ? trimmed
+    : ''
+}
+
+function sanitizeDateRange(
+  fromParam: string | null | undefined,
+  toParam: string | null | undefined
+): { from: string; to: string } {
+  const from = sanitizeDateParam(fromParam)
+  const to = sanitizeDateParam(toParam)
+
+  // Invariant: 'to' must be greater than or equal to 'from' when both bounds are provided
+  if (from && to && from > to) {
+    return { from: '', to: '' }
+  }
+
+  return { from, to }
 }
 
 /**
@@ -39,16 +64,15 @@ function parseSearchFromUrl(): ParsedUrlState {
   }
 
   const searchParams = new URLSearchParams(window.location.search)
-  const fromParam = sanitizeDateParam(searchParams.get('from'))
-  const toParam = sanitizeDateParam(searchParams.get('to'))
+  const { from, to } = sanitizeDateRange(searchParams.get('from'), searchParams.get('to'))
 
   const genreParam = searchParams.get('genre')?.trim().toLowerCase()
   if (genreParam && isEventGenre(genreParam)) {
-    return { query: '', genre: genreParam, from: fromParam, to: toParam }
+    return { query: '', genre: genreParam, from, to }
   }
 
   const queryParam = searchParams.get('q')?.trim() || ''
-  return { query: queryParam, genre: '', from: fromParam, to: toParam }
+  return { query: queryParam, genre: '', from, to }
 }
 
 /**
@@ -73,7 +97,8 @@ function syncUrl(query: string, genre: EventGenre | '', from: string, to: string
   }
 
   const qs = queryParts.join('&')
-  const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname
+  const basePath = qs ? `${window.location.pathname}?${qs}` : window.location.pathname
+  const newUrl = `${basePath}${window.location.hash || ''}`
 
   window.history.replaceState(null, '', newUrl)
 }
@@ -81,11 +106,17 @@ function syncUrl(query: string, genre: EventGenre | '', from: string, to: string
 export function useEventSearchState(): EventSearchState {
   const [urlState, setUrlState] = useState<ParsedUrlState>(parseSearchFromUrl)
   const [searchTerm, setSearchTerm] = useState<string>(() => urlState.query)
+  const stateRef = useRef(urlState)
+
+  useEffect(() => {
+    stateRef.current = urlState
+  }, [urlState])
 
   // Listen to browser Back/Forward navigation ('popstate') so input and active filters match history
   useEffect(() => {
     const handlePopState = () => {
       const parsed = parseSearchFromUrl()
+      stateRef.current = parsed
       setUrlState(parsed)
       setSearchTerm(parsed.query)
     }
@@ -96,27 +127,34 @@ export function useEventSearchState(): EventSearchState {
 
   const handleSearch = (rawQuery: string) => {
     const trimmed = rawQuery.trim()
-    syncUrl(trimmed, '', urlState.from, urlState.to)
-    setUrlState((prev) => ({ ...prev, query: trimmed, genre: '' }))
+    const nextState = { ...stateRef.current, query: trimmed, genre: '' as const }
+    stateRef.current = nextState
+    syncUrl(trimmed, '', nextState.from, nextState.to)
+    setUrlState(nextState)
     setSearchTerm(trimmed)
   }
 
   const handleSelectGenre = (genre: EventGenre) => {
-    syncUrl('', genre, urlState.from, urlState.to)
-    setUrlState((prev) => ({ ...prev, query: '', genre }))
+    const nextState = { ...stateRef.current, query: '', genre }
+    stateRef.current = nextState
+    syncUrl('', genre, nextState.from, nextState.to)
+    setUrlState(nextState)
     setSearchTerm('')
   }
 
   const setDateRange = (from?: string, to?: string) => {
-    const cleanFrom = sanitizeDateParam(from ?? null)
-    const cleanTo = sanitizeDateParam(to ?? null)
-    syncUrl(urlState.query, urlState.genre, cleanFrom, cleanTo)
-    setUrlState((prev) => ({ ...prev, from: cleanFrom, to: cleanTo }))
+    const { from: cleanFrom, to: cleanTo } = sanitizeDateRange(from, to)
+    const nextState = { ...stateRef.current, from: cleanFrom, to: cleanTo }
+    stateRef.current = nextState
+    syncUrl(nextState.query, nextState.genre, cleanFrom, cleanTo)
+    setUrlState(nextState)
   }
 
   const handleClear = () => {
-    syncUrl('', '', urlState.from, urlState.to)
-    setUrlState((prev) => ({ ...prev, query: '', genre: '' }))
+    const nextState = { ...stateRef.current, query: '', genre: '' as const }
+    stateRef.current = nextState
+    syncUrl('', '', nextState.from, nextState.to)
+    setUrlState(nextState)
     setSearchTerm('')
   }
 

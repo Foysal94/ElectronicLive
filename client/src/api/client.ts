@@ -35,7 +35,7 @@ async function parseApiResponse<T>(
 /**
  * Dispatches an event aggregation search request to the backend API.
  * Accepts either a free-text search string (artist/venue) or an EventSearchParams object
- * containing free-text query, genre, and city.
+ * containing free-text query, genre, optional date bounds (from/to), and city.
  */
 export async function fetchEvents(
   searchOrQuery: EventSearchParams | string,
@@ -53,7 +53,10 @@ export async function fetchEvents(
   const to = searchParams.to?.trim()
   const targetCity = (searchParams.city ?? city).trim()
 
-  if (!query && !genre && !from && !to) {
+  const hasTextOrGenre = Boolean(query || genre)
+  const hasDateRange = Boolean(from && to)
+
+  if (!hasTextOrGenre && !hasDateRange) {
     return []
   }
 
