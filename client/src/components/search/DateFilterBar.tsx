@@ -115,7 +115,7 @@ export function DateFilterBar({
       className={`w-full max-w-4xl mx-auto flex flex-col gap-3 text-left ${className}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex-shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 sm:w-48 flex-shrink-0">
           Filter by Date:
         </span>
         <div className="flex flex-wrap gap-2">
@@ -168,84 +168,87 @@ export function DateFilterBar({
       </div>
 
       {isCustomTrayOpen && (
-        <form
-          id="custom-date-tray"
-          onSubmit={handleApplyCustom}
-          aria-label="Custom date range selector"
-          className="bg-[#22262d]/80 border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col items-center sm:items-start gap-4 shadow-xl backdrop-blur-md transition-all"
-        >
-          <DayPicker
-            mode="range"
-            selected={selectedRange}
-            onSelect={setSelectedRange}
-            defaultMonth={selectedRange?.from ?? new Date()}
-            style={dayPickerDarkStyles}
-            classNames={{
-              root: 'p-3 bg-[#181b1f] text-gray-200 rounded-xl border border-white/10 shadow-inner inline-block',
-              month_caption: 'flex justify-center items-center py-2 text-sm font-semibold text-white relative',
-              caption_label: 'text-sm font-semibold text-white',
-              nav: 'flex items-center justify-between w-full absolute top-2 inset-x-0 px-2 pointer-events-none',
-              button_previous: 'pointer-events-auto min-h-[44px] min-w-[44px] text-gray-400 hover:text-white transition-colors flex items-center justify-center rounded-lg hover:bg-white/5',
-              button_next: 'pointer-events-auto min-h-[44px] min-w-[44px] text-gray-400 hover:text-white transition-colors flex items-center justify-center rounded-lg hover:bg-white/5',
-              month_grid: 'w-full border-collapse',
-              weekdays: 'flex text-xs text-gray-400 font-medium pb-1',
-              weekday: 'w-[44px] text-center',
-              weeks: 'flex flex-col gap-1',
-              week: 'flex w-full',
-              day: 'p-0 text-center text-sm relative flex items-center justify-center',
-              day_button: 'min-h-[44px] min-w-[44px] w-[44px] h-[44px] rounded-lg text-gray-200 hover:bg-white/10 hover:text-white flex items-center justify-center transition-colors',
-              selected: 'bg-emerald-950 text-emerald-400 font-semibold',
-              range_start: 'bg-emerald-600 text-white font-bold rounded-l-lg',
-              range_end: 'bg-emerald-600 text-white font-bold rounded-r-lg',
-              range_middle: 'bg-emerald-950 text-emerald-300 rounded-none',
-              today: 'text-emerald-400 font-bold',
-              outside: 'text-gray-600 opacity-40',
-              disabled: 'text-gray-600 opacity-30 cursor-not-allowed',
-            }}
-          />
+        <div className="flex justify-start">
+          <form
+            id="custom-date-tray"
+            onSubmit={handleApplyCustom}
+            aria-label="Custom date range selector"
+            className="w-full sm:w-auto bg-[#22262d] border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-3"
+          >
+            <div className="text-xs font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-3 py-1.5 rounded-lg text-center">
+              {selectedRange?.from && selectedRange?.to
+                ? `${formatDateOnly(selectedRange.from)} → ${formatDateOnly(selectedRange.to)} (${rangeDays} days)`
+                : selectedRange?.from
+                  ? `From: ${formatDateOnly(selectedRange.from)} (select end date)`
+                  : 'Select start and end dates'}
+            </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full">
-            <button
-              type="submit"
-              disabled={!isApplyEnabled}
-              className="min-h-[44px] px-6 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:hover:bg-emerald-500 text-black font-semibold text-sm transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              Apply
-            </button>
-            <button
-              type="button"
-              onClick={handleCancelCustom}
-              className="min-h-[44px] px-4 py-2 rounded-lg bg-[#2a2f37] hover:bg-[#343b45] text-gray-300 hover:text-white text-sm transition-colors flex items-center justify-center"
-            >
-              Cancel
-            </button>
-            {(activeFrom || activeTo || selectedRange?.from) && (
+            <DayPicker
+              mode="range"
+              selected={selectedRange}
+              onSelect={setSelectedRange}
+              defaultMonth={selectedRange?.from ?? new Date()}
+              style={dayPickerDarkStyles}
+              classNames={{
+                root: 'p-1 bg-[#181b1f] text-gray-200 rounded-xl border border-white/10 inline-block',
+                month_caption: 'flex justify-center items-center h-10 relative text-sm font-semibold text-white',
+                caption_label: 'text-sm font-semibold text-white',
+                nav: 'flex items-center justify-between w-full absolute inset-x-0 px-1',
+                button_previous: 'min-h-[44px] min-w-[44px] text-gray-400 hover:text-white rounded-md hover:bg-white/10 flex items-center justify-center transition-colors',
+                button_next: 'min-h-[44px] min-w-[44px] text-gray-400 hover:text-white rounded-md hover:bg-white/10 flex items-center justify-center transition-colors',
+                month_grid: 'w-full border-collapse mt-2',
+                weekdays: 'flex text-xs text-gray-400 font-medium pb-1',
+                weekday: 'w-9 text-center',
+                weeks: 'flex flex-col gap-1',
+                week: 'flex w-full',
+                day: 'p-0 text-center text-sm relative flex items-center justify-center',
+                day_button: 'min-h-[44px] min-w-[44px] w-9 h-9 rounded-lg text-gray-200 hover:bg-white/10 hover:text-white flex items-center justify-center transition-colors',
+                selected: 'bg-emerald-950 text-emerald-400 font-semibold',
+                range_start: 'bg-emerald-600 text-white font-bold rounded-l-lg',
+                range_end: 'bg-emerald-600 text-white font-bold rounded-r-lg',
+                range_middle: 'bg-emerald-950 text-emerald-300 rounded-none',
+                today: 'text-emerald-400 font-bold',
+                outside: 'text-gray-600 opacity-40',
+                disabled: 'text-gray-600 opacity-30 cursor-not-allowed',
+              }}
+            />
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={!isApplyEnabled}
+                className="flex-1 min-h-[44px] px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black font-semibold text-sm transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                Apply
+              </button>
               <button
                 type="button"
-                onClick={handleClearCustom}
-                className="min-h-[44px] px-3 py-2 text-xs text-gray-400 hover:text-white transition-colors flex items-center justify-center"
+                onClick={handleCancelCustom}
+                className="min-h-[44px] px-4 py-2 rounded-lg bg-[#2a2f37] hover:bg-[#343b45] text-gray-300 hover:text-white text-sm transition-colors flex items-center justify-center"
               >
-                Clear
+                Cancel
               </button>
-            )}
-            {selectedRange?.from && (
-              <span className="text-xs text-gray-400 sm:ml-auto">
-                {selectedRange.to
-                  ? `${formatDateOnly(selectedRange.from)} to ${formatDateOnly(selectedRange.to)}`
-                  : `From: ${formatDateOnly(selectedRange.from)} (select end date)`}
-              </span>
-            )}
-          </div>
+              {selectedRange?.from && (
+                <button
+                  type="button"
+                  onClick={handleClearCustom}
+                  className="min-h-[44px] px-3 py-2 text-xs text-gray-400 hover:text-white transition-colors flex items-center justify-center"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
-          {exceedsDateOnlyLimit && (
-            <p role="alert" className="text-xs text-amber-400 flex items-center gap-1.5 pt-1">
-              <span>⚠️</span>
-              <span>
-                Date-only search exceeds 7-day limit. Add an artist or genre for longer ranges.
-              </span>
-            </p>
-          )}
-        </form>
+            {exceedsDateOnlyLimit && (
+              <p role="alert" className="text-xs text-amber-400 flex items-center gap-1.5 pt-1">
+                <span>⚠️</span>
+                <span>
+                  Date-only search exceeds 7-day limit. Add an artist or genre for longer ranges.
+                </span>
+              </p>
+            )}
+          </form>
+        </div>
       )}
     </section>
   )
