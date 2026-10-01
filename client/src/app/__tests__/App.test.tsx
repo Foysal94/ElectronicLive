@@ -288,5 +288,50 @@ describe('App Integration Suite', () => {
     expect(screen.getByRole('searchbox', { name: 'Search artist, event, or venue in London' })).toHaveValue('')
     expect(window.location.search).toBe('?from=2026-11-14&to=2026-11-18')
   })
+
+  it('Should_filter_events_by_date_when_preset_pill_clicked', async () => {
+    const user = userEvent.setup()
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    const tonightBtn = screen.getByRole('button', { name: 'Tonight' })
+    await user.click(tonightBtn)
+
+    expect(tonightBtn).toHaveClass('bg-emerald-950')
+    expect(window.location.search).toMatch(/^\?from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('Should_toggle_date_preset_off_when_active_preset_clicked_again', async () => {
+    const user = userEvent.setup()
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    const tonightBtn = screen.getByRole('button', { name: 'Tonight' })
+    await user.click(tonightBtn)
+    expect(tonightBtn).toHaveClass('bg-emerald-950')
+
+    await user.click(tonightBtn)
+    expect(tonightBtn).not.toHaveClass('bg-emerald-950')
+    expect(window.location.search).toBe('')
+  })
+
+  it('Should_filter_events_when_custom_date_range_is_applied_via_tray', async () => {
+    const user = userEvent.setup()
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    await user.click(screen.getByRole('button', { name: 'Custom...' }))
+
+    const fromInput = screen.getByLabelText('From date')
+    const toInput = screen.getByLabelText('To date')
+    const applyButton = screen.getByRole('button', { name: 'Apply' })
+
+    await user.type(fromInput, '2026-11-14')
+    await user.type(toInput, '2026-11-18')
+
+    await user.click(applyButton)
+
+    expect(window.location.search).toBe('?from=2026-11-14&to=2026-11-18')
+    await waitFor(() => {
+      expect(screen.getAllByText('Amelie Lens - Exhale London').length).toBeGreaterThan(0)
+    })
+  })
 })
 
