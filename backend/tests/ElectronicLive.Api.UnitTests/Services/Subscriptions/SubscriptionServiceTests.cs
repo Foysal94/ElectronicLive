@@ -2,10 +2,11 @@ using ElectronicLive.Api.Data;
 using ElectronicLive.Api.Data.Entities;
 using ElectronicLive.Api.Models;
 using ElectronicLive.Api.Services;
+using ElectronicLive.Api.Services.Subscriptions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
-namespace ElectronicLive.Api.UnitTests.Services;
+namespace ElectronicLive.Api.UnitTests.Services.Subscriptions;
 
 public sealed class SubscriptionServiceTests : IDisposable
 {
@@ -40,33 +41,21 @@ public sealed class SubscriptionServiceTests : IDisposable
     private SubscriptionService CreateService(ElectronicLiveDbContext context) =>
         new(context, _artistVerificationService);
 
-    [Theory]
-    [InlineData(null, "Bicep", "email")]
-    [InlineData("", "Bicep", "email")]
-    [InlineData("   ", "Bicep", "email")]
-    [InlineData("invalid-email", "Bicep", "email")]
-    [InlineData("fan@electroniclive.com", null, "artistName")]
-    [InlineData("fan@electroniclive.com", "", "artistName")]
-    public async Task Should_ReturnInvalidInput_WhenRequestFailsValidation(
-        string? email,
-        string? artistName,
-        string expectedErrorKey
-    )
+    [Fact]
+    public async Task Should_ReturnNull_WhenArtistNameIsEmpty()
     {
         using var context = CreateContext();
         var service = CreateService(context);
-        var request = new SubscribeRequest(email, artistName, "London");
+        var request = new SubscribeRequest("fan@electroniclive.com", "", "London");
 
-        var result = await service.SubscribeAsync(request);
+        var outcome = await service.SubscribeAsync(request);
 
-        result.Status.ShouldBe(SubscribeStatus.InvalidInput);
-        result.Errors.ShouldNotBeNull();
-        result.Errors.ShouldContainKey(expectedErrorKey);
+        outcome.ShouldBeNull();
         await _artistVerificationService.DidNotReceiveWithAnyArgs().VerifyArtistExistsAsync(default!, default);
     }
 
     [Fact]
-    public async Task Should_ReturnArtistNotFound_WhenArtistVerificationFails()
+    public async Task Should_ReturnNull_WhenArtistVerificationFails()
     {
         _artistVerificationService.VerifyArtistExistsAsync("FakeArtist", Arg.Any<CancellationToken>()).Returns(false);
 
@@ -74,12 +63,9 @@ public sealed class SubscriptionServiceTests : IDisposable
         var service = CreateService(context);
         var request = new SubscribeRequest("fan@electroniclive.com", "FakeArtist", "London");
 
-        var result = await service.SubscribeAsync(request);
+        var outcome = await service.SubscribeAsync(request);
 
-        result.Status.ShouldBe(SubscribeStatus.ArtistNotFound);
-        result.Message.ShouldContain("FakeArtist");
-        result.Errors.ShouldNotBeNull();
-        result.Errors.ShouldContainKey("artistName");
+        outcome.ShouldBeNull();
     }
 
     [Fact]
@@ -91,12 +77,11 @@ public sealed class SubscriptionServiceTests : IDisposable
         var service = CreateService(context);
         var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", null);
 
-        var result = await service.SubscribeAsync(request);
+        var outcome = await service.SubscribeAsync(request);
 
-        result.Status.ShouldBe(SubscribeStatus.Created);
-        result.SubscriptionId.ShouldNotBeNull();
-        result.SubscriptionId.Value.ShouldNotBe(Guid.Empty);
-        result.Message.ShouldBe("Subscribed successfully");
+        outcome.ShouldNotBeNull();
+        outcome.IsNew.ShouldBeTrue();
+        outcome.SubscriptionId.ShouldNotBe(Guid.Empty);
 
         using var verifyContext = CreateContext();
         var user = await verifyContext
@@ -105,7 +90,7 @@ public sealed class SubscriptionServiceTests : IDisposable
         user.ShouldNotBeNull();
         user.UnsubscribeToken.Length.ShouldBe(64);
         var sub = user.Subscriptions.ShouldHaveSingleItem();
-        sub.Id.ShouldBe(result.SubscriptionId.Value);
+        sub.Id.ShouldBe(outcome.SubscriptionId);
         sub.ArtistName.ShouldBe("bicep");
         sub.City.ShouldBe("London");
         sub.IsActive.ShouldBeTrue();
@@ -123,34 +108,32 @@ public sealed class SubscriptionServiceTests : IDisposable
         var service = CreateService(context);
         var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
 
-        var result = await service.SubscribeAsync(request);
+        var outcome = await service.SubscribeAsync(request);
 
-        result.Status.ShouldBe(SubscribeStatus.AlreadySubscribed);
-        result.SubscriptionId.ShouldBe(subIds[0]);
-        result.Message.ShouldContain("Already subscribed to Bicep in London.");
+        outcome.ShouldNotBeNull();
+        outcome.IsNew.ShouldBeFalse();
+        outcome.SubscriptionId.ShouldBe(subIds[0]);
 
         using var verifyContext = CreateContext();
         (await verifyContext.Subscriptions.FindAsync(subIds[0]))!.IsActive.ShouldBeTrue();
     }
 
     [Theory]
-    [InlineData(null, UnsubscribeStatus.MissingToken, "An unsubscribe token is required.")]
-    [InlineData("", UnsubscribeStatus.MissingToken, "An unsubscribe token is required.")]
-    [InlineData("   ", UnsubscribeStatus.MissingToken, "An unsubscribe token is required.")]
-    [InlineData("non-existent-token", UnsubscribeStatus.InvalidToken, "Invalid or expired unsubscribe link.")]
-    public async Task Should_ReturnError_WhenTokenIsMissingOrNotFound(
+    [InlineData(null, UnsubscribeOutcome.MissingToken)]
+    [InlineData("", UnsubscribeOutcome.MissingToken)]
+    [InlineData("   ", UnsubscribeOutcome.MissingToken)]
+    [InlineData("non-existent-token", UnsubscribeOutcome.InvalidToken)]
+    public async Task Should_ReturnErrorOutcome_WhenTokenIsMissingOrNotFound(
         string? token,
-        UnsubscribeStatus expectedStatus,
-        string expectedSnippet
+        UnsubscribeOutcome expectedOutcome
     )
     {
         using var context = CreateContext();
         var service = CreateService(context);
 
-        var result = await service.UnsubscribeAsync(token, null);
+        var outcome = await service.UnsubscribeAsync(token, null);
 
-        result.Status.ShouldBe(expectedStatus);
-        result.Message.ShouldContain(expectedSnippet);
+        outcome.ShouldBe(expectedOutcome);
     }
 
     [Fact]
@@ -167,10 +150,9 @@ public sealed class SubscriptionServiceTests : IDisposable
         using var context = CreateContext();
         var service = CreateService(context);
 
-        var result = await service.UnsubscribeAsync("token-artist", "Bicep");
+        var outcome = await service.UnsubscribeAsync("token-artist", "Bicep");
 
-        result.Status.ShouldBe(UnsubscribeStatus.Success);
-        result.Message.ShouldContain("unsubscribed from alerts for Bicep");
+        outcome.ShouldBe(UnsubscribeOutcome.Success);
 
         using var verifyContext = CreateContext();
         (await verifyContext.Subscriptions.FindAsync(subIds[0]))!.IsActive.ShouldBeFalse();
@@ -191,10 +173,9 @@ public sealed class SubscriptionServiceTests : IDisposable
         using var context = CreateContext();
         var service = CreateService(context);
 
-        var result = await service.UnsubscribeAsync("token-all", null);
+        var outcome = await service.UnsubscribeAsync("token-all", null);
 
-        result.Status.ShouldBe(UnsubscribeStatus.Success);
-        result.Message.ShouldContain("unsubscribed from all artist alerts");
+        outcome.ShouldBe(UnsubscribeOutcome.Success);
 
         using var verifyContext = CreateContext();
         (await verifyContext.Subscriptions.FindAsync(subIds[0]))!.IsActive.ShouldBeFalse();
@@ -202,17 +183,16 @@ public sealed class SubscriptionServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_ReturnSuccessMessage_WhenArtistIsNotActive_PurelyIdempotent()
+    public async Task Should_ReturnSuccess_WhenArtistIsNotActive_PurelyIdempotent()
     {
         await SeedUser("fan@electroniclive.com", "token-inactive", ("bicep", "London", false));
 
         using var context = CreateContext();
         var service = CreateService(context);
 
-        var result = await service.UnsubscribeAsync("token-inactive", "Bicep");
+        var outcome = await service.UnsubscribeAsync("token-inactive", "Bicep");
 
-        result.Status.ShouldBe(UnsubscribeStatus.Success);
-        result.Message.ShouldContain("unsubscribed from alerts for Bicep");
+        outcome.ShouldBe(UnsubscribeOutcome.Success);
     }
 
     private async Task<(Guid UserId, List<Guid> SubIds)> SeedUser(

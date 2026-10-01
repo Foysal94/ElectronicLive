@@ -4,35 +4,28 @@ using ElectronicLive.Api.Data.Entities;
 using ElectronicLive.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Services.Subscriptions;
 
 public sealed class SubscriptionService(
     ElectronicLiveDbContext dbContext,
     IArtistVerificationService artistVerificationService
 ) : ISubscriptionService
 {
-    public async Task<SubscribeResult> SubscribeAsync(
+    public async Task<SubscribeOutcome?> SubscribeAsync(
         SubscribeRequest request,
         CancellationToken cancellationToken = default
     )
     {
-        if (!request.TryValidate(out var validationErrors))
+        var trimmedArtist = request.ArtistName?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedArtist))
         {
-            return new SubscribeResult(SubscribeStatus.InvalidInput, Errors: validationErrors);
+            return null;
         }
 
-        var trimmedArtist = request.ArtistName!.Trim();
         var isVerified = await artistVerificationService.VerifyArtistExistsAsync(trimmedArtist, cancellationToken);
         if (!isVerified)
         {
-            return new SubscribeResult(
-                SubscribeStatus.ArtistNotFound,
-                Message: $"Artist '{trimmedArtist}' could not be verified as a genuine music entity.",
-                Errors: new Dictionary<string, string[]>
-                {
-                    ["artistName"] = [$"Artist '{trimmedArtist}' could not be verified as a genuine music entity."],
-                }
-            );
+            return null;
         }
 
         var targetEmail = request.Email!.Trim().ToLowerInvariant();
@@ -68,11 +61,7 @@ public sealed class SubscriptionService(
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            return new SubscribeResult(
-                SubscribeStatus.AlreadySubscribed,
-                existing.Id,
-                $"Already subscribed to {trimmedArtist} in {targetCity}."
-            );
+            return new SubscribeOutcome(existing.Id, IsNew: false);
         }
 
         var subscription = new Subscription
@@ -88,10 +77,10 @@ public sealed class SubscriptionService(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new SubscribeResult(SubscribeStatus.Created, subscription.Id, "Subscribed successfully");
+        return new SubscribeOutcome(subscription.Id, IsNew: true);
     }
 
-    public async Task<UnsubscribeResult> UnsubscribeAsync(
+    public async Task<UnsubscribeOutcome> UnsubscribeAsync(
         string? token,
         string? artist,
         CancellationToken cancellationToken = default
@@ -99,10 +88,7 @@ public sealed class SubscriptionService(
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            return new UnsubscribeResult(
-                UnsubscribeStatus.MissingToken,
-                "Invalid unsubscribe request. An unsubscribe token is required."
-            );
+            return UnsubscribeOutcome.MissingToken;
         }
 
         var trimmedToken = token.Trim();
@@ -112,7 +98,7 @@ public sealed class SubscriptionService(
 
         if (user == null)
         {
-            return new UnsubscribeResult(UnsubscribeStatus.InvalidToken, "Invalid or expired unsubscribe link.");
+            return UnsubscribeOutcome.InvalidToken;
         }
 
         var targetSubscriptions = !string.IsNullOrWhiteSpace(artist)
@@ -128,11 +114,7 @@ public sealed class SubscriptionService(
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        var message = !string.IsNullOrWhiteSpace(artist)
-            ? $"You have successfully unsubscribed from alerts for {artist.Trim()}."
-            : "You have successfully unsubscribed from all artist alerts.";
-
-        return new UnsubscribeResult(UnsubscribeStatus.Success, message);
+        return UnsubscribeOutcome.Success;
     }
 
     // 32-byte cryptographic random entropy (64 hex chars) ensures unsubscribe tokens cannot be enumerated via URL guessing

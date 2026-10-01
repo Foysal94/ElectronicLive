@@ -1,6 +1,6 @@
 using ElectronicLive.Api.Endpoints;
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
+using ElectronicLive.Api.Services.Subscriptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -10,39 +10,34 @@ public class SubscriptionEndpointsTests
 {
     private readonly ISubscriptionService _subscriptionService = Substitute.For<ISubscriptionService>();
 
-    [Fact]
-    public async Task Should_ReturnValidationProblem_WhenServiceReturnsInvalidInput()
+    [Theory]
+    [InlineData(null, "Bicep", "email")]
+    [InlineData("", "Bicep", "email")]
+    [InlineData("   ", "Bicep", "email")]
+    [InlineData("invalid-email", "Bicep", "email")]
+    [InlineData("fan@electroniclive.com", null, "artistName")]
+    [InlineData("fan@electroniclive.com", "", "artistName")]
+    public async Task Should_ReturnValidationProblem_WhenSyntaxIsInvalid(
+        string? email,
+        string? artistName,
+        string expectedErrorKey
+    )
     {
-        var request = new SubscribeRequest("invalid-email", "Bicep", "London");
-        var errors = new Dictionary<string, string[]> { ["email"] = ["A valid email address is required."] };
-        _subscriptionService
-            .SubscribeAsync(request, Arg.Any<CancellationToken>())
-            .Returns(new SubscribeResult(SubscribeStatus.InvalidInput, Errors: errors));
+        var request = new SubscribeRequest(email, artistName, "London");
 
         var result = await SubscriptionEndpoints.Subscribe(request, _subscriptionService);
 
         var problem = result.Result.ShouldBeOfType<ValidationProblem>();
         problem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
-        problem.ProblemDetails.Errors.ShouldContainKey("email");
+        problem.ProblemDetails.Errors.ShouldContainKey(expectedErrorKey);
+        await _subscriptionService.DidNotReceiveWithAnyArgs().SubscribeAsync(default!, default);
     }
 
     [Fact]
-    public async Task Should_ReturnValidationProblem_WhenServiceReturnsArtistNotFound()
+    public async Task Should_ReturnValidationProblem_WhenServiceReturnsNullOutcome()
     {
         var request = new SubscribeRequest("fan@electroniclive.com", "FakeArtist", "London");
-        var errors = new Dictionary<string, string[]>
-        {
-            ["artistName"] = ["Artist 'FakeArtist' could not be verified as a genuine music entity."],
-        };
-        _subscriptionService
-            .SubscribeAsync(request, Arg.Any<CancellationToken>())
-            .Returns(
-                new SubscribeResult(
-                    SubscribeStatus.ArtistNotFound,
-                    Message: "Artist 'FakeArtist' could not be verified as a genuine music entity.",
-                    Errors: errors
-                )
-            );
+        _subscriptionService.SubscribeAsync(request, Arg.Any<CancellationToken>()).Returns((SubscribeOutcome?)null);
 
         var result = await SubscriptionEndpoints.Subscribe(request, _subscriptionService);
 
@@ -59,7 +54,7 @@ public class SubscriptionEndpointsTests
         var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
         _subscriptionService
             .SubscribeAsync(request, Arg.Any<CancellationToken>())
-            .Returns(new SubscribeResult(SubscribeStatus.Created, subId, "Subscribed successfully"));
+            .Returns(new SubscribeOutcome(subId, IsNew: true));
 
         var result = await SubscriptionEndpoints.Subscribe(request, _subscriptionService);
 
@@ -77,9 +72,7 @@ public class SubscriptionEndpointsTests
         var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
         _subscriptionService
             .SubscribeAsync(request, Arg.Any<CancellationToken>())
-            .Returns(
-                new SubscribeResult(SubscribeStatus.AlreadySubscribed, subId, "Already subscribed to Bicep in London.")
-            );
+            .Returns(new SubscribeOutcome(subId, IsNew: false));
 
         var result = await SubscriptionEndpoints.Subscribe(request, _subscriptionService);
 
@@ -94,7 +87,7 @@ public class SubscriptionEndpointsTests
     {
         _subscriptionService
             .UnsubscribeAsync(null, null, Arg.Any<CancellationToken>())
-            .Returns(new UnsubscribeResult(UnsubscribeStatus.MissingToken, "An unsubscribe token is required."));
+            .Returns(UnsubscribeOutcome.MissingToken);
 
         var result = await SubscriptionEndpoints.Unsubscribe(null, null, _subscriptionService);
 
@@ -106,7 +99,7 @@ public class SubscriptionEndpointsTests
     {
         _subscriptionService
             .UnsubscribeAsync("bad-token", null, Arg.Any<CancellationToken>())
-            .Returns(new UnsubscribeResult(UnsubscribeStatus.InvalidToken, "Invalid or expired unsubscribe link."));
+            .Returns(UnsubscribeOutcome.InvalidToken);
 
         var result = await SubscriptionEndpoints.Unsubscribe("bad-token", null, _subscriptionService);
 
@@ -118,12 +111,7 @@ public class SubscriptionEndpointsTests
     {
         _subscriptionService
             .UnsubscribeAsync("valid-token", "Bicep", Arg.Any<CancellationToken>())
-            .Returns(
-                new UnsubscribeResult(
-                    UnsubscribeStatus.Success,
-                    "You have successfully unsubscribed from alerts for Bicep."
-                )
-            );
+            .Returns(UnsubscribeOutcome.Success);
 
         var result = await SubscriptionEndpoints.Unsubscribe("valid-token", "Bicep", _subscriptionService);
 
@@ -137,10 +125,8 @@ public class SubscriptionEndpointsTests
         var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
         _subscriptionService
             .SubscribeAsync(request, cts.Token)
-            .Returns(new SubscribeResult(SubscribeStatus.Created, Guid.NewGuid(), "Subscribed successfully"));
-        _subscriptionService
-            .UnsubscribeAsync("token", "Bicep", cts.Token)
-            .Returns(new UnsubscribeResult(UnsubscribeStatus.Success, "Done"));
+            .Returns(new SubscribeOutcome(Guid.NewGuid(), IsNew: true));
+        _subscriptionService.UnsubscribeAsync("token", "Bicep", cts.Token).Returns(UnsubscribeOutcome.Success);
 
         await SubscriptionEndpoints.Subscribe(request, _subscriptionService, cts.Token);
         await SubscriptionEndpoints.Unsubscribe("token", "Bicep", _subscriptionService, cts.Token);

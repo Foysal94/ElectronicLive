@@ -1,5 +1,5 @@
 using ElectronicLive.Api.Models;
-using ElectronicLive.Api.Services;
+using ElectronicLive.Api.Services.Subscriptions;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ElectronicLive.Api.Endpoints;
@@ -27,21 +27,29 @@ public static class SubscriptionEndpoints
             return TypedResults.ValidationProblem(validationErrors);
         }
 
-        var result = await subscriptionService.SubscribeAsync(request, cancellationToken);
-
-        return result.Status switch
+        var outcome = await subscriptionService.SubscribeAsync(request, cancellationToken);
+        if (outcome is null)
         {
-            SubscribeStatus.Created => TypedResults.Created(
-                $"/api/subscriptions/{result.SubscriptionId}",
-                new SubscribeResponse(result.SubscriptionId!.Value, result.Message)
-            ),
-            SubscribeStatus.AlreadySubscribed => TypedResults.Ok(
-                new SubscribeResponse(result.SubscriptionId!.Value, result.Message)
-            ),
-            _ => TypedResults.ValidationProblem(
-                result.Errors?.ToDictionary(k => k.Key, v => v.Value) ?? new Dictionary<string, string[]>()
-            ),
-        };
+            var trimmedArtist = request.ArtistName?.Trim() ?? string.Empty;
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["artistName"] = [$"Artist '{trimmedArtist}' could not be verified as a genuine music entity."],
+                }
+            );
+        }
+
+        var artist = request.ArtistName!.Trim();
+        var city = string.IsNullOrWhiteSpace(request.City) ? "London" : request.City.Trim();
+
+        return outcome.IsNew
+            ? TypedResults.Created(
+                $"/api/subscriptions/{outcome.SubscriptionId}",
+                new SubscribeResponse(outcome.SubscriptionId, "Subscribed successfully")
+            )
+            : TypedResults.Ok(
+                new SubscribeResponse(outcome.SubscriptionId, $"Already subscribed to {artist} in {city}.")
+            );
     }
 
     internal static async Task<ContentHttpResult> Unsubscribe(
@@ -51,13 +59,13 @@ public static class SubscriptionEndpoints
         CancellationToken cancellationToken = default
     )
     {
-        var result = await subscriptionService.UnsubscribeAsync(token, artist, cancellationToken);
+        var outcome = await subscriptionService.UnsubscribeAsync(token, artist, cancellationToken);
 
-        return result.Status switch
+        return outcome switch
         {
-            UnsubscribeStatus.Success => SubscriptionHtmlRenderer.Success(result.Message),
-            UnsubscribeStatus.MissingToken => SubscriptionHtmlRenderer.BadRequest(result.Message),
-            _ => SubscriptionHtmlRenderer.NotFound(result.Message),
+            UnsubscribeOutcome.Success => SubscriptionHtmlRenderer.Success(artist),
+            UnsubscribeOutcome.MissingToken => SubscriptionHtmlRenderer.BadRequest(),
+            _ => SubscriptionHtmlRenderer.NotFound(),
         };
     }
 }

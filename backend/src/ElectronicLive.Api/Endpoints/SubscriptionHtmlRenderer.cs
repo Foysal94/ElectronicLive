@@ -6,14 +6,21 @@ namespace ElectronicLive.Api.Endpoints;
 
 internal static class SubscriptionHtmlRenderer
 {
-    public static ContentHttpResult Success(string message) =>
-        Render("Unsubscribed", message, isSuccess: true, StatusCodes.Status200OK);
+    public static ContentHttpResult Success(string? artist = null)
+    {
+        var message = !string.IsNullOrWhiteSpace(artist)
+            ? $"You have successfully unsubscribed from alerts for {artist.Trim()}."
+            : "You have successfully unsubscribed from all artist alerts.";
 
-    public static ContentHttpResult NotFound(string message) =>
+        return Render("Unsubscribed", message, isSuccess: true, StatusCodes.Status200OK);
+    }
+
+    public static ContentHttpResult NotFound(string message = "Invalid or expired unsubscribe link.") =>
         Render("Unsubscribe Error", message, isSuccess: false, StatusCodes.Status404NotFound);
 
-    public static ContentHttpResult BadRequest(string message) =>
-        Render("Unsubscribe Error", message, isSuccess: false, StatusCodes.Status400BadRequest);
+    public static ContentHttpResult BadRequest(
+        string message = "Invalid unsubscribe request. An unsubscribe token is required."
+    ) => Render("Unsubscribe Error", message, isSuccess: false, StatusCodes.Status400BadRequest);
 
     private static ContentHttpResult Render(string title, string message, bool isSuccess, int statusCode)
     {
