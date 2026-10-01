@@ -26,6 +26,8 @@ public sealed class SkiddleClient : IEventProvider
         string? query,
         string? genre = null,
         string city = "London",
+        DateOnly? from = null,
+        DateOnly? to = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -35,14 +37,14 @@ public sealed class SkiddleClient : IEventProvider
             return [];
         }
 
-        if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(genre))
+        if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(genre) && from == null && to == null)
         {
             return [];
         }
 
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
         var coordinates = SkiddleClientHelpers.ResolveCoordinates(targetCity);
-        var requestUri = SkiddleClientHelpers.BuildSearchUri(_apiKey, query, genre, targetCity);
+        var requestUri = SkiddleClientHelpers.BuildSearchUri(_apiKey, query, genre, targetCity, from, to);
 
         SkiddleResponse? payload;
         try

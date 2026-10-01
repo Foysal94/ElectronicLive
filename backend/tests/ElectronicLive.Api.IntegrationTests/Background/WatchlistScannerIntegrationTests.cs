@@ -86,7 +86,12 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         );
 
         _factory
-            .EventSearchService.SearchEventsAsync(artist, null, "London", Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                artist,
+                null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(new List<EventResponse> { event1, event2 });
 
         // 3. Run IWatchlistScannerService.ExecuteScanAsync()
@@ -168,7 +173,12 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         );
 
         _factory
-            .EventSearchService.SearchEventsAsync(artist, null, "London", Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                artist,
+                null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(new List<EventResponse> { event1, event2, event3 });
 
         _factory.EmailDispatcher.ClearReceivedCalls();
@@ -256,7 +266,12 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         );
 
         _factory
-            .EventSearchService.SearchEventsAsync(artist, null, "London", Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                artist,
+                null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(new List<EventResponse> { evt });
 
         using (var scope = _factory.Services.CreateScope())
@@ -348,7 +363,12 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         });
 
         _factory
-            .EventSearchService.SearchEventsAsync("bicep", null, "London", Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                "bicep",
+                null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(Task.FromException<IReadOnlyList<EventResponse>>(new HttpRequestException("Upstream timeout")));
 
         var fourTetEvent = new EventResponse(
@@ -363,7 +383,12 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         );
 
         _factory
-            .EventSearchService.SearchEventsAsync("four tet", null, "London", Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                "four tet",
+                null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(new List<EventResponse> { fourTetEvent });
 
         using (var scope = _factory.Services.CreateScope())

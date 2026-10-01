@@ -22,21 +22,59 @@ public static class EventEndpoints
         string? query,
         string? genre,
         IEventSearchService eventSearchService,
+        DateOnly? from = null,
+        DateOnly? to = null,
         string? city = "London",
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(genre))
+        var hasQuery = !string.IsNullOrWhiteSpace(query);
+        var hasGenre = !string.IsNullOrWhiteSpace(genre);
+
+        if (from.HasValue && to.HasValue && to.Value < from.Value)
         {
             return TypedResults.ValidationProblem(
                 new Dictionary<string, string[]>
                 {
-                    ["query"] = ["At least one of query or genre parameter is required."],
+                    ["to"] = ["'to' date must be greater than or equal to 'from' date."],
                 }
             );
         }
 
-        if (!string.IsNullOrWhiteSpace(genre) && !EventGenres.IsValid(genre))
+        if (!hasQuery && !hasGenre)
+        {
+            if (from == null && to == null)
+            {
+                return TypedResults.ValidationProblem(
+                    new Dictionary<string, string[]>
+                    {
+                        ["query"] = ["At least one of query or genre parameter is required."],
+                    }
+                );
+            }
+
+            if (from == null || to == null)
+            {
+                return TypedResults.ValidationProblem(
+                    new Dictionary<string, string[]>
+                    {
+                        ["date"] = ["Both 'from' and 'to' date parameters are required for date-only queries."],
+                    }
+                );
+            }
+
+            if (to.Value.DayNumber - from.Value.DayNumber > 7)
+            {
+                return TypedResults.ValidationProblem(
+                    new Dictionary<string, string[]>
+                    {
+                        ["date"] = ["Date range cannot exceed 7 days when searching without query or genre."],
+                    }
+                );
+            }
+        }
+
+        if (hasGenre && !EventGenres.IsValid(genre))
         {
             return TypedResults.ValidationProblem(
                 new Dictionary<string, string[]>
@@ -59,6 +97,8 @@ public static class EventEndpoints
                 targetQuery,
                 targetGenre,
                 targetCity,
+                from,
+                to,
                 cancellationToken
             );
             return TypedResults.Ok(events);

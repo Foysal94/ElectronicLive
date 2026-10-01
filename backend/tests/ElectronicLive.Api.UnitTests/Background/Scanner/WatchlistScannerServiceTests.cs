@@ -118,7 +118,9 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         var subscription = await SeedSubscriptionAsync();
         var gigEvents = new List<EventResponse> { CreateEvent() };
 
-        _eventSearchService.SearchEventsAsync("bicep", null, "London", Arg.Any<CancellationToken>()).Returns(gigEvents);
+        _eventSearchService
+            .SearchEventsAsync("bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns(gigEvents);
 
         var service = CreateService();
         var result = await service.ExecuteScanAsync();
@@ -172,7 +174,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         };
 
         _eventSearchService
-            .SearchEventsAsync("overmono", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("overmono", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(gigEvents);
 
         var service = CreateService();
@@ -217,7 +219,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         };
 
         _eventSearchService
-            .SearchEventsAsync("four tet", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("four tet", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(gigEvents);
 
         var service = CreateService();
@@ -277,7 +279,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         var sub2 = await SeedSubscriptionAsync("success@test.com", "fred again..", true, "tok-2");
 
         _eventSearchService
-            .SearchEventsAsync("fred again..", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fred again..", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(new List<EventResponse> { CreateEvent("evt-1", "Fred again.. Live", "Brixton Academy") });
 
         _emailDispatcher
@@ -321,11 +323,11 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         await SeedSubscriptionAsync(artist: "working-artist", token: "tok-2");
 
         _eventSearchService
-            .SearchEventsAsync("broken-artist", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("broken-artist", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Provider timeout"));
 
         _eventSearchService
-            .SearchEventsAsync("working-artist", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("working-artist", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(
                 new List<EventResponse>
                 {
@@ -358,7 +360,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         await SeedSubscriptionAsync(artist: "artist-two", token: "tok-2");
 
         _eventSearchService
-            .SearchEventsAsync(Arg.Any<string>(), null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync(Arg.Any<string>(), null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(new List<EventResponse>());
 
         var service = CreateService(delayMs: 50);

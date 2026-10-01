@@ -6,7 +6,14 @@ namespace ElectronicLive.Api.Clients;
 internal static class SkiddleClientHelpers
 {
     // Skiddle API requires coordinates for distance searches; without them, it defaults to UK-wide events.
-    internal static string BuildSearchUri(string apiKey, string? query, string? genre, string city)
+    internal static string BuildSearchUri(
+        string apiKey,
+        string? query,
+        string? genre,
+        string city,
+        DateOnly? from = null,
+        DateOnly? to = null
+    )
     {
         var targetCity = string.IsNullOrWhiteSpace(city) ? "London" : city.Trim();
         var coordinates = ResolveCoordinates(targetCity);
@@ -22,10 +29,21 @@ internal static class SkiddleClientHelpers
         var genreId = ResolveGenreId(genre);
         var genreParam = genreId.HasValue ? $"&g={genreId.Value}&eventcode=CLUB" : "&eventcode=LIVE,CLUB,FEST";
 
+        var dateParams = string.Empty;
+        if (from.HasValue)
+        {
+            dateParams += $"&minDate={from.Value:yyyy-MM-dd}";
+        }
+        if (to.HasValue)
+        {
+            dateParams += $"&maxDate={to.Value:yyyy-MM-dd}";
+        }
+
         return $"events/search/?api_key={Uri.EscapeDataString(apiKey)}"
             + keywordParam
             + geoQuery
             + genreParam
+            + dateParams
             + "&order=date&description=1";
     }
 

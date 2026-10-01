@@ -17,10 +17,15 @@ public sealed class EventSearchService(
         string? query,
         string? genre = null,
         string city = "London",
+        DateOnly? from = null,
+        DateOnly? to = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(genre))
+        var hasQueryOrGenre = !string.IsNullOrWhiteSpace(query) || !string.IsNullOrWhiteSpace(genre);
+        var hasDateFilter = from.HasValue || to.HasValue;
+
+        if (!hasQueryOrGenre && !hasDateFilter)
         {
             return [];
         }
@@ -29,22 +34,36 @@ public sealed class EventSearchService(
         var targetQuery = query?.Trim();
         var targetGenre = genre?.Trim().ToLowerInvariant();
 
-        // Composite cache key isolates city, free-text query, and genre to prevent collisions between
-        // overlapping artist queries and standalone genre filter hits.
-        var cacheKey =
-            $"events:agg:{targetCity.ToLowerInvariant()}:q={targetQuery?.ToLowerInvariant() ?? ""}:g={targetGenre ?? ""}";
+        // For artist/genre queries, cache canonical schedules and slice dates in memory.
+        // For broad date-only queries, isolate cache by date range and forward bounds upstream.
+        var cacheKey = hasQueryOrGenre
+            ? $"events:agg:{targetCity.ToLowerInvariant()}:q={targetQuery?.ToLowerInvariant() ?? ""}:g={targetGenre ?? ""}"
+            : $"events:agg:{targetCity.ToLowerInvariant()}:date:{from:yyyy-MM-dd}:{to:yyyy-MM-dd}";
 
-        return await cache.GetOrCreateAsync(
+        var cachedEvents = await cache.GetOrCreateAsync(
             cacheKey,
             async ct =>
             {
                 logger.LogInformation(
-                    "Cache miss for query '{Query}', genre '{Genre}' in city '{City}'. Querying upstream providers.",
+                    "Cache miss for query '{Query}', genre '{Genre}', from '{From}', to '{To}' in city '{City}'. Querying upstream providers.",
                     targetQuery,
                     targetGenre,
+                    from,
+                    to,
                     targetCity
                 );
-                var rawEvents = await FetchFromProvidersAsync(targetQuery, targetGenre, targetCity, ct);
+
+                var upstreamFrom = hasQueryOrGenre ? null : from;
+                var upstreamTo = hasQueryOrGenre ? null : to;
+
+                var rawEvents = await FetchFromProvidersAsync(
+                    targetQuery,
+                    targetGenre,
+                    targetCity,
+                    upstreamFrom,
+                    upstreamTo,
+                    ct
+                );
                 var deduplicated = EventDeduplicator.Deduplicate(rawEvents);
 
                 return deduplicated
@@ -55,12 +74,27 @@ public sealed class EventSearchService(
             tags: EventTags,
             cancellationToken: cancellationToken
         );
+
+        if (hasDateFilter)
+        {
+            return cachedEvents
+                .Where(e =>
+                    e.Date.HasValue
+                    && (!from.HasValue || e.Date.Value >= from.Value)
+                    && (!to.HasValue || e.Date.Value <= to.Value)
+                )
+                .ToList();
+        }
+
+        return cachedEvents;
     }
 
     private async Task<IReadOnlyList<EventResponse>> FetchFromProvidersAsync(
         string? query,
         string? genre,
         string city,
+        DateOnly? from,
+        DateOnly? to,
         CancellationToken cancellationToken
     )
     {
@@ -76,7 +110,7 @@ public sealed class EventSearchService(
             {
                 try
                 {
-                    var events = await provider.SearchEventsAsync(query, genre, city, cancellationToken);
+                    var events = await provider.SearchEventsAsync(query, genre, city, from, to, cancellationToken);
                     return (Success: true, Events: events, Provider: provider.Provider, Exception: (Exception?)null);
                 }
                 // Re-throw only if the caller cancelled. Upstream timeouts throw TaskCanceledException

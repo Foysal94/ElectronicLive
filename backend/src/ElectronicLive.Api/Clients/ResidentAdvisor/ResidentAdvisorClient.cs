@@ -46,9 +46,18 @@ public sealed class ResidentAdvisorClient : IEventProvider
         string? query,
         string? genre = null,
         string city = "London",
+        DateOnly? from = null,
+        DateOnly? to = null,
         CancellationToken cancellationToken = default
     )
     {
+        // Resident Advisor's GraphQL search index requires a keyword search term (searchTerm)
+        // and does not support date-range-only queries. Return empty immediately for date-only queries.
+        if (string.IsNullOrWhiteSpace(query) && string.IsNullOrWhiteSpace(genre))
+        {
+            return [];
+        }
+
         var genreTerm = ResolveGenreSearchTerm(genre);
         var searchTerm = ResolveCombinedSearchTerm(query, genreTerm);
 

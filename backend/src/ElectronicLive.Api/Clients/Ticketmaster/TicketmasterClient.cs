@@ -31,6 +31,8 @@ public sealed class TicketmasterClient : IEventProvider, IArtistVerificationServ
         string? query,
         string? genre = null,
         string city = "London",
+        DateOnly? from = null,
+        DateOnly? to = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -43,17 +45,32 @@ public sealed class TicketmasterClient : IEventProvider, IArtistVerificationServ
         var genreKeyword = ResolveGenreKeyword(genre);
         var keyword = ResolveCombinedKeyword(query, genreKeyword);
 
-        if (string.IsNullOrWhiteSpace(keyword))
+        if (string.IsNullOrWhiteSpace(keyword) && from == null && to == null)
         {
             return [];
+        }
+
+        var keywordParam = !string.IsNullOrWhiteSpace(keyword)
+            ? $"&keyword={Uri.EscapeDataString(keyword)}"
+            : string.Empty;
+
+        var dateParams = string.Empty;
+        if (from.HasValue)
+        {
+            dateParams += $"&startDateTime={from.Value:yyyy-MM-dd}T00:00:00Z";
+        }
+        if (to.HasValue)
+        {
+            dateParams += $"&endDateTime={to.Value:yyyy-MM-dd}T23:59:59Z";
         }
 
         // Ticketmaster does not have specific genre filter fields, so we pass classificationName=music along with the genre keyword
         var requestUri =
             $"events.json?apikey={Uri.EscapeDataString(_apiKey)}"
-            + $"&keyword={Uri.EscapeDataString(keyword)}"
+            + keywordParam
             + $"&city={Uri.EscapeDataString(city)}"
-            + "&countryCode=GB&classificationName=music&sort=date,asc";
+            + "&countryCode=GB&classificationName=music&sort=date,asc"
+            + dateParams;
 
         TicketmasterResponse? payload;
         try
