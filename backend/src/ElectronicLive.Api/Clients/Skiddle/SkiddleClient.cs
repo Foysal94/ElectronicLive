@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace ElectronicLive.Api.Clients;
 
-public sealed class SkiddleClient : ISkiddleClient
+public sealed class SkiddleClient : IEventProvider
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 

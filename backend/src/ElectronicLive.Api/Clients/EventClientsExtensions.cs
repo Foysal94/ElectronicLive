@@ -13,7 +13,7 @@ public static class EventClientsExtensions
         services.Configure<ResidentAdvisorOptions>(configuration.GetSection(ResidentAdvisorOptions.SectionName));
 
         services
-            .AddHttpClient<ITicketmasterClient, TicketmasterClient>(
+            .AddHttpClient<TicketmasterClient>(
                 (sp, client) =>
                 {
                     var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;
@@ -23,17 +23,7 @@ public static class EventClientsExtensions
             .AddStandardResilienceHandler();
 
         services
-            .AddHttpClient<IArtistVerificationService, TicketmasterArtistVerificationService>(
-                (sp, client) =>
-                {
-                    var options = sp.GetRequiredService<IOptions<TicketmasterOptions>>().Value;
-                    client.BaseAddress = new Uri(options.BaseUrl);
-                }
-            )
-            .AddStandardResilienceHandler();
-
-        services
-            .AddHttpClient<ISkiddleClient, SkiddleClient>(
+            .AddHttpClient<SkiddleClient>(
                 (sp, client) =>
                 {
                     var options = sp.GetRequiredService<IOptions<SkiddleOptions>>().Value;
@@ -43,7 +33,7 @@ public static class EventClientsExtensions
             .AddStandardResilienceHandler();
 
         services
-            .AddHttpClient<IResidentAdvisorClient, ResidentAdvisorClient>(
+            .AddHttpClient<ResidentAdvisorClient>(
                 (sp, client) =>
                 {
                     var options = sp.GetRequiredService<IOptions<ResidentAdvisorOptions>>().Value;
@@ -53,9 +43,10 @@ public static class EventClientsExtensions
             )
             .AddStandardResilienceHandler();
 
-        services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ITicketmasterClient>());
-        services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ISkiddleClient>());
-        services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<IResidentAdvisorClient>());
+        services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<TicketmasterClient>());
+        services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<SkiddleClient>());
+        services.AddTransient<IEventProvider>(sp => sp.GetRequiredService<ResidentAdvisorClient>());
+        services.AddTransient<IArtistVerificationService>(sp => sp.GetRequiredService<TicketmasterClient>());
 
         return services;
     }

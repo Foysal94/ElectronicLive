@@ -12,7 +12,7 @@
 - **Endpoints Over Controllers:** Map endpoints using static extension methods on `IEndpointRouteBuilder` inside `Endpoints/` (e.g., `Endpoints/EventEndpoints.cs`, `Endpoints/SubscriptionEndpoints.cs`). Never place full endpoint implementations in `Program.cs`.
 - **No Direct Persistence in Endpoints:** Endpoints are strictly HTTP transport adapters (routing, model binding, returning `TypedResults`). Never execute raw `DbContext` queries in `Endpoints/`. Delegate all database and domain orchestration to `Services/` so logic is isolated and reusable by background jobs (`Background/`).
 - **Unit-Testable Handlers:** Endpoint logic must reside in `internal static` handler methods so they can be unit-tested directly without spinning up HTTP test servers. `[InternalsVisibleTo]` must target `ElectronicLive.Api.UnitTests`.
-- **Encapsulated Clients:** Place external provider integrations under `src/ElectronicLive.Api/Clients/` (e.g., `ITicketmasterClient`, `ISkiddleClient`, `IResidentAdvisorClient`). Each external vendor gets its own typed client interface and resilience policies.
+- **Encapsulated Clients:** Place external provider integrations under `src/ElectronicLive.Api/Clients/` (implementing domain abstractions like `IEventProvider`, `IArtistVerificationService`). Each external vendor gets its own typed client and resilience policies.
 - **Core Domain Services:** Synchronous business capabilities and aggregators reside under `src/ElectronicLive.Api/Services/` (e.g., `IEventSearchService`, `ISubscriptionService`, `IArtistVerificationService`).
 - **Pragmatic Return Types:** Return domain records or simple status flags directly; do not create artificial `Result<T>`, `StatusEnum`, or `Contracts/` wrapper layers for straightforward domain operations.
 - **Layered Validation & Guard Clauses:** Validate request syntax on DTOs (e.g., `TryValidate()`) returning `TypedResults.ValidationProblem()` immediately; keep semantic and business checks inside domain services using flat early-return guard clauses.
@@ -35,7 +35,7 @@
 
 ## Pragmatic SOLID Design
 - **Single Responsibility (SRP):** Classes and endpoints must have one clear reason to change (e.g., separate HTTP routing from background dispatching and external provider integration).
-- **Dependency Inversion (DIP):** Depend on abstractions (`ITicketmasterClient`, `IEmailDispatcher`) for external boundaries rather than concrete implementations.
+- **Dependency Inversion (DIP):** Depend on abstractions (`IEventProvider`, `IArtistVerificationService`, `IEmailDispatcher`) for external boundaries rather than concrete implementations.
 - **Interface Segregation (ISP):** Keep service interfaces focused on specific capabilities rather than monolithic "catch-all" contracts.
 - **Pragmatic Methods:** Prefer clear, linear, top-to-bottom method flow that fits on a single screen over premature extraction of single-use private helpers. Only extract private methods for reused logic, deep nesting, or isolated, branch-heavy mappings.
 
