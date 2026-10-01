@@ -72,5 +72,21 @@ dist-ssr/
 # Knowledge graph artifacts
 graphify-out/
 
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+
+
 # Matt Poddock SKills -> Do not commit wayfinder specs and tickets
 .scratch/
+

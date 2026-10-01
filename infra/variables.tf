@@ -60,9 +60,24 @@ variable "ticketmaster_api_key" {
   sensitive   = true
 }
 
+variable "db_connection_string" {
+  description = "The PostgreSQL connection string for Neon.tech production database."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "resend_api_key" {
+  description = "API key for the Resend email dispatching service."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "static_web_app_location" {
   description = "The Azure region for the Static Web App host (eastus2, centralus, westus2, westeurope, eastasia)."
   type        = string
   default     = "eastus2"
 }
+
 
