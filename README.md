@@ -22,7 +22,7 @@
 
 Finding upcoming electronic music events across London typically requires checking multiple disconnected platforms (Ticketmaster, Skiddle, Resident Advisor), each with differing search semantics, duplicate listings, and varying ticket availability states.
 
-**ElectronicLive** acts as a centralized **Aggregator / BFF (Backend-For-Frontend)**. It queries multiple event providers concurrently, correlates and deduplicates identical events across different vendor naming conventions, and delivers an instant, consolidated search experience.
+**ElectronicLive** acts as a centralized **Aggregator / BFF (Backend-For-Frontend)**. It queries multiple event providers concurrently, correlates and deduplicates identical events across different vendor naming conventions, and delivers an instant, consolidated search experience alongside automated artist watchlist email alerts.
 
 ---
 
@@ -31,6 +31,7 @@ Finding upcoming electronic music events across London typically requires checki
 * **Parallel Multi-Provider Search:** Queries Ticketmaster, Skiddle, and Resident Advisor simultaneously using non-blocking asynchronous I/O (`Task.WhenAll`).
 * **Genre Taxonomy Aggregation:** Discovers London electronic music events by standardized genre classifications (Techno, House, Drum & Bass, Trance, Garage), mapping directly to Ticketmaster music classifications, Skiddle club codes/genre IDs (`g=...`), and Resident Advisor search indexes without false-positive venue collisions.
 * **Smart Deduplication & Venue Normalization:** Merges cross-platform duplicates into a single event card with multiple ticket purchase links (e.g. matching *"Drumsheds"* against *"The Drumsheds, London"*).
+* **Artist Watchlist & Email Alerts:** Follow favourite electronic artists in London. A scheduled background scanner inspects upcoming gigs twice daily and dispatches responsive HTML email digests via Resend with deterministic event deduplication (`NotificationLog`) and one-click tokenized unsubscribe.
 * **Resilient Graceful Degradation:** Built with Polly resilience pipelines; if an upstream vendor times out or errors, the API still returns results from healthy providers.
 * **Low-Latency Response Caching:** Uses .NET 10 `HybridCache` (L1 in-memory) to serve repeated queries with near-zero latency.
 * **URL-Synced Search & UI:** React 19 client with deep-linking query parameters (`?q=...`, `?genre=...`), instant artist, venue, and genre quick-filter presets, responsive dark UI, and skeleton loading states.
@@ -42,11 +43,18 @@ Finding upcoming electronic music events across London typically requires checki
 ```mermaid
 flowchart TD
     User(["Browser / User"])
-    
+    Recipient(["Subscriber Email Inbox"])
+
     subgraph Azure_Cloud ["Azure Cloud (West Europe)"]
         SWA["Azure Static Web Apps\n(React 19 + Tailwind Client)"]
-        ACA["Azure Container Apps\n(ASP.NET Core 10 Minimal API)"]
+        ACA["Azure Container Apps API\n(ASP.NET Core 10 Minimal API)"]
+        ACAJob["Azure Container Apps Job\n(Watchlist Scanner · Cron: 0 8,18 * * *)"]
         AI["Azure Application Insights\n(Telemetry & Tracing)"]
+    end
+
+    subgraph Cloud_Persistence ["Persistence & Notification Services"]
+        Neon[("Neon PostgreSQL\n(Users, Subscriptions, Logs)")]
+        Resend["Resend API\n(Transactional Email Delivery)"]
     end
 
     subgraph External_Providers ["Upstream Gig & Ticketing Providers"]
@@ -56,19 +64,29 @@ flowchart TD
     end
 
     User -->|"HTTPS"| SWA
-    SWA -->|"GET /api/events/search"| ACA
+    SWA -->|"GET /api/events/search\nPOST /api/subscriptions"| ACA
     ACA -->|"Structured Logs & Traces"| AI
+    ACAJob -->|"Structured Logs & Traces"| AI
 
+    %% API Real-time Search
     ACA -->|"HybridCache Check"| Cache{Cache Hit?}
     Cache -- Yes --> SWA
     Cache -- No --> FetchParallel["Task.WhenAll\n(Polly Resilience)"]
 
-    FetchParallel --> TM
-    FetchParallel --> SK
-    FetchParallel --> RA
-
+    %% External Search
+    FetchParallel --> TM & SK & RA
     TM & SK & RA --> Dedupe["EventDeduplicator\n(Merge by Date + Venue)"]
     Dedupe --> ACA
+
+    %% Subscriptions & Storage
+    ACA -->|"Read/Write Subscriptions"| Neon
+
+    %% Scanner Job Flow
+    ACAJob -->|"Query Monitored Artists"| Neon
+    ACAJob -->|"Search Live Gigs"| FetchParallel
+    ACAJob -->|"Deduplicate against NotificationLogs"| Neon
+    ACAJob -->|"Dispatch HTML Digest"| Resend
+    Resend -->|"Deliver Digest Email"| Recipient
 ```
 
 ---
@@ -77,10 +95,12 @@ flowchart TD
 
 | Domain | Technologies & Libraries |
 | :--- | :--- |
-| **Backend API** | .NET 10 (C# 13), ASP.NET Core Minimal APIs, `Microsoft.Extensions.Resilience` (Polly), `Microsoft.Extensions.Caching.Hybrid` |
+| **Backend API & Scanner** | .NET 10 (C# 13), ASP.NET Core Minimal APIs, `Microsoft.Extensions.Resilience` (Polly), `Microsoft.Extensions.Caching.Hybrid` |
+| **Persistence & Data** | PostgreSQL (Neon.tech), Entity Framework Core 10 (`Npgsql.EntityFrameworkCore.PostgreSQL`), SQLite (local dev & testing) |
+| **Email & Background Processing** | Resend API, Azure Container Apps Jobs (scheduled cron runner) |
 | **Frontend** | React 19, TypeScript (Strict Mode), Vite, TanStack Query v5, Tailwind CSS v4 |
 | **Testing** | xUnit, Shouldly, NSubstitute (Backend) · Vitest, React Testing Library, Mock Service Worker / MSW (Frontend) |
-| **Cloud & DevOps** | Azure Container Apps, Azure Static Web Apps, Log Analytics, Application Insights, Terraform (IaC), GitHub Actions (OIDC Deployments) |
+| **Cloud & DevOps** | Azure Container Apps & Jobs, Azure Static Web Apps, Log Analytics, Application Insights, Terraform (IaC), GitHub Actions (OIDC Deployments) |
 
 ---
 
@@ -88,12 +108,14 @@ flowchart TD
 
 ```text
 ├── backend/
-│   ├── src/ElectronicLive.Api/       # .NET 10 Minimal API, typed provider clients, caching & deduplication
+│   ├── src/ElectronicLive.Api/       # .NET 10 Minimal API, scanner job runner, EF Core models & clients
 │   └── tests/                        # Comprehensive unit & integration tests (xUnit, NSubstitute)
 ├── client/
 │   ├── src/                          # React 19 application (components, hooks, MSW test fixtures)
 │   └── public/                       # Static web assets & icons
 ├── infra/                            # Terraform configurations for all Azure cloud infrastructure
+├── docs/                             # Architecture Decision Records (ADRs) and domain specifications
+├── CONTEXT.md                        # Ubiquitous domain language and entity glossary
 └── .github/workflows/                # Automated CI/CD pipelines for backend, frontend, and infra
 ```
 
@@ -101,9 +123,9 @@ flowchart TD
 
 ## ⚙️ Engineering Decisions & Trade-offs
 
-### 1. Stateless Aggregator (BFF) vs. Periodic Database Ingestion
-* **Decision:** Query providers on-demand and cache in-memory via `HybridCache` rather than running a background database crawler.
-* **Rationale:** Event dates, ticket links, and live statuses (*OnSale* vs. *SoldOut*) change dynamically. Live aggregation avoids maintaining heavy background scrapers, database synchronization workers, and stale relational state.
+### 1. Hybrid Persistence Architecture: Stateless Event Aggregation + Relational Watchlist Storage
+* **Decision:** Keep event discovery 100% stateless and cached in-memory via `HybridCache`, while persisting user subscriptions, notification history, and deduplication fingerprints in a relational PostgreSQL database (Neon).
+* **Rationale:** Event dates, ticket links, and live statuses (*OnSale* vs. *SoldOut*) change dynamically across ticketing providers; querying on-demand avoids maintaining heavy background scrapers, database synchronization workers, and stale relational catalog state. Conversely, user watchlists, artist subscriptions, and notification deduplication fingerprints require ACID transactions, relational foreign key constraints, and persistent state.
 
 ### 2. Upstream Fault Isolation
 * **Decision:** Wrap each provider call in isolated exception blocks alongside Polly resilience handlers (`AddStandardResilienceHandler`).
@@ -130,9 +152,46 @@ dotnet restore backend/ElectronicLive.sln
 dotnet run --project backend/src/ElectronicLive.Api
 ```
 
-> **Note on API Keys:** The backend includes fallback mock handling for local exploration, but live external data requires valid API keys in `appsettings.json` or user secrets (`Ticketmaster:ApiKey`, `Skiddle:ApiKey`).
+> **Local Persistence Note:** When running locally without a PostgreSQL connection string, the application automatically defaults to a local SQLite database (`electroniclive.db`) with automatic schema creation.
 
-### 2. Frontend Setup
+### 2. Watchlist Scanner CLI Job
+To manually execute the scheduled watchlist scanner job locally:
+```bash
+dotnet run --project backend/src/ElectronicLive.Api -- --job scan-watchlist
+```
+
+### 3. Local Testing Guide: Background Service & Email Dispatching
+ElectronicLive uses a dual-mode dispatching architecture to support both offline development and live delivery testing:
+
+1. **Default Offline Mode (Zero Setup):**
+   * Leave `Resend:ApiKey` empty or omitted in `appsettings.json`.
+   * The API automatically registers `LoggingEmailDispatcher`.
+   * Running the scanner (`dotnet run --project backend/src/ElectronicLive.Api -- --job scan-watchlist`) logs progress to the console and generates fully rendered preview `.html` files in `.scratch/emails/`.
+   * Open these files in any web browser to inspect dark-mode styling, responsive event cards, and ticket provider links.
+2. **Live Delivery Testing Mode (Resend):**
+   * Add your Resend API credentials to `backend/src/ElectronicLive.Api/appsettings.secrets.json` (or via environment variables):
+     ```json
+     {
+       "Resend": {
+         "ApiKey": "re_test_key...",
+         "FromEmail": "ElectronicLive <onboarding@resend.dev>"
+       }
+     }
+     ```
+   * Running the scanner or creating subscriptions will automatically activate `ResendEmailDispatcher` and deliver live transactional emails to real inboxes.
+
+### 4. Environment Variables Reference
+
+| Environment Variable | Description | Default / Fallback |
+| :--- | :--- | :--- |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection string (e.g., Neon.tech) | Falls back to local `electroniclive.db` (SQLite) |
+| `Resend__ApiKey` | Resend API key for sending email digests | Omitting activates `LoggingEmailDispatcher` (HTML file output) |
+| `Resend__FromEmail` | Sender email address for outgoing digests | `ElectronicLive <onboarding@resend.dev>` |
+| `EventProviders__Ticketmaster__ApiKey` | Ticketmaster API consumer key | Mock fallback data |
+| `EventProviders__Skiddle__ApiKey` | Skiddle API key | Mock fallback data |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights telemetry string | Optional / disabled locally |
+
+### 5. Frontend Setup
 ```bash
 # Navigate to client and install dependencies
 cd client
@@ -142,9 +201,9 @@ npm install
 npm run dev
 ```
 
-### 3. Running Test Suites
+### 6. Running Test Suites
 ```bash
-# Run backend unit tests (xUnit)
+# Run backend unit and integration tests (xUnit)
 dotnet test backend/ElectronicLive.sln
 
 # Run frontend tests (Vitest + React Testing Library + MSW)
@@ -158,5 +217,5 @@ npm run test
 
 All infrastructure is provisioned through Terraform in [`infra/`](infra/) and deployed via GitHub Actions using OIDC authentication:
 
-* **Backend:** Automated pipeline builds the .NET application, executes tests, packages a minimal container image pushed to GitHub Container Registry (GHCR), and deploys revision updates to **Azure Container Apps**.
+* **Backend API & Scanner:** Automated pipeline builds the .NET application, executes tests, packages a minimal container image pushed to GitHub Container Registry (GHCR), deploys API revisions to **Azure Container Apps**, and configures the scheduled **Azure Container Apps Job**.
 * **Frontend:** Builds the production Vite bundle and deploys to **Azure Static Web Apps**.
