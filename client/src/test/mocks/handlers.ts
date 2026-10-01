@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { getDaysDifference } from '../../components/search/datePresets'
 import { isValidEmail } from '../../utils/validation'
 import { mockDefaultEvents } from './fixtures'
 
@@ -44,9 +45,7 @@ export const handlers = [
     }
 
     if (!query && !genre && from && to) {
-      const fromDate = new Date(from)
-      const toDate = new Date(to)
-      const diffDays = Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
+      const diffDays = getDaysDifference(from, to)
       if (diffDays > 7) {
         return HttpResponse.json(
           {

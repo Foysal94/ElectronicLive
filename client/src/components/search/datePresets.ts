@@ -57,11 +57,8 @@ function getThisWeekendRange(referenceDate: Date): DateRange {
 }
 
 function getNextWeekendRange(referenceDate: Date): DateRange {
-  const normalized = normalizeReferenceDate(referenceDate)
-  const dayOfWeek = getDay(normalized)
-  const fridayOffset = dayOfWeek === 0 ? -2 : 5 - dayOfWeek
-
-  const thisFriday = addDays(normalized, fridayOffset)
+  const thisWeekend = getThisWeekendRange(referenceDate)
+  const thisFriday = parseDateOnly(thisWeekend.from) ?? normalizeReferenceDate(referenceDate)
   const nextFriday = addDays(thisFriday, 7)
   const nextSunday = addDays(nextFriday, 2)
 
