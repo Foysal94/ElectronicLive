@@ -55,7 +55,12 @@ public class EventEndpointsIntegrationTests : IClassFixture<CustomWebApplication
         };
 
         _factory
-            .EventSearchService.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                "Bicep",
+                null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(expectedEvents);
 
         var response = await _client.GetAsync("/api/events/search?query=Bicep");
@@ -83,7 +88,12 @@ public class EventEndpointsIntegrationTests : IClassFixture<CustomWebApplication
     public async Task Should_ReturnBadGateway_WhenAllProvidersAreUnavailable()
     {
         _factory
-            .EventSearchService.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                "Bicep",
+                null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(
                 Task.FromException<IReadOnlyList<EventResponse>>(new AllProvidersUnavailableException("Bicep", 3))
             );
@@ -91,6 +101,59 @@ public class EventEndpointsIntegrationTests : IClassFixture<CustomWebApplication
         var response = await _client.GetAsync("/api/events/search?query=Bicep");
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadGateway);
+    }
+
+    [Fact]
+    public async Task Should_ReturnEvents_WhenDateOnlySearchWithin7Days()
+    {
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 10, 7);
+        var expectedEvents = new List<EventResponse>
+        {
+            new(
+                Id: "tm-date-1",
+                Name: "London Dance Event",
+                VenueName: "Printworks",
+                Date: new DateOnly(2026, 10, 3),
+                Time: new TimeOnly(22, 0),
+                TicketUrl: "https://example.com/tickets",
+                Status: EventStatus.OnSale,
+                Provider: EventProvider.Ticketmaster
+            ),
+        };
+
+        _factory
+            .EventSearchService.SearchEventsAsync(null, null, "London", from, to, Arg.Any<CancellationToken>())
+            .Returns(expectedEvents);
+
+        var response = await _client.GetAsync($"/api/events/search?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<List<EventResponse>>();
+        body.ShouldNotBeNull();
+        body.ShouldHaveSingleItem().Id.ShouldBe("tm-date-1");
+    }
+
+    [Fact]
+    public async Task Should_ReturnBadRequest_WhenDateOnlyRangeExceeds7Days()
+    {
+        var response = await _client.GetAsync("/api/events/search?from=2026-10-01&to=2026-10-10");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
+        problem.ShouldNotBeNull();
+        problem.Errors.ShouldContainKey("date");
+    }
+
+    [Fact]
+    public async Task Should_ReturnBadRequest_WhenToIsBeforeFrom()
+    {
+        var response = await _client.GetAsync("/api/events/search?query=Bicep&from=2026-10-10&to=2026-10-01");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
+        problem.ShouldNotBeNull();
+        problem.Errors.ShouldContainKey("to");
     }
 
     private sealed record HealthResponse(string Status);

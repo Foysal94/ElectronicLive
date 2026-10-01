@@ -63,7 +63,14 @@ public class EventSearchServiceTests
         result.ShouldBeEmpty();
         await provider
             .DidNotReceive()
-            .SearchEventsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            .SearchEventsAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<CancellationToken>()
+            );
     }
 
     [Fact]
@@ -90,7 +97,9 @@ public class EventSearchServiceTests
             EventStatus.OnSale,
             EventProvider.Ticketmaster
         );
-        provider1.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>()).Returns([event1]);
+        provider1
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([event1]);
 
         var provider2 = Substitute.For<IEventProvider>();
         provider2.Provider.Returns(EventProvider.Skiddle);
@@ -103,7 +112,9 @@ public class EventSearchServiceTests
             EventStatus.OnSale,
             EventProvider.Skiddle
         );
-        provider2.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>()).Returns([event2]);
+        provider2
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([event2]);
 
         var service = CreateService([provider1, provider2]);
 
@@ -130,14 +141,18 @@ public class EventSearchServiceTests
             EventStatus.OnSale,
             EventProvider.Ticketmaster
         );
-        provider.SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>()).Returns([venueEvent]);
+        provider
+            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([venueEvent]);
 
         var service = CreateService([provider]);
 
         var result = await service.SearchEventsAsync("fabric", null, "London");
 
         result.ShouldHaveSingleItem().VenueName.ShouldBe("fabric");
-        await provider.Received(1).SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>());
+        await provider
+            .Received(1)
+            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -155,7 +170,9 @@ public class EventSearchServiceTests
             EventProvider.Ticketmaster,
             "https://ticketmaster.com/fred"
         );
-        provider.SearchEventsAsync("Fred Again..", null, "London", Arg.Any<CancellationToken>()).Returns([singleEvent]);
+        provider
+            .SearchEventsAsync("Fred Again..", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([singleEvent]);
 
         var service = CreateService([provider]);
 
@@ -184,7 +201,9 @@ public class EventSearchServiceTests
             EventProvider.Ticketmaster,
             "https://ticketmaster.com/1"
         );
-        tmProvider.SearchEventsAsync("Four Tet", null, "London", Arg.Any<CancellationToken>()).Returns([tmEvent]);
+        tmProvider
+            .SearchEventsAsync("Four Tet", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([tmEvent]);
 
         var skProvider = Substitute.For<IEventProvider>();
         skProvider.Provider.Returns(EventProvider.Skiddle);
@@ -198,7 +217,9 @@ public class EventSearchServiceTests
             EventProvider.Skiddle,
             "https://skiddle.com/1"
         );
-        skProvider.SearchEventsAsync("Four Tet", null, "London", Arg.Any<CancellationToken>()).Returns([skEvent]);
+        skProvider
+            .SearchEventsAsync("Four Tet", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([skEvent]);
 
         var service = CreateService([tmProvider, skProvider]);
 
@@ -244,7 +265,7 @@ public class EventSearchServiceTests
         var eventTba = CreateSampleEvent("4", "Event TBA Date", "Venue 4", null, null, explicitDate: true);
 
         provider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns([eventLaterDate, eventTba, eventLaterTime, eventEarlierTime]);
 
         var service = CreateService([provider]);
@@ -264,7 +285,9 @@ public class EventSearchServiceTests
         var provider = Substitute.For<IEventProvider>();
         provider.Provider.Returns(EventProvider.Ticketmaster);
         var sampleEvent = CreateSampleEvent("1", "Bicep Live", "Drumsheds");
-        provider.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>()).Returns([sampleEvent]);
+        provider
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([sampleEvent]);
 
         var service = CreateService([provider]);
 
@@ -275,7 +298,14 @@ public class EventSearchServiceTests
         result2.Count.ShouldBe(1);
         await provider
             .Received(1)
-            .SearchEventsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            .SearchEventsAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<CancellationToken>()
+            );
     }
 
     [Fact]
@@ -285,7 +315,14 @@ public class EventSearchServiceTests
         provider.Provider.Returns(EventProvider.Ticketmaster);
         var sampleEvent = CreateSampleEvent("1", "Bicep Live", "Drumsheds");
         provider
-            .SearchEventsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .SearchEventsAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<CancellationToken>()
+            )
             .Returns([sampleEvent]);
 
         var service = CreateService([provider]);
@@ -299,7 +336,14 @@ public class EventSearchServiceTests
         r3.Count.ShouldBe(1);
         await provider
             .Received(1)
-            .SearchEventsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            .SearchEventsAsync(
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<CancellationToken>()
+            );
     }
 
     [Fact]
@@ -311,10 +355,14 @@ public class EventSearchServiceTests
         var technoEvent = CreateSampleEvent("2", "Techno Night");
         var bicepTechnoEvent = CreateSampleEvent("3", "Bicep Techno");
 
-        provider.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>()).Returns([bicepEvent]);
-        provider.SearchEventsAsync(null, "techno", "London", Arg.Any<CancellationToken>()).Returns([technoEvent]);
         provider
-            .SearchEventsAsync("Bicep", "techno", "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([bicepEvent]);
+        provider
+            .SearchEventsAsync(null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([technoEvent]);
+        provider
+            .SearchEventsAsync("Bicep", "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns([bicepTechnoEvent]);
 
         var service = CreateService([provider]);
@@ -334,7 +382,7 @@ public class EventSearchServiceTests
         var provider = Substitute.For<IEventProvider>();
         provider.Provider.Returns(EventProvider.Ticketmaster);
         provider
-            .SearchEventsAsync("Overmono", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Overmono", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Temporary outage"));
 
         var service = CreateService([provider]);
@@ -345,7 +393,9 @@ public class EventSearchServiceTests
 
         // Next call recovers and should invoke provider again instead of returning cached failure
         var recoveredEvent = CreateSampleEvent("e-2", "Overmono Live");
-        provider.SearchEventsAsync("Overmono", null, "London", Arg.Any<CancellationToken>()).Returns([recoveredEvent]);
+        provider
+            .SearchEventsAsync("Overmono", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([recoveredEvent]);
 
         var retryResult = await service.SearchEventsAsync("Overmono", null, "London");
 
@@ -358,7 +408,7 @@ public class EventSearchServiceTests
         var failingProvider = Substitute.For<IEventProvider>();
         failingProvider.Provider.Returns(EventProvider.Ticketmaster);
         failingProvider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("500 Internal Server Error"));
 
         var healthyProvider = Substitute.For<IEventProvider>();
@@ -373,7 +423,7 @@ public class EventSearchServiceTests
             EventProvider.Skiddle
         );
         healthyProvider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns([healthyEvent]);
 
         var service = CreateService([failingProvider, healthyProvider]);
@@ -390,7 +440,7 @@ public class EventSearchServiceTests
         var timingOutProvider = Substitute.For<IEventProvider>();
         timingOutProvider.Provider.Returns(EventProvider.Ticketmaster);
         timingOutProvider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new TaskCanceledException("HttpClient timeout"));
 
         var healthyProvider = Substitute.For<IEventProvider>();
@@ -405,7 +455,7 @@ public class EventSearchServiceTests
             EventProvider.Skiddle
         );
         healthyProvider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns([healthyEvent]);
 
         var service = CreateService([timingOutProvider, healthyProvider]);
@@ -422,7 +472,7 @@ public class EventSearchServiceTests
         var failingProvider = Substitute.For<IEventProvider>();
         failingProvider.Provider.Returns(EventProvider.Ticketmaster);
         failingProvider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Upstream exploded"));
 
         var service = CreateService([failingProvider]);
@@ -440,7 +490,7 @@ public class EventSearchServiceTests
         var provider = Substitute.For<IEventProvider>();
         provider.Provider.Returns(EventProvider.Ticketmaster);
         provider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns((IReadOnlyList<EventResponse>)null!);
 
         var service = CreateService([provider]);
@@ -458,13 +508,13 @@ public class EventSearchServiceTests
 
         var provider = Substitute.For<IEventProvider>();
         provider
-            .SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: cts.Token)
             .ThrowsAsync(new OperationCanceledException(cts.Token));
 
         var service = CreateService([provider]);
 
         await Should.ThrowAsync<OperationCanceledException>(() =>
-            service.SearchEventsAsync("Bicep", null, "London", cts.Token)
+            service.SearchEventsAsync("Bicep", null, "London", cancellationToken: cts.Token)
         );
     }
 
@@ -474,17 +524,21 @@ public class EventSearchServiceTests
         using var cts = new CancellationTokenSource();
 
         var provider1 = Substitute.For<IEventProvider>();
-        provider1.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>()).Returns([]);
+        provider1.SearchEventsAsync("Bicep", null, "London", cancellationToken: cts.Token).Returns([]);
 
         var provider2 = Substitute.For<IEventProvider>();
-        provider2.SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>()).Returns([]);
+        provider2.SearchEventsAsync("Bicep", null, "London", cancellationToken: cts.Token).Returns([]);
 
         var service = CreateService([provider1, provider2]);
 
-        await service.SearchEventsAsync("Bicep", null, "London", cts.Token);
+        await service.SearchEventsAsync("Bicep", null, "London", cancellationToken: cts.Token);
 
-        await provider1.Received(1).SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>());
-        await provider2.Received(1).SearchEventsAsync("Bicep", null, "London", Arg.Any<CancellationToken>());
+        await provider1
+            .Received(1)
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>());
+        await provider2
+            .Received(1)
+            .SearchEventsAsync("Bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -492,18 +546,134 @@ public class EventSearchServiceTests
     {
         var provider1 = Substitute.For<IEventProvider>();
         provider1.Provider.Returns(EventProvider.Ticketmaster);
-        provider1.SearchEventsAsync(null, "techno", "London", Arg.Any<CancellationToken>()).Returns([]);
+        provider1
+            .SearchEventsAsync(null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([]);
 
         var provider2 = Substitute.For<IEventProvider>();
         provider2.Provider.Returns(EventProvider.ResidentAdvisor);
-        provider2.SearchEventsAsync(null, "techno", "London", Arg.Any<CancellationToken>()).Returns([]);
+        provider2
+            .SearchEventsAsync(null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([]);
 
         var service = CreateService([provider1, provider2]);
 
         var result = await service.SearchEventsAsync(null, "techno", "London");
 
         result.ShouldBeEmpty();
-        await provider1.Received(1).SearchEventsAsync(null, "techno", "London", Arg.Any<CancellationToken>());
-        await provider2.Received(1).SearchEventsAsync(null, "techno", "London", Arg.Any<CancellationToken>());
+        await provider1
+            .Received(1)
+            .SearchEventsAsync(null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>());
+        await provider2
+            .Received(1)
+            .SearchEventsAsync(null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_CacheCanonicalSchedule_AndFilterByFromAndToInMemory_WhenQueryOrGenrePresent()
+    {
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+
+        var eventOct = CreateSampleEvent("e-oct", "Bicep Oct", "Drumsheds", new DateOnly(2026, 10, 15));
+        var eventNov = CreateSampleEvent("e-nov", "Bicep Nov", "Brixton Academy", new DateOnly(2026, 11, 20));
+        var eventDec = CreateSampleEvent("e-dec", "Bicep Dec", "Roundhouse", new DateOnly(2026, 12, 10));
+
+        // When query is present, providers receive null for upstream from and to dates
+        provider
+            .SearchEventsAsync("Bicep", null, "London", null, null, Arg.Any<CancellationToken>())
+            .Returns([eventOct, eventNov, eventDec]);
+
+        var service = CreateService([provider]);
+
+        var from = new DateOnly(2026, 11, 1);
+        var to = new DateOnly(2026, 11, 30);
+
+        var result = await service.SearchEventsAsync("Bicep", null, "London", from, to);
+
+        result.ShouldHaveSingleItem().Id.ShouldBe("e-nov");
+
+        // Subsequent query with different date range for same artist hits cache and slices in memory
+        var fromDec = new DateOnly(2026, 12, 1);
+        var toDec = new DateOnly(2026, 12, 31);
+
+        var resultDec = await service.SearchEventsAsync("Bicep", null, "London", fromDec, toDec);
+
+        resultDec.ShouldHaveSingleItem().Id.ShouldBe("e-dec");
+
+        // Upstream provider should only have been queried ONCE
+        await provider.Received(1).SearchEventsAsync("Bicep", null, "London", null, null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_ExcludeEventsWithNullDate_WhenFilteringByDate()
+    {
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+
+        var eventWithDate = CreateSampleEvent("e-date", "Bicep Confirmed", "Drumsheds", new DateOnly(2026, 11, 15));
+        var eventTba = CreateSampleEvent("e-tba", "Bicep TBA", "Drumsheds", null, explicitDate: true);
+
+        provider
+            .SearchEventsAsync("Bicep", null, "London", null, null, Arg.Any<CancellationToken>())
+            .Returns([eventWithDate, eventTba]);
+
+        var service = CreateService([provider]);
+
+        var from = new DateOnly(2026, 11, 1);
+        var to = new DateOnly(2026, 11, 30);
+
+        var result = await service.SearchEventsAsync("Bicep", null, "London", from, to);
+
+        result.ShouldHaveSingleItem().Id.ShouldBe("e-date");
+    }
+
+    [Fact]
+    public async Task Should_PassDatesUpstream_AndUseDateScopedCacheKey_WhenQueryAndGenreAbsent()
+    {
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 10, 7);
+
+        var dateScopedEvent = CreateSampleEvent("e-ds", "London Club Night", "fabric", new DateOnly(2026, 10, 3));
+
+        provider
+            .SearchEventsAsync(null, null, "London", from, to, Arg.Any<CancellationToken>())
+            .Returns([dateScopedEvent]);
+
+        var service = CreateService([provider]);
+
+        var result1 = await service.SearchEventsAsync(null, null, "London", from, to);
+        var result2 = await service.SearchEventsAsync(null, null, "London", from, to);
+
+        result1.ShouldHaveSingleItem().Id.ShouldBe("e-ds");
+        result2.ShouldHaveSingleItem().Id.ShouldBe("e-ds");
+
+        // Provider queried upstream with bounds, cached by date range
+        await provider.Received(1).SearchEventsAsync(null, null, "London", from, to, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Should_AllowOpenEndedDateFilter_WhenQueryIsPresent()
+    {
+        var provider = Substitute.For<IEventProvider>();
+        provider.Provider.Returns(EventProvider.Ticketmaster);
+
+        var pastEvent = CreateSampleEvent("e-1", "Bicep Early", "Drumsheds", new DateOnly(2026, 10, 1));
+        var futureEvent = CreateSampleEvent("e-2", "Bicep Later", "Brixton", new DateOnly(2026, 11, 15));
+
+        provider
+            .SearchEventsAsync("Bicep", null, "London", null, null, Arg.Any<CancellationToken>())
+            .Returns([pastEvent, futureEvent]);
+
+        var service = CreateService([provider]);
+
+        var from = new DateOnly(2026, 11, 1);
+
+        var result = await service.SearchEventsAsync("Bicep", null, "London", from: from);
+
+        result.ShouldHaveSingleItem().Id.ShouldBe("e-2");
     }
 }
