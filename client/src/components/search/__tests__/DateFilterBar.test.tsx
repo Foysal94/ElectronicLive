@@ -299,4 +299,45 @@ describe('DateFilterBar Component', () => {
       expect(btn).toHaveClass('min-h-[44px]')
     }
   })
+
+  it('Should_close_custom_tray_when_clicking_outside', async () => {
+    vi.useRealTimers()
+    render(
+      <div>
+        <div data-testid="outside">Outside area</div>
+        <DateFilterBar
+          activeFrom=""
+          activeTo=""
+          onSelectDateRange={() => {}}
+          hasSearchContext={true}
+        />
+      </div>
+    )
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Custom...' }))
+    expect(screen.getByRole('grid')).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('outside'))
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+  })
+
+  it('Should_close_custom_tray_when_pressing_Escape', async () => {
+    vi.useRealTimers()
+    render(
+      <DateFilterBar
+        activeFrom=""
+        activeTo=""
+        onSelectDateRange={() => {}}
+        hasSearchContext={true}
+      />
+    )
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Custom...' }))
+    expect(screen.getByRole('grid')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+  })
 })
