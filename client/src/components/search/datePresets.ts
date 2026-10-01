@@ -38,6 +38,10 @@ export function parseDateOnly(dateString: string): Date | null {
   return date
 }
 
+export function normalizeReferenceDate(ref: Date = new Date()): Date {
+  return new Date(Date.UTC(ref.getFullYear(), ref.getMonth(), ref.getDate()))
+}
+
 export function getDaysDifference(fromIso: string, toIso: string): number {
   const from = parseDateOnly(fromIso)
   const to = parseDateOnly(toIso)
@@ -48,14 +52,15 @@ export function getDaysDifference(fromIso: string, toIso: string): number {
 }
 
 function getThisWeekendRange(referenceDate: Date): DateRange {
-  const dayOfWeek = referenceDate.getUTCDay()
+  const normalized = normalizeReferenceDate(referenceDate)
+  const dayOfWeek = normalized.getUTCDay()
   const fridayOffset = dayOfWeek === 0 ? -2 : 5 - dayOfWeek
 
   const friday = new Date(
     Date.UTC(
-      referenceDate.getUTCFullYear(),
-      referenceDate.getUTCMonth(),
-      referenceDate.getUTCDate() + fridayOffset
+      normalized.getUTCFullYear(),
+      normalized.getUTCMonth(),
+      normalized.getUTCDate() + fridayOffset
     )
   )
 
@@ -75,7 +80,7 @@ function getThisWeekendRange(referenceDate: Date): DateRange {
 
 function getNextWeekendRange(referenceDate: Date): DateRange {
   const thisWeekend = getThisWeekendRange(referenceDate)
-  const thisFriday = parseDateOnly(thisWeekend.from) ?? referenceDate
+  const thisFriday = parseDateOnly(thisWeekend.from) ?? normalizeReferenceDate(referenceDate)
 
   const nextFriday = new Date(
     Date.UTC(
@@ -104,7 +109,7 @@ export const DATE_PRESETS: DatePresetDefinition[] = [
     id: 'tonight',
     label: 'Tonight',
     getRange: (ref = new Date()) => {
-      const today = formatDateOnly(ref)
+      const today = formatDateOnly(normalizeReferenceDate(ref))
       return { from: today, to: today }
     },
   },
@@ -122,11 +127,16 @@ export const DATE_PRESETS: DatePresetDefinition[] = [
     id: 'next-30-days',
     label: 'Next 30 Days',
     getRange: (ref = new Date()) => {
+      const normalized = normalizeReferenceDate(ref)
       const toDate = new Date(
-        Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + 30)
+        Date.UTC(
+          normalized.getUTCFullYear(),
+          normalized.getUTCMonth(),
+          normalized.getUTCDate() + 30
+        )
       )
       return {
-        from: formatDateOnly(ref),
+        from: formatDateOnly(normalized),
         to: formatDateOnly(toDate),
       }
     },

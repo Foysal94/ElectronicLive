@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import {
   DATE_PRESETS,
+  type DatePresetKey,
   getDaysDifference,
   matchActivePreset,
+  parseDateOnly,
 } from './datePresets'
 
 export interface DateFilterBarProps {
@@ -42,14 +44,11 @@ export function DateFilterBar({
   }
 
   const handleCustomToggle = () => {
-    setIsCustomTrayOpen((prev) => {
-      const next = !prev
-      if (next) {
-        setCustomFrom(activeFrom)
-        setCustomTo(activeTo)
-      }
-      return next
-    })
+    if (!isCustomTrayOpen) {
+      setCustomFrom(activeFrom)
+      setCustomTo(activeTo)
+    }
+    setIsCustomTrayOpen((prev) => !prev)
   }
 
   const handleCancelCustom = () => {
@@ -58,8 +57,17 @@ export function DateFilterBar({
     setCustomTo(activeTo)
   }
 
-  const hasBothDates = Boolean(customFrom && customTo)
-  const isOrderValid = hasBothDates && customTo >= customFrom
+  const handleClearCustom = () => {
+    onSelectDateRange('', '')
+    setIsCustomTrayOpen(false)
+    setCustomFrom('')
+    setCustomTo('')
+  }
+
+  const parsedFrom = parseDateOnly(customFrom)
+  const parsedTo = parseDateOnly(customTo)
+  const hasBothDates = Boolean(parsedFrom && parsedTo)
+  const isOrderValid = Boolean(hasBothDates && parsedFrom && parsedTo && parsedTo >= parsedFrom)
   const rangeDays = hasBothDates ? getDaysDifference(customFrom, customTo) : 0
   const exceedsDateOnlyLimit = !hasSearchContext && rangeDays > 7
   const isApplyEnabled = isOrderValid && !exceedsDateOnlyLimit
@@ -116,7 +124,7 @@ export function DateFilterBar({
             type="button"
             onClick={handleCustomToggle}
             aria-expanded={isCustomTrayOpen}
-            aria-pressed={isCustomActive}
+            aria-controls="custom-date-tray"
             className={`min-h-[44px] px-4 py-2 rounded-full text-xs sm:text-sm font-medium border transition-colors flex items-center justify-center ${
               isCustomActive
                 ? 'bg-emerald-950 text-emerald-400 border-emerald-800 shadow-sm'
@@ -132,6 +140,7 @@ export function DateFilterBar({
 
       {isCustomTrayOpen && (
         <form
+          id="custom-date-tray"
           onSubmit={handleApplyCustom}
           aria-label="Custom date range selector"
           className="bg-[#22262d]/70 border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col gap-3 shadow-lg backdrop-blur-sm transition-all"
@@ -186,11 +195,20 @@ export function DateFilterBar({
               >
                 Cancel
               </button>
+              {(activeFrom || activeTo) && (
+                <button
+                  type="button"
+                  onClick={handleClearCustom}
+                  className="min-h-[44px] px-3 py-2 text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
 
           {exceedsDateOnlyLimit && (
-            <p className="text-xs text-amber-400 flex items-center gap-1.5 pt-1">
+            <p role="alert" className="text-xs text-amber-400 flex items-center gap-1.5 pt-1">
               <span>⚠️</span>
               <span>
                 Date-only search exceeds 7-day limit. Add an artist or genre for longer ranges.
@@ -198,8 +216,8 @@ export function DateFilterBar({
             </p>
           )}
 
-          {hasBothDates && customTo < customFrom && (
-            <p className="text-xs text-rose-400 flex items-center gap-1.5 pt-1">
+          {hasBothDates && !isOrderValid && (
+            <p role="alert" className="text-xs text-rose-400 flex items-center gap-1.5 pt-1">
               <span>⚠️</span>
               <span>&apos;To&apos; date must be on or after &apos;From&apos; date.</span>
             </p>

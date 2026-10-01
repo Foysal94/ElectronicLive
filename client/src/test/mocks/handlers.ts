@@ -43,6 +43,22 @@ export const handlers = [
       )
     }
 
+    if (!query && !genre && from && to) {
+      const fromDate = new Date(from)
+      const toDate = new Date(to)
+      const diffDays = Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
+      if (diffDays > 7) {
+        return HttpResponse.json(
+          {
+            title: 'One or more validation errors occurred.',
+            status: 400,
+            errors: { date: ['Date range cannot exceed 7 days when searching without query or genre.'] },
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     const trimmed = query.toLowerCase()
 
     if (trimmed === 'error' || trimmed === 'error-500') {
