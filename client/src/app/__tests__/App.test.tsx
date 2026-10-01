@@ -320,8 +320,8 @@ describe('App Integration Suite', () => {
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
     await user.click(screen.getByRole('button', { name: /next month/i }))
 
-    const nov14 = screen.getByRole('button', { name: /November 14th,/i })
-    const nov18 = screen.getByRole('button', { name: /November 18th,/i })
+    const nov14 = screen.getByRole('gridcell', { name: /November 14th,/i })
+    const nov18 = screen.getByRole('gridcell', { name: /November 18th,/i })
     await user.click(nov14)
     await user.click(nov18)
 

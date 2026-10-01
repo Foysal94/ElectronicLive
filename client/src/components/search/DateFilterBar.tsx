@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { type DateRange as DayPickerRange, DayPicker } from 'react-day-picker'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import {
   DATE_PRESET_KEYS,
   DATE_PRESETS,
@@ -18,29 +19,12 @@ export interface DateFilterBarProps {
   className?: string
 }
 
-interface DayPickerCssVariables extends React.CSSProperties {
-  '--rdp-accent-color'?: string
-  '--rdp-accent-background-color'?: string
-  '--rdp-range_middle-background-color'?: string
-  '--rdp-range_middle-color'?: string
-  '--rdp-day-height'?: string
-  '--rdp-day-width'?: string
-  '--rdp-day_button-height'?: string
-  '--rdp-day_button-width'?: string
+interface CustomDateRange {
+  from?: Date
+  to?: Date
 }
 
-const dayPickerDarkStyles: DayPickerCssVariables = {
-  '--rdp-accent-color': '#10b981',
-  '--rdp-accent-background-color': '#064e3b',
-  '--rdp-range_middle-background-color': '#064e3b',
-  '--rdp-range_middle-color': '#34d399',
-  '--rdp-day-height': '44px',
-  '--rdp-day-width': '44px',
-  '--rdp-day_button-height': '44px',
-  '--rdp-day_button-width': '44px',
-}
-
-function resolveRangeFromStrings(fromStr?: string, toStr?: string): DayPickerRange | undefined {
+function resolveRangeFromStrings(fromStr?: string, toStr?: string): CustomDateRange | undefined {
   if (!fromStr || !toStr) return undefined
   const from = parseDateOnly(fromStr)
   const to = parseDateOnly(toStr)
@@ -55,7 +39,7 @@ export function DateFilterBar({
   className = '',
 }: DateFilterBarProps) {
   const [isCustomTrayOpen, setIsCustomTrayOpen] = useState(false)
-  const [selectedRange, setSelectedRange] = useState<DayPickerRange | undefined>(() =>
+  const [selectedRange, setSelectedRange] = useState<CustomDateRange | undefined>(() =>
     resolveRangeFromStrings(activeFrom, activeTo)
   )
 
@@ -208,34 +192,14 @@ export function DateFilterBar({
                         : 'Select start and end dates'}
                   </div>
 
-                  <DayPicker
-                    mode="range"
-                    selected={selectedRange}
-                    onSelect={setSelectedRange}
-                    defaultMonth={selectedRange?.from ?? new Date()}
-                    style={dayPickerDarkStyles}
-                    classNames={{
-                      root: 'p-1 bg-[#181b1f] text-gray-200 rounded-xl border border-white/10 inline-block',
-                      month_caption: 'flex justify-center items-center h-10 relative text-sm font-semibold text-white',
-                      caption_label: 'text-sm font-semibold text-white',
-                      nav: 'flex items-center justify-between w-full absolute inset-x-0 px-1',
-                      button_previous: 'min-h-[44px] min-w-[44px] text-gray-400 hover:text-white rounded-md hover:bg-white/10 flex items-center justify-center transition-colors',
-                      button_next: 'min-h-[44px] min-w-[44px] text-gray-400 hover:text-white rounded-md hover:bg-white/10 flex items-center justify-center transition-colors',
-                      month_grid: 'w-full border-collapse mt-2',
-                      weekdays: 'flex text-xs text-gray-400 font-medium pb-1',
-                      weekday: 'w-9 text-center',
-                      weeks: 'flex flex-col gap-1',
-                      week: 'flex w-full',
-                      day: 'p-0 text-center text-sm relative flex items-center justify-center',
-                      day_button: 'min-h-[44px] min-w-[44px] w-9 h-9 rounded-lg text-gray-200 hover:bg-white/10 hover:text-white flex items-center justify-center transition-colors',
-                      selected: 'bg-emerald-950 text-emerald-400 font-semibold',
-                      range_start: 'bg-emerald-600 text-white font-bold rounded-l-lg',
-                      range_end: 'bg-emerald-600 text-white font-bold rounded-r-lg',
-                      range_middle: 'bg-emerald-950 text-emerald-300 rounded-none',
-                      today: 'text-emerald-400 font-bold',
-                      outside: 'text-gray-600 opacity-40',
-                      disabled: 'text-gray-600 opacity-30 cursor-not-allowed',
-                    }}
+                  <DatePicker
+                    selectsRange
+                    startDate={selectedRange?.from}
+                    endDate={selectedRange?.to}
+                    onChange={([start, end]: [Date | null, Date | null]) =>
+                      setSelectedRange(start ? { from: start, to: end ?? undefined } : undefined)
+                    }
+                    inline
                   />
 
                   <div className="flex items-center gap-2 pt-1">
@@ -281,3 +245,4 @@ export function DateFilterBar({
     </section>
   )
 }
+

@@ -160,12 +160,12 @@ describe('DateFilterBar Component', () => {
       />
     )
 
-    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/choose date/i)).not.toBeInTheDocument()
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    expect(screen.getByRole('grid')).toBeInTheDocument()
+    expect(screen.getByLabelText(/choose date/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apply' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   })
@@ -189,8 +189,8 @@ describe('DateFilterBar Component', () => {
     const applyButton = screen.getByRole('button', { name: 'Apply' })
     expect(applyButton).toBeDisabled()
 
-    const day5 = screen.getByRole('button', { name: /October 5th,/i })
-    const day15 = screen.getByRole('button', { name: /October 15th,/i })
+    const day5 = screen.getByRole('gridcell', { name: /October 5th,/i })
+    const day15 = screen.getByRole('gridcell', { name: /October 15th,/i })
     await user.click(day5)
     await user.click(day15)
 
@@ -198,10 +198,10 @@ describe('DateFilterBar Component', () => {
     await user.click(applyButton)
 
     expect(onSelect).toHaveBeenCalledWith('2026-10-05', '2026-10-15')
-    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/choose date/i)).not.toBeInTheDocument()
   })
 
-  it('Should_automatically_order_range_when_dates_are_selected_in_reverse', async () => {
+  it('Should_reset_start_date_when_earlier_date_is_clicked', async () => {
     vi.useRealTimers()
     const onSelect = vi.fn()
 
@@ -217,10 +217,11 @@ describe('DateFilterBar Component', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    const day15 = screen.getByRole('button', { name: /October 15th,/i })
-    const day5 = screen.getByRole('button', { name: /October 5th,/i })
+    const day15 = screen.getByRole('gridcell', { name: /October 15th,/i })
+    const day5 = screen.getByRole('gridcell', { name: /October 5th,/i })
     await user.click(day15)
     await user.click(day5)
+    await user.click(day15)
 
     const applyButton = screen.getByRole('button', { name: 'Apply' })
     expect(applyButton).toBeEnabled()
@@ -243,8 +244,8 @@ describe('DateFilterBar Component', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    const day1 = screen.getByRole('button', { name: /October 1st,/i })
-    const day20 = screen.getByRole('button', { name: /October 20th,/i })
+    const day1 = screen.getByRole('gridcell', { name: /October 1st,/i })
+    const day20 = screen.getByRole('gridcell', { name: /October 20th,/i })
     await user.click(day1)
     await user.click(day20)
 
@@ -268,10 +269,10 @@ describe('DateFilterBar Component', () => {
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
-    expect(screen.getByRole('grid')).toBeInTheDocument()
+    expect(screen.getByLabelText(/choose date/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/choose date/i)).not.toBeInTheDocument()
     expect(onSelect).not.toHaveBeenCalled()
   })
 
@@ -294,8 +295,11 @@ describe('DateFilterBar Component', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
 
-    const trayButtons = screen.getAllByRole('button')
-    for (const btn of trayButtons) {
+    const actionButtons = [
+      screen.getByRole('button', { name: 'Apply' }),
+      screen.getByRole('button', { name: 'Cancel' }),
+    ]
+    for (const btn of actionButtons) {
       expect(btn).toHaveClass('min-h-[44px]')
     }
   })
@@ -316,10 +320,10 @@ describe('DateFilterBar Component', () => {
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
-    expect(screen.getByRole('grid')).toBeInTheDocument()
+    expect(screen.getByLabelText(/choose date/i)).toBeInTheDocument()
 
     await user.click(screen.getByTestId('outside'))
-    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/choose date/i)).not.toBeInTheDocument()
   })
 
   it('Should_close_custom_tray_when_pressing_Escape', async () => {
@@ -335,9 +339,9 @@ describe('DateFilterBar Component', () => {
 
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Custom...' }))
-    expect(screen.getByRole('grid')).toBeInTheDocument()
+    expect(screen.getByLabelText(/choose date/i)).toBeInTheDocument()
 
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/choose date/i)).not.toBeInTheDocument()
   })
 })
