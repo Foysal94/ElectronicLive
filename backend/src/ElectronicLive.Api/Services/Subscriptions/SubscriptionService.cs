@@ -4,17 +4,32 @@ using ElectronicLive.Api.Data.Entities;
 using ElectronicLive.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace ElectronicLive.Api.Services;
+namespace ElectronicLive.Api.Services.Subscriptions;
 
-public sealed class SubscriptionService(ElectronicLiveDbContext dbContext) : ISubscriptionService
+public sealed class SubscriptionService(
+    ElectronicLiveDbContext dbContext,
+    IArtistVerificationService artistVerificationService
+) : ISubscriptionService
 {
-    public async Task<(Guid SubscriptionId, bool IsNew)> SubscribeAsync(
+    public async Task<SubscribeOutcome?> SubscribeAsync(
         SubscribeRequest request,
         CancellationToken cancellationToken = default
     )
     {
+        var trimmedArtist = request.ArtistName?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedArtist))
+        {
+            return null;
+        }
+
+        var isVerified = await artistVerificationService.VerifyArtistExistsAsync(trimmedArtist, cancellationToken);
+        if (!isVerified)
+        {
+            return null;
+        }
+
         var targetEmail = request.Email!.Trim().ToLowerInvariant();
-        var targetArtist = request.ArtistName!.Trim().ToLowerInvariant();
+        var targetArtist = trimmedArtist.ToLowerInvariant();
         var targetCity = string.IsNullOrWhiteSpace(request.City) ? "London" : request.City.Trim();
 
         var user = await dbContext
@@ -46,7 +61,7 @@ public sealed class SubscriptionService(ElectronicLiveDbContext dbContext) : ISu
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            return (existing.Id, IsNew: false);
+            return new SubscribeOutcome(existing.Id, IsNew: false);
         }
 
         var subscription = new Subscription
@@ -62,10 +77,10 @@ public sealed class SubscriptionService(ElectronicLiveDbContext dbContext) : ISu
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return (subscription.Id, IsNew: true);
+        return new SubscribeOutcome(subscription.Id, IsNew: true);
     }
 
-    public async Task<(bool Success, string Message)> UnsubscribeAsync(
+    public async Task<UnsubscribeOutcome> UnsubscribeAsync(
         string? token,
         string? artist,
         CancellationToken cancellationToken = default
@@ -73,7 +88,7 @@ public sealed class SubscriptionService(ElectronicLiveDbContext dbContext) : ISu
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            return (Success: false, Message: "Invalid unsubscribe request. An unsubscribe token is required.");
+            return UnsubscribeOutcome.MissingToken;
         }
 
         var trimmedToken = token.Trim();
@@ -83,32 +98,23 @@ public sealed class SubscriptionService(ElectronicLiveDbContext dbContext) : ISu
 
         if (user == null)
         {
-            return (Success: false, Message: "Invalid or expired unsubscribe link.");
+            return UnsubscribeOutcome.InvalidToken;
         }
 
-        if (!string.IsNullOrWhiteSpace(artist))
+        var targetSubscriptions = !string.IsNullOrWhiteSpace(artist)
+            ? user.Subscriptions.Where(s =>
+                string.Equals(s.ArtistName, artist.Trim(), StringComparison.OrdinalIgnoreCase) && s.IsActive
+            )
+            : user.Subscriptions.Where(s => s.IsActive);
+
+        var toDeactivate = targetSubscriptions.ToList();
+        if (toDeactivate.Count > 0)
         {
-            var targetArtist = artist.Trim().ToLowerInvariant();
-            var matched = user
-                .Subscriptions.Where(s =>
-                    string.Equals(s.ArtistName, targetArtist, StringComparison.OrdinalIgnoreCase) && s.IsActive
-                )
-                .ToList();
-
-            if (matched.Count > 0)
-            {
-                matched.ForEach(s => s.IsActive = false);
-                await dbContext.SaveChangesAsync(cancellationToken);
-                return (Success: true, Message: $"You have successfully unsubscribed from alerts for {artist.Trim()}.");
-            }
-
-            return (Success: true, Message: $"You are not currently subscribed to alerts for {artist.Trim()}.");
+            toDeactivate.ForEach(s => s.IsActive = false);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        user.Subscriptions.Where(s => s.IsActive).ToList().ForEach(s => s.IsActive = false);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return (Success: true, Message: "You have successfully unsubscribed from all artist alerts.");
+        return UnsubscribeOutcome.Success;
     }
 
     // 32-byte cryptographic random entropy (64 hex chars) ensures unsubscribe tokens cannot be enumerated via URL guessing
