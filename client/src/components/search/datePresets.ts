@@ -8,7 +8,14 @@ import {
   startOfDay,
 } from 'date-fns'
 
-export type DatePresetKey = 'tonight' | 'this-weekend' | 'next-weekend' | 'next-30-days'
+export const DATE_PRESET_KEYS = {
+  TONIGHT: 'tonight',
+  THIS_WEEKEND: 'this-weekend',
+  NEXT_WEEKEND: 'next-weekend',
+  NEXT_30_DAYS: 'next-30-days',
+} as const
+
+export type DatePresetKey = (typeof DATE_PRESET_KEYS)[keyof typeof DATE_PRESET_KEYS]
 
 export interface DateRange {
   from: string
@@ -21,99 +28,71 @@ export interface DatePresetDefinition {
   getRange: (referenceDate?: Date) => DateRange
 }
 
-export function formatDateOnly(date: Date): string {
-  return format(date, 'yyyy-MM-dd')
-}
+export const formatDateOnly = (d: Date): string => format(d, 'yyyy-MM-dd')
 
-export function parseDateOnly(dateString: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) return null
-  const parsed = parseISO(dateString)
-  return isValid(parsed) ? parsed : null
-}
+export const parseDateOnly = (s: string): Date | null =>
+  /^\d{4}-\d{2}-\d{2}$/.test(s.trim()) && isValid(parseISO(s)) ? parseISO(s) : null
 
-export function normalizeReferenceDate(ref: Date = new Date()): Date {
-  return startOfDay(ref)
-}
+export const getDaysDifference = (from: string, to: string): number =>
+  differenceInCalendarDays(parseISO(to), parseISO(from))
 
-export function getDaysDifference(fromIso: string, toIso: string): number {
-  const from = parseDateOnly(fromIso)
-  const to = parseDateOnly(toIso)
-  if (!from || !to) return 0
-  return differenceInCalendarDays(to, from)
-}
-
-function getThisWeekendRange(referenceDate: Date): DateRange {
-  const normalized = normalizeReferenceDate(referenceDate)
-  const dayOfWeek = getDay(normalized)
-  const fridayOffset = dayOfWeek === 0 ? -2 : 5 - dayOfWeek
-
-  const friday = addDays(normalized, fridayOffset)
-  const sunday = addDays(friday, 2)
-
+export function getThisWeekendRange(ref: Date = new Date()): DateRange {
+  const today = startOfDay(ref)
+  const day = getDay(today)
+  const friday = addDays(today, day === 0 ? -2 : 5 - day)
   return {
     from: formatDateOnly(friday),
-    to: formatDateOnly(sunday),
+    to: formatDateOnly(addDays(friday, 2)),
   }
 }
 
-function getNextWeekendRange(referenceDate: Date): DateRange {
-  const thisWeekend = getThisWeekendRange(referenceDate)
-  const thisFriday = parseDateOnly(thisWeekend.from) ?? normalizeReferenceDate(referenceDate)
-  const nextFriday = addDays(thisFriday, 7)
-  const nextSunday = addDays(nextFriday, 2)
-
+export function getNextWeekendRange(ref: Date = new Date()): DateRange {
+  const { from } = getThisWeekendRange(ref)
+  const nextFriday = addDays(parseISO(from), 7)
   return {
     from: formatDateOnly(nextFriday),
-    to: formatDateOnly(nextSunday),
+    to: formatDateOnly(addDays(nextFriday, 2)),
   }
 }
 
 export const DATE_PRESETS: DatePresetDefinition[] = [
   {
-    id: 'tonight',
+    id: DATE_PRESET_KEYS.TONIGHT,
     label: 'Tonight',
-    getRange: (ref = new Date()) => {
-      const today = formatDateOnly(normalizeReferenceDate(ref))
+    getRange: (r = new Date()) => {
+      const today = formatDateOnly(startOfDay(r))
       return { from: today, to: today }
     },
   },
   {
-    id: 'this-weekend',
+    id: DATE_PRESET_KEYS.THIS_WEEKEND,
     label: 'This Weekend',
-    getRange: (ref = new Date()) => getThisWeekendRange(ref),
+    getRange: getThisWeekendRange,
   },
   {
-    id: 'next-weekend',
+    id: DATE_PRESET_KEYS.NEXT_WEEKEND,
     label: 'Next Weekend',
-    getRange: (ref = new Date()) => getNextWeekendRange(ref),
+    getRange: getNextWeekendRange,
   },
   {
-    id: 'next-30-days',
+    id: DATE_PRESET_KEYS.NEXT_30_DAYS,
     label: 'Next 30 Days',
-    getRange: (ref = new Date()) => {
-      const normalized = normalizeReferenceDate(ref)
-      const toDate = addDays(normalized, 30)
+    getRange: (r = new Date()) => {
+      const start = startOfDay(r)
       return {
-        from: formatDateOnly(normalized),
-        to: formatDateOnly(toDate),
+        from: formatDateOnly(start),
+        to: formatDateOnly(addDays(start, 30)),
       }
     },
   },
 ]
 
-export function matchActivePreset(
-  activeFrom?: string,
-  activeTo?: string,
-  referenceDate: Date = new Date()
-): DatePresetKey | null {
-  if (!activeFrom || !activeTo) return null
-
-  for (const preset of DATE_PRESETS) {
-    const range = preset.getRange(referenceDate)
-    if (range.from === activeFrom && range.to === activeTo) {
-      return preset.id
-    }
-  }
-
-  return null
-}
+export const matchActivePreset = (
+  from?: string,
+  to?: string,
+  ref: Date = new Date()
+): DatePresetKey | null =>
+  DATE_PRESETS.find((p) => {
+    const range = p.getRange(ref)
+    return range.from === from && range.to === to
+  })?.id ?? null

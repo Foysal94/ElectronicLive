@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { type DateRange as DayPickerRange, DayPicker } from 'react-day-picker'
 import {
+  DATE_PRESET_KEYS,
   DATE_PRESETS,
   type DatePresetKey,
   formatDateOnly,
@@ -120,7 +121,7 @@ export function DateFilterBar({
         <div className="flex flex-wrap gap-2">
           {DATE_PRESETS.map((preset) => {
             const isActive = activePreset === preset.id
-            const isNext30 = preset.id === 'next-30-days'
+            const isNext30 = preset.id === DATE_PRESET_KEYS.NEXT_30_DAYS
             const isDisabled = isNext30 && !hasSearchContext
 
             return (
