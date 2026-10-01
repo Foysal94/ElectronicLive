@@ -27,7 +27,10 @@ The enumeration of integrated third-party gig and ticketing data providers:
 - `ResidentAdvisor`: Queried via GraphQL endpoint.
 
 ### `IEventSearchService` / `EventSearchService`
-The primary domain orchestration service for live event discovery. Executes non-blocking concurrent queries (`Task.WhenAll`) across all registered `IEventProvider` implementations with Polly resilience pipelines, deduplicates cross-platform results, and manages two-tier `HybridCache` response caching.
+The primary domain orchestration service for live event discovery. Executes non-blocking concurrent queries (`Task.WhenAll`) across all registered `IEventProvider` implementations with Polly resilience pipelines, deduplicates cross-platform results, and manages two-tier `HybridCache` response caching with hybrid date slicing (in-memory date slicing for artist/genre queries, upstream date bounding for broad date-only discovery).
+
+### `DateRangeFilter`
+The date boundary filter encapsulating optional `from` and `to` ISO dates (`DateOnly`). When an artist or genre is specified, the full tour schedule is cached and sliced in memory; when searching by date alone without keywords, the window is capped at 7 days and forwarded upstream to Ticketmaster and Skiddle to protect upstream capacity. Dateless events are excluded when an active date range is applied.
 
 ### `EventDeduplicator`
 The algorithmic deduplication engine that groups multi-platform listings by composite date and normalized venue keys (`yyyy-MM-dd_{normalizedVenue}`), merging duplicate listings into a single `EventResponse` with unified ticket offers while preserving vendor-specific links and pricing.

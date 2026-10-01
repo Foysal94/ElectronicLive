@@ -84,7 +84,7 @@ public sealed class WatchlistScannerService(
         IReadOnlyList<EventResponse> events;
         try
         {
-            events = await eventSearchService.SearchEventsAsync(artist, null, TargetCity, ct);
+            events = await eventSearchService.SearchEventsAsync(artist, null, TargetCity, cancellationToken: ct);
         }
         catch (Exception ex)
         {

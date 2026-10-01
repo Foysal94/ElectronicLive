@@ -48,6 +48,37 @@ public class SkiddleClientTests
     }
 
     [Fact]
+    public async Task Should_MapFromAndToDates_ToMinDateAndMaxDate()
+    {
+        var (client, handler) = CreateClient();
+        var from = new DateOnly(2026, 11, 1);
+        var to = new DateOnly(2026, 11, 7);
+
+        await client.SearchEventsAsync("Bicep", from: from, to: to);
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("minDate=2026-11-01");
+        query.ShouldContain("maxDate=2026-11-07");
+    }
+
+    [Fact]
+    public async Task Should_ExecuteDateOnlySearch_WithoutKeyword_WhenFromAndToDatesProvided()
+    {
+        var (client, handler) = CreateClient();
+        var from = new DateOnly(2026, 11, 1);
+        var to = new DateOnly(2026, 11, 7);
+
+        await client.SearchEventsAsync(null, null, from: from, to: to);
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldNotContain("keyword=");
+        query.ShouldContain("minDate=2026-11-01");
+        query.ShouldContain("maxDate=2026-11-07");
+    }
+
+    [Fact]
     public async Task Should_ConstructExpectedRequestUrl_WithCustomCityCoordinates()
     {
         var (client, handler) = CreateClient();

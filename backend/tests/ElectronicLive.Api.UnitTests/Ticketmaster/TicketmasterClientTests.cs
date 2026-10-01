@@ -46,6 +46,38 @@ public class TicketmasterClientTests
     }
 
     [Fact]
+    public async Task Should_MapFromAndToDates_ToStartDateTimeAndEndDateTime()
+    {
+        var (client, handler) = CreateClient();
+        var from = new DateOnly(2026, 11, 1);
+        var to = new DateOnly(2026, 11, 7);
+
+        await client.SearchEventsAsync("Bicep", from: from, to: to);
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldContain("startDateTime=2026-11-01T00:00:00Z");
+        query.ShouldContain("endDateTime=2026-11-07T23:59:59Z");
+    }
+
+    [Fact]
+    public async Task Should_ExecuteDateOnlySearch_WithoutKeyword_WhenFromAndToDatesProvided()
+    {
+        var (client, handler) = CreateClient();
+        var from = new DateOnly(2026, 11, 1);
+        var to = new DateOnly(2026, 11, 7);
+
+        await client.SearchEventsAsync(null, null, from: from, to: to);
+
+        handler.LastRequest.ShouldNotBeNull();
+        var query = handler.LastRequest.RequestUri!.PathAndQuery;
+        query.ShouldNotContain("keyword=");
+        query.ShouldContain("city=London");
+        query.ShouldContain("startDateTime=2026-11-01T00:00:00Z");
+        query.ShouldContain("endDateTime=2026-11-07T23:59:59Z");
+    }
+
+    [Fact]
     public async Task Should_DefaultCityToLondon_WhenCityOmitted()
     {
         var (client, handler) = CreateClient();

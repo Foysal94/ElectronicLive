@@ -24,6 +24,19 @@ public class ResidentAdvisorClientTests
     }
 
     [Fact]
+    public async Task Should_ReturnEmptyImmediately_WhenBothQueryAndGenreAreNullOrEmpty_EvenWithDates()
+    {
+        var (client, handler) = CreateClient();
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 10, 7);
+
+        var result = await client.SearchEventsAsync(null, null, from: from, to: to);
+
+        result.ShouldBeEmpty();
+        handler.LastRequest.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Should_PostToGraphQLEndpoint_WithSearchQueryAndLimit()
     {
         var (client, handler) = CreateClient();

@@ -64,7 +64,7 @@ public class EventEndpointsTests
             ),
         };
         _searchService
-            .SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
         var result = await EventEndpoints.SearchEvents("fabric", null, _searchService);
@@ -90,7 +90,7 @@ public class EventEndpointsTests
             ),
         };
         _searchService
-            .SearchEventsAsync(null, "techno", "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync(null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
         var result = await EventEndpoints.SearchEvents(null, "techno", _searchService);
@@ -116,7 +116,7 @@ public class EventEndpointsTests
             ),
         };
         _searchService
-            .SearchEventsAsync("Charlotte", "techno", "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Charlotte", "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
         var result = await EventEndpoints.SearchEvents("Charlotte", "techno", _searchService);
@@ -126,14 +126,98 @@ public class EventEndpointsTests
     }
 
     [Fact]
+    public async Task Should_ReturnValidationProblem_WhenToIsBeforeFrom()
+    {
+        var from = new DateOnly(2026, 10, 10);
+        var to = new DateOnly(2026, 10, 5);
+
+        var result = await EventEndpoints.SearchEvents("Bicep", null, _searchService, from: from, to: to);
+
+        var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
+        validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        validationProblem.ProblemDetails.Errors.ShouldContainKey("to");
+        validationProblem.ProblemDetails.Errors["to"][0].ShouldContain("greater than or equal to");
+        await _searchService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
+    }
+
+    [Fact]
+    public async Task Should_ReturnValidationProblem_WhenDateOnlyQueryMissingOneDateBoundary()
+    {
+        var from = new DateOnly(2026, 10, 10);
+
+        var result = await EventEndpoints.SearchEvents(null, null, _searchService, from: from, to: null);
+
+        var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
+        validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        validationProblem.ProblemDetails.Errors.ShouldContainKey("date");
+        validationProblem
+            .ProblemDetails.Errors["date"][0]
+            .ShouldContain("Both 'from' and 'to' date parameters are required");
+        await _searchService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
+    }
+
+    [Fact]
+    public async Task Should_ReturnValidationProblem_WhenDateOnlyRangeExceeds7Days()
+    {
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 10, 9); // 8 days
+
+        var result = await EventEndpoints.SearchEvents(null, null, _searchService, from: from, to: to);
+
+        var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
+        validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        validationProblem.ProblemDetails.Errors.ShouldContainKey("date");
+        validationProblem.ProblemDetails.Errors["date"][0].ShouldContain("cannot exceed 7 days");
+        await _searchService.DidNotReceiveWithAnyArgs().SearchEventsAsync(default, default);
+    }
+
+    [Fact]
+    public async Task Should_ReturnOkWithEvents_WhenDateOnlyQueryIsWithin7Days()
+    {
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 10, 8); // exactly 7 days
+        var expectedEvents = new List<EventResponse>();
+
+        _searchService
+            .SearchEventsAsync(null, null, "London", from, to, Arg.Any<CancellationToken>())
+            .Returns(expectedEvents);
+
+        var result = await EventEndpoints.SearchEvents(null, null, _searchService, from: from, to: to);
+
+        var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
+        okResult.Value.ShouldBe(expectedEvents);
+    }
+
+    [Fact]
+    public async Task Should_AllowDateRangeExceeding7Days_WhenQueryIsPresent()
+    {
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 11, 15); // 45 days
+        var expectedEvents = new List<EventResponse>();
+
+        _searchService
+            .SearchEventsAsync("Bicep", null, "London", from, to, Arg.Any<CancellationToken>())
+            .Returns(expectedEvents);
+
+        var result = await EventEndpoints.SearchEvents("Bicep", null, _searchService, from: from, to: to);
+
+        var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
+        okResult.Value.ShouldBe(expectedEvents);
+    }
+
+    [Fact]
     public async Task Should_PassCustomCity_WhenSpecified()
     {
-        _searchService.SearchEventsAsync("fabric", null, "Manchester", Arg.Any<CancellationToken>()).Returns([]);
+        _searchService
+            .SearchEventsAsync("fabric", null, "Manchester", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([]);
 
         var result = await EventEndpoints.SearchEvents("fabric", null, _searchService, city: "Manchester");
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
-        await _searchService.Received(1).SearchEventsAsync("fabric", null, "Manchester", Arg.Any<CancellationToken>());
+        await _searchService
+            .Received(1)
+            .SearchEventsAsync("fabric", null, "Manchester", cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -142,42 +226,48 @@ public class EventEndpointsTests
     [InlineData("   ")]
     public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace(string? city)
     {
-        _searchService.SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>()).Returns([]);
+        _searchService
+            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([]);
 
         var result = await EventEndpoints.SearchEvents("fabric", null, _searchService, city: city);
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
-        await _searchService.Received(1).SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>());
+        await _searchService
+            .Received(1)
+            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Should_TrimQueryAndCityAndGenre_WhenWhitespacePresent()
     {
-        _searchService.SearchEventsAsync("fabric", "techno", "Manchester", Arg.Any<CancellationToken>()).Returns([]);
+        _searchService
+            .SearchEventsAsync("fabric", "techno", "Manchester", cancellationToken: Arg.Any<CancellationToken>())
+            .Returns([]);
 
         await EventEndpoints.SearchEvents("  fabric  ", "  Techno  ", _searchService, city: "  Manchester  ");
 
         await _searchService
             .Received(1)
-            .SearchEventsAsync("fabric", "techno", "Manchester", Arg.Any<CancellationToken>());
+            .SearchEventsAsync("fabric", "techno", "Manchester", cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Should_PropagateCancellationToken()
     {
         using var cts = new CancellationTokenSource();
-        _searchService.SearchEventsAsync("fabric", null, "London", cts.Token).Returns([]);
+        _searchService.SearchEventsAsync("fabric", null, "London", cancellationToken: cts.Token).Returns([]);
 
         await EventEndpoints.SearchEvents("fabric", null, _searchService, cancellationToken: cts.Token);
 
-        await _searchService.Received(1).SearchEventsAsync("fabric", null, "London", cts.Token);
+        await _searchService.Received(1).SearchEventsAsync("fabric", null, "London", cancellationToken: cts.Token);
     }
 
     [Fact]
     public async Task Should_Return502BadGateway_WhenAllProvidersFail()
     {
         _searchService
-            .SearchEventsAsync("fabric", null, "London", Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new AllProvidersUnavailableException("fabric", 3));
 
         var result = await EventEndpoints.SearchEvents("fabric", null, _searchService);
