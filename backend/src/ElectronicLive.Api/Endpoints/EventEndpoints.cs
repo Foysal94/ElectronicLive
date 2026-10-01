@@ -41,37 +41,34 @@ public static class EventEndpoints
             );
         }
 
-        if (!hasQuery && !hasGenre)
+        if (!hasQuery && !hasGenre && from == null && to == null)
         {
-            if (from == null && to == null)
-            {
-                return TypedResults.ValidationProblem(
-                    new Dictionary<string, string[]>
-                    {
-                        ["query"] = ["At least one of query or genre parameter is required."],
-                    }
-                );
-            }
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["query"] = ["At least one of query or genre parameter is required."],
+                }
+            );
+        }
 
-            if (from == null || to == null)
-            {
-                return TypedResults.ValidationProblem(
-                    new Dictionary<string, string[]>
-                    {
-                        ["date"] = ["Both 'from' and 'to' date parameters are required for date-only queries."],
-                    }
-                );
-            }
+        if (!hasQuery && !hasGenre && (from == null || to == null))
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["date"] = ["Both 'from' and 'to' date parameters are required for date-only queries."],
+                }
+            );
+        }
 
-            if (to.Value.DayNumber - from.Value.DayNumber > 7)
-            {
-                return TypedResults.ValidationProblem(
-                    new Dictionary<string, string[]>
-                    {
-                        ["date"] = ["Date range cannot exceed 7 days when searching without query or genre."],
-                    }
-                );
-            }
+        if (!hasQuery && !hasGenre && from.HasValue && to.HasValue && to.Value.DayNumber - from.Value.DayNumber > 7)
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["date"] = ["Date range cannot exceed 7 days when searching without query or genre."],
+                }
+            );
         }
 
         if (hasGenre && !EventGenres.IsValid(genre))

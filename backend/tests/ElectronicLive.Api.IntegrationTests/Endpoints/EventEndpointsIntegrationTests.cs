@@ -156,5 +156,13 @@ public class EventEndpointsIntegrationTests : IClassFixture<CustomWebApplication
         problem.Errors.ShouldContainKey("to");
     }
 
+    [Fact]
+    public async Task Should_ReturnBadRequest_WhenDateFormatIsInvalid()
+    {
+        var response = await _client.GetAsync("/api/events/search?from=invalid-date&to=2026-10-07");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
     private sealed record HealthResponse(string Status);
 }
