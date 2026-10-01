@@ -106,6 +106,10 @@ jobs:
     needs: build-and-push
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
+      - name: Extract short SHA
+        id: vars
+        run: echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
       - name: Azure Login via OIDC
         uses: azure/login@v2
         with:
@@ -116,9 +120,10 @@ jobs:
       - name: Deploy to Container App
         uses: azure/container-apps-deploy-action@v2
         with:
-          imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}
+          imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.vars.outputs.short_sha }}
           resourceGroup: rg-electroniclive-prod
           containerAppName: electroniclive-api
           containerAppEnvironment: cae-electroniclive-prod
           targetPort: 8080
           ingress: external
+
