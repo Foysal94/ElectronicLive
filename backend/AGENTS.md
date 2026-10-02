@@ -28,10 +28,6 @@
 
 ## Guardrails
 - Handle external upstream failures gracefully; a failure from one gig provider or email recipient must not crash the entire endpoint or abort processing for other subscribers.
-- **Date Filtering & Hybrid Caching Architecture:**
-  - **Hybrid Date Caching:** When queries include an artist `query` or `genre`, cache the full canonical schedule in `HybridCache` using cache key `events:agg:{city}:q={query}:g={genre}` and perform date window slicing in-memory. For date-only queries (without query or genre), isolate cache keys by date bounds (`events:agg:{city}:date:{from}:{to}`) and pass bounds directly upstream.
-  - **7-Day Validation Cap:** Enforce a strict 7-day maximum window (`to - from <= 7`) for date-only queries in endpoint validation (`EventEndpoints.cs`) to prevent upstream rate limiting and unbounded fan-out. Return RFC 7807 `TypedResults.ValidationProblem()` on violations. Context-enriched queries (`query` or `genre`) permit wider spans (up to 30+ days).
-  - **Resident Advisor Date-Only Bypass:** Resident Advisor's GraphQL search index requires a keyword search term (`searchTerm`) and does not support date-range-only scans. `ResidentAdvisorClient` must immediately return an empty list (`[]`) without executing network requests when neither `query` nor `genre` is provided, allowing Ticketmaster and Skiddle to serve the date window.
 
 ## Azure Safeguards
 - Always prompt for explicit user confirmation before executing destructive or state-altering Azure commands (e.g., `az * delete`, resource teardown, scale-down, or state-altering scripts).
