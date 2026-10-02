@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/search/SearchBar'
+import { DateFilterBar } from '../components/search/DateFilterBar'
 import { QuickPills } from '../components/search/QuickPills'
 import { EventList } from '../components/events/EventList'
 import { TrackArtistModal } from '../components/watchlist/TrackArtistModal'
@@ -19,6 +20,7 @@ export default function App() {
     setSearchTerm,
     handleSearch,
     handleSelectGenre,
+    setDateRange,
     handleClear,
   } = useEventSearchState()
 
@@ -39,6 +41,12 @@ export default function App() {
             onChange={setSearchTerm}
             onSearch={handleSearch}
             onClear={handleClear}
+          />
+          <DateFilterBar
+            activeFrom={activeFrom}
+            activeTo={activeTo}
+            onSelectDateRange={setDateRange}
+            hasSearchContext={Boolean(activeQuery || activeGenre)}
           />
           <QuickPills
             activeQuery={activeQuery}

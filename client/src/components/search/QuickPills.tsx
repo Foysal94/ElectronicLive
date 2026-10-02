@@ -53,7 +53,7 @@ export function QuickPills({
       className={`w-full max-w-4xl mx-auto flex flex-col gap-3 text-left ${className}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex-shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 sm:w-48 flex-shrink-0">
           Quick Search Artists:
         </span>
         <div className="flex flex-wrap gap-2">
@@ -62,7 +62,7 @@ export function QuickPills({
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex-shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 sm:w-48 flex-shrink-0">
           Quick Search Venues:
         </span>
         <div className="flex flex-wrap gap-2">
@@ -71,7 +71,7 @@ export function QuickPills({
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex-shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 sm:w-48 flex-shrink-0">
           Quick Search Genres:
         </span>
         <div className="flex flex-wrap gap-2">

@@ -1,3 +1,4 @@
+import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { http, HttpResponse } from 'msw'
 import { isValidEmail } from '../../utils/validation'
 import { mockDefaultEvents } from './fixtures'
@@ -41,6 +42,20 @@ export const handlers = [
         },
         { status: 400 }
       )
+    }
+
+    if (!query && !genre && from && to) {
+      const diffDays = differenceInCalendarDays(parseISO(to), parseISO(from))
+      if (diffDays > 7) {
+        return HttpResponse.json(
+          {
+            title: 'One or more validation errors occurred.',
+            status: 400,
+            errors: { date: ['Date range cannot exceed 7 days when searching without query or genre.'] },
+          },
+          { status: 400 }
+        )
+      }
     }
 
     const trimmed = query.toLowerCase()

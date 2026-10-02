@@ -41,7 +41,10 @@
 - **Strict Typing:** DO NOT use the `any` type or unsafe `as` type assertions.
 
 ## Styling & Accessibility Guardrails
-- **Tailwind Utility Discipline:** All styling must strictly use Tailwind utility classes. DO NOT create custom `.css` or `.module.css` stylesheets or import heavy monolithic UI component libraries.
+- **Pragmatic Component Selection & Tailwind Discipline:** Primary application styling uses Tailwind utility classes. Third-party component stylesheets (e.g., `react-datepicker/dist/react-datepicker.css`) are permitted for focused UI packages.
+  - **No Monolithic Suites:** DO NOT import heavy, opinionated design systems (e.g., Ant Design, MUI, Chakra) that bundle massive runtimes or bloat the bundle.
+  - **No Hand-Rolling Complex Widgets:** Do NOT reinvent the wheel or hand-code complex interactive UI patterns (e.g., date pickers, comboboxes, rich sliders) from scratch with brittle custom markup and styling dictionaries.
+  - **The Sweet Spot:** Use focused, drop-in or headless single-purpose React packages (e.g., `react-datepicker`, Radix primitives, `floating-ui`) that provide the complete UI with minimal props and configuration.
 - **Mobile Touch Targets:** Interactive controls (buttons, inputs, selectables) must provide a minimum tap target height of 44px (`min-h-[44px]`).
 - **Semantic HTML & A11y:** Use semantic elements (`<header>`, `<main>`, `<section>`, `<article>`, `<button type="button">`, `<input type="search">`). All icon-only interactive controls must declare an explicit `aria-label`.
 - **Native `<dialog>` Management:** Trigger modals using imperative `.showModal()` on mount and handle dismissal via native events/backdrop clicks. Never pass `open={isOpen}` as a JSX attribute on `<dialog>`.
