@@ -165,13 +165,13 @@ Searches and aggregates live London EDM events across Ticketmaster, Skiddle, and
 
 ```bash
 # Search events for an artist within a date range
-curl "http://localhost:5122/api/events/search?query=Bonobo&from=2026-10-01&to=2026-10-31"
+curl "http://localhost:5275/api/events/search?query=Bonobo&from=2026-10-01&to=2026-10-31"
 
 # Search weekend events by genre
-curl "http://localhost:5122/api/events/search?genre=techno&from=2026-10-09&to=2026-10-11"
+curl "http://localhost:5275/api/events/search?genre=techno&from=2026-10-09&to=2026-10-11"
 
 # Date-only city search (max 7-day window)
-curl "http://localhost:5122/api/events/search?from=2026-10-01&to=2026-10-07"
+curl "http://localhost:5275/api/events/search?from=2026-10-01&to=2026-10-07"
 ```
 
 ---
@@ -187,7 +187,7 @@ curl "http://localhost:5122/api/events/search?from=2026-10-01&to=2026-10-07"
 # Navigate to backend and restore dependencies
 dotnet restore backend/ElectronicLive.sln
 
-# Run the API locally (defaults to https://localhost:7045 / http://localhost:5122)
+# Run the API locally (defaults to https://localhost:7123 / http://localhost:5275)
 dotnet run --project backend/src/ElectronicLive.Api
 ```
 

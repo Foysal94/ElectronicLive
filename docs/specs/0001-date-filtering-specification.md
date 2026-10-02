@@ -57,7 +57,7 @@ Introduce comprehensive date range filtering across both the .NET aggregation ba
   - `SearchBar` (top)
   - `DateFilterBar` (dedicated second row with preset pills: `Tonight`, `This Weekend`, `Next Weekend`, `Next 30 Days`, and `Custom...`)
   - `QuickPills` (third row with Artists, Venues, Genres)
-  - `EventList` (timetable timetable results)
+  - `EventList` (timetable results)
 - Custom Date selection: Clicking `Custom...` expands an anchored dropdown card beneath the button containing `react-datepicker` in range mode, a live date range badge, an `Apply` button, a `Cancel` button, and a `Clear` button.
 - Interaction rules:
   - Clicking an active preset pill deselects it and clears the date parameters.
@@ -69,7 +69,7 @@ Introduce comprehensive date range filtering across both the .NET aggregation ba
 - **Backend HTTP Transport Seam:** Unit-test `EventEndpoints.SearchEvents` directly using `internal static` handlers, verifying parameter extraction, `ValidationProblem` status codes, and delegation.
 - **Backend Domain Service Seam:** Unit-test `EventSearchService.SearchEventsAsync` against provider stubs, verifying in-memory date slicing, cache key isolation, and date-only provider forwarding.
 - **Frontend Hook Seam:** Test `useEventSearchState` using `@testing-library/react` (`renderHook`), asserting URL query parameter serialization, preset date calculation, and clearing logic.
-- **Frontend Component Seam:** Test `DateFilterBar` and `App` using `@testing-library/react` and `@testing-library/user-event`, asserting user-visible button roles, active class toggling, inline tray expansion, and custom date submission.
+- **Frontend Component Seam:** Test `DateFilterBar` and `App` using `@testing-library/react` and `@testing-library/user-event`, asserting user-visible button roles, active class toggling, custom popover card expansion, and custom date submission.
 
 ## Out of Scope
 
@@ -80,4 +80,4 @@ Introduce comprehensive date range filtering across both the .NET aggregation ba
 
 ## Further Notes
 
-- References: [`docs/adr/0004-date-filtering-and-hybrid-caching.md`](file:///Users/foysalahmed/Code/ElectronicLive/docs/adr/0004-date-filtering-and-hybrid-caching.md) and [`CONTEXT.md`](file:///Users/foysalahmed/Code/ElectronicLive/CONTEXT.md).
+- References: [`docs/adr/0004-date-filtering-and-hybrid-caching.md`](../adr/0004-date-filtering-and-hybrid-caching.md) and [`CONTEXT.md`](../../CONTEXT.md).
