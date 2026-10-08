@@ -17,14 +17,14 @@ public class EventDeduplicatorTests
         bool explicitDate = false
     ) =>
         new(
-            id,
-            name,
-            venue,
-            explicitDate ? date : (date ?? new DateOnly(2026, 12, 10)),
-            time ?? new TimeOnly(21, 0),
-            ticketUrl,
-            status,
-            provider
+            Id: id,
+            Name: name,
+            VenueName: venue,
+            Date: explicitDate ? date : (date ?? new DateOnly(2026, 12, 10)),
+            Time: time ?? new TimeOnly(21, 0),
+            TicketUrl: ticketUrl,
+            Status: status,
+            Provider: provider
         );
 
     [Fact]
@@ -278,8 +278,8 @@ public class EventDeduplicatorTests
     [Fact]
     public void Should_NotMergeEvents_WhenDateIsNull()
     {
-        var tmEvent = CreateSampleEvent("tm-1", "Bicep TBA 1", "Drumsheds", null, null, explicitDate: true);
-        var skEvent = CreateSampleEvent("sk-1", "Bicep TBA 2", "Drumsheds", null, null, explicitDate: true);
+        var tmEvent = CreateSampleEvent("tm-1", "Bicep TBA 1", "Drumsheds", date: null, time: null, explicitDate: true);
+        var skEvent = CreateSampleEvent("sk-1", "Bicep TBA 2", "Drumsheds", date: null, time: null, explicitDate: true);
 
         var result = EventDeduplicator.Deduplicate([tmEvent, skEvent]);
 

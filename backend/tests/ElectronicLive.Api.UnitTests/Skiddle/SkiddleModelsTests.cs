@@ -9,14 +9,14 @@ public class SkiddleModelsTests
     public void Should_MapAllPropertiesCorrectly()
     {
         var ev = new SkiddleEvent(
-            "sk-1",
-            "Bicep Live",
-            "2026-11-26",
-            new SkiddleOpeningTimes("19:00"),
-            "https://www.skiddle.com/whats-on/London/Drumsheds/event1/",
-            false,
-            true,
-            new SkiddleVenue("Drumsheds", "London")
+            Id: "sk-1",
+            EventName: "Bicep Live",
+            Date: "2026-11-26",
+            OpeningTimes: new SkiddleOpeningTimes("19:00"),
+            Link: "https://www.skiddle.com/whats-on/London/Drumsheds/event1/",
+            Cancelled: false,
+            Tickets: true,
+            Venue: new SkiddleVenue(Name: "Drumsheds", Town: "London")
         );
 
         var result = ev.ToEventResponse();
@@ -37,8 +37,17 @@ public class SkiddleModelsTests
     [InlineData("   ")]
     public void Should_FallbackToUnknownVenue_WhenVenueNullOrWhitespace(string? venueName)
     {
-        var venue = venueName == null ? null : new SkiddleVenue(venueName, "London");
-        var ev = new SkiddleEvent("id", "name", null, null, null, false, true, venue);
+        var venue = venueName == null ? null : new SkiddleVenue(Name: venueName, Town: "London");
+        var ev = new SkiddleEvent(
+            Id: "id",
+            EventName: "name",
+            Date: null,
+            OpeningTimes: null,
+            Link: null,
+            Cancelled: false,
+            Tickets: true,
+            Venue: venue
+        );
 
         var result = ev.ToEventResponse();
 
@@ -48,7 +57,16 @@ public class SkiddleModelsTests
     [Fact]
     public void Should_HandleNullFieldsGracefully()
     {
-        var ev = new SkiddleEvent(null, null, null, null, null, null, null, null);
+        var ev = new SkiddleEvent(
+            Id: null,
+            EventName: null,
+            Date: null,
+            OpeningTimes: null,
+            Link: null,
+            Cancelled: null,
+            Tickets: null,
+            Venue: null
+        );
 
         var result = ev.ToEventResponse();
 
@@ -72,7 +90,16 @@ public class SkiddleModelsTests
     [InlineData(null, null, EventStatus.Unknown)]
     public void Should_MapStatusCorrectly(object? cancelled, object? tickets, EventStatus expectedStatus)
     {
-        var ev = new SkiddleEvent("id", "name", null, null, null, cancelled, tickets, null);
+        var ev = new SkiddleEvent(
+            Id: "id",
+            EventName: "name",
+            Date: null,
+            OpeningTimes: null,
+            Link: null,
+            Cancelled: cancelled,
+            Tickets: tickets,
+            Venue: null
+        );
 
         var result = ev.ToEventResponse();
 

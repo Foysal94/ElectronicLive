@@ -11,7 +11,16 @@ public static class EventEndpoints
     {
         var group = app.MapGroup("/api/events");
 
-        group.MapGet("/search", SearchEvents);
+        group
+            .MapGet("/search", SearchEvents)
+            .WithName("SearchEvents")
+            .WithSummary("Search upcoming electronic music events")
+            .WithDescription(
+                "Searches and aggregates upcoming live gigs and electronic music events across Ticketmaster, Skiddle, and Resident Advisor for the specified city, genre, date range, or artist query."
+            )
+            .Produces<IReadOnlyList<EventResponse>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status502BadGateway);
 
         return group;
     }

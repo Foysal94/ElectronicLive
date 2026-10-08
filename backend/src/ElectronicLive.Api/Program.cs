@@ -78,7 +78,11 @@ app.UseCors(CorsPolicyName);
 
 app.UseHttpsRedirection();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }))
+    .WithName("GetHealth")
+    .WithSummary("API health probe")
+    .WithDescription("Returns HTTP 200 with service health status.")
+    .Produces(StatusCodes.Status200OK);
 
 app.MapEventEndpoints();
 app.MapSubscriptionEndpoints();

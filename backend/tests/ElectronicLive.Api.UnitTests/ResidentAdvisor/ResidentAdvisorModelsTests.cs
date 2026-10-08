@@ -9,14 +9,14 @@ public class ResidentAdvisorModelsTests
     public void Should_MapAllPropertiesCorrectly()
     {
         var item = new RaSearchItem(
-            "ra-1",
-            "Bicep Live",
-            "UPCOMINGEVENT",
-            "/events/ra-1",
-            "2026-11-26T20:00:00.000",
-            "Fabric",
-            "London",
-            "United Kingdom"
+            Id: "ra-1",
+            Value: "Bicep Live",
+            SearchType: "UPCOMINGEVENT",
+            ContentUrl: "/events/ra-1",
+            Date: "2026-11-26T20:00:00.000",
+            ClubName: "Fabric",
+            AreaName: "London",
+            CountryName: "United Kingdom"
         );
 
         var result = item.ToEventResponse();
@@ -37,7 +37,16 @@ public class ResidentAdvisorModelsTests
     [InlineData("   ")]
     public void Should_FallbackToUnknownVenue_WhenClubNameNullOrWhitespace(string? clubName)
     {
-        var item = new RaSearchItem("ra-1", "Gig", "UPCOMINGEVENT", null, null, clubName, "London", "UK");
+        var item = new RaSearchItem(
+            Id: "ra-1",
+            Value: "Gig",
+            SearchType: "UPCOMINGEVENT",
+            ContentUrl: null,
+            Date: null,
+            ClubName: clubName,
+            AreaName: "London",
+            CountryName: "UK"
+        );
 
         var result = item.ToEventResponse();
 
@@ -47,7 +56,16 @@ public class ResidentAdvisorModelsTests
     [Fact]
     public void Should_HandleNullFieldsGracefully()
     {
-        var item = new RaSearchItem(null, null, null, null, null, null, null, null);
+        var item = new RaSearchItem(
+            Id: null,
+            Value: null,
+            SearchType: null,
+            ContentUrl: null,
+            Date: null,
+            ClubName: null,
+            AreaName: null,
+            CountryName: null
+        );
 
         var result = item.ToEventResponse();
 
@@ -70,7 +88,16 @@ public class ResidentAdvisorModelsTests
     [InlineData("Barry Can't Swim Live", EventStatus.Unknown)]
     public void Should_DetectStatusFromTitle(string title, EventStatus expected)
     {
-        var item = new RaSearchItem("1", title, "UPCOMINGEVENT", null, null, "Venue", "London", "UK");
+        var item = new RaSearchItem(
+            Id: "1",
+            Value: title,
+            SearchType: "UPCOMINGEVENT",
+            ContentUrl: null,
+            Date: null,
+            ClubName: "Venue",
+            AreaName: "London",
+            CountryName: "UK"
+        );
 
         var result = item.ToEventResponse();
 
@@ -87,7 +114,16 @@ public class ResidentAdvisorModelsTests
     [InlineData("   ", null)]
     public void Should_FormatTicketUrlCorrectly(string? contentUrl, string? expected)
     {
-        var item = new RaSearchItem("1", "Event", "UPCOMINGEVENT", contentUrl, null, "Venue", "London", "UK");
+        var item = new RaSearchItem(
+            Id: "1",
+            Value: "Event",
+            SearchType: "UPCOMINGEVENT",
+            ContentUrl: contentUrl,
+            Date: null,
+            ClubName: "Venue",
+            AreaName: "London",
+            CountryName: "UK"
+        );
 
         var result = item.ToEventResponse();
 
@@ -97,7 +133,16 @@ public class ResidentAdvisorModelsTests
     [Fact]
     public void Should_HandleDateWithoutTime_Correctly()
     {
-        var item = new RaSearchItem("1", "Event", "UPCOMINGEVENT", null, "2026-11-20", "Venue", "London", "UK");
+        var item = new RaSearchItem(
+            Id: "1",
+            Value: "Event",
+            SearchType: "UPCOMINGEVENT",
+            ContentUrl: null,
+            Date: "2026-11-20",
+            ClubName: "Venue",
+            AreaName: "London",
+            CountryName: "UK"
+        );
 
         var result = item.ToEventResponse();
 
@@ -109,14 +154,14 @@ public class ResidentAdvisorModelsTests
     public void Should_IgnoreMidnightTime_WhenTimestampTimeIsZero()
     {
         var item = new RaSearchItem(
-            "1",
-            "Event",
-            "UPCOMINGEVENT",
-            null,
-            "2026-11-20T00:00:00.000",
-            "Venue",
-            "London",
-            "UK"
+            Id: "1",
+            Value: "Event",
+            SearchType: "UPCOMINGEVENT",
+            ContentUrl: null,
+            Date: "2026-11-20T00:00:00.000",
+            ClubName: "Venue",
+            AreaName: "London",
+            CountryName: "UK"
         );
 
         var result = item.ToEventResponse();

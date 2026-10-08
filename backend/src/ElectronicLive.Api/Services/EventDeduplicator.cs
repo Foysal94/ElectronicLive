@@ -57,25 +57,32 @@ internal static class EventDeduplicator
         TimeOnly? earliestTime = times.Count > 0 ? times.Min() : null;
 
         var offers = duplicates
-            .SelectMany(e => e.Offers ?? [new EventTicketOffer(e.Provider, e.TicketUrl, e.Status)])
+            .SelectMany(e =>
+                e.Offers ?? [new EventTicketOffer(Provider: e.Provider, TicketUrl: e.TicketUrl, Status: e.Status)]
+            )
             .DistinctBy(o => o.Provider)
             .ToList();
 
         return new EventResponse(
-            primary.Id,
-            primary.Name,
-            primary.VenueName,
-            primary.Date,
-            earliestTime,
-            primary.TicketUrl,
-            primary.Status,
-            primary.Provider,
-            offers
+            Id: primary.Id,
+            Name: primary.Name,
+            VenueName: primary.VenueName,
+            Date: primary.Date,
+            Time: earliestTime,
+            TicketUrl: primary.TicketUrl,
+            Status: primary.Status,
+            Provider: primary.Provider,
+            Offers: offers
         );
     }
 
     private static EventResponse EnsureOffers(EventResponse ev) =>
-        ev.Offers is not null ? ev : ev with { Offers = [new EventTicketOffer(ev.Provider, ev.TicketUrl, ev.Status)] };
+        ev.Offers is not null
+            ? ev
+            : ev with
+            {
+                Offers = [new EventTicketOffer(Provider: ev.Provider, TicketUrl: ev.TicketUrl, Status: ev.Status)],
+            };
 
     private static int StatusPriority(EventStatus status) =>
         status switch

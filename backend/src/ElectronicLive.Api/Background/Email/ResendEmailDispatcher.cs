@@ -51,8 +51,8 @@ public sealed class ResendEmailDispatcher(
 
             throw new HttpRequestException(
                 $"Resend API returned error ({response.StatusCode}): {errorBody}",
-                null,
-                response.StatusCode
+                inner: null,
+                statusCode: response.StatusCode
             );
         }
 
