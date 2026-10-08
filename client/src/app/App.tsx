@@ -12,9 +12,8 @@ import { useEventSearchState } from '../hooks/useEventSearchState'
 export default function App() {
   const [trackingArtist, setTrackingArtist] = useState<string | null>(null)
 
-  // Proactively trigger a health check on initial mount to wake up Azure Container Apps
-  // instances scaled to zero replicas while visitors read the interface and select presets.
-  // Wired with an AbortController to cleanly abort on unmount in React 19 Strict Mode.
+  // Pre-warms idle backend containers on page load to hide cold-start latency.
+  // Cancels cleanly on unmount to prevent duplicate in-flight requests.
   useEffect(() => {
     const controller = new AbortController()
     void pingHealth(controller.signal)
