@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '../../test/mocks/server'
-import { createSubscription, fetchEvents } from '../client'
+import { createSubscription, fetchEvents, pingHealth } from '../client'
 import { ApiError } from '../errors'
 
 describe('fetchEvents Client', () => {
@@ -225,6 +225,41 @@ describe('createSubscription Client', () => {
       status: 200,
       title: 'Invalid Schema',
     })
+  })
+})
+
+describe('pingHealth Client', () => {
+  it('Should_dispatch_health_check_ping_successfully', async () => {
+    let pingReceived = false
+    server.use(
+      http.get('*/api/health', () => {
+        pingReceived = true
+        return HttpResponse.json({ status: 'healthy' })
+      })
+    )
+
+    await expect(pingHealth()).resolves.toBeUndefined()
+    expect(pingReceived).toBe(true)
+  })
+
+  it('Should_swallow_network_errors_gracefully_without_throwing', async () => {
+    server.use(
+      http.get('*/api/health', () => {
+        return HttpResponse.error()
+      })
+    )
+
+    await expect(pingHealth()).resolves.toBeUndefined()
+  })
+
+  it('Should_swallow_http_server_errors_gracefully_without_throwing', async () => {
+    server.use(
+      http.get('*/api/health', () => {
+        return HttpResponse.json({ status: 'error' }, { status: 503 })
+      })
+    )
+
+    await expect(pingHealth()).resolves.toBeUndefined()
   })
 })
 

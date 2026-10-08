@@ -1,6 +1,8 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { server } from '../../test/mocks/server'
 import { createQueryWrapper } from '../../test/utils'
 import App from '../App'
 
@@ -331,6 +333,22 @@ describe('App Integration Suite', () => {
     expect(window.location.search).toBe('?from=2026-11-14&to=2026-11-18')
     await waitFor(() => {
       expect(screen.getAllByText('Amelie Lens - Exhale London').length).toBeGreaterThan(0)
+    })
+  })
+
+  it('Should_dispatch_prewarm_health_ping_on_initial_mount', async () => {
+    let healthPingCalled = false
+    server.use(
+      http.get('*/api/health', () => {
+        healthPingCalled = true
+        return HttpResponse.json({ status: 'healthy' })
+      })
+    )
+
+    render(<App />, { wrapper: createQueryWrapper() })
+
+    await waitFor(() => {
+      expect(healthPingCalled).toBe(true)
     })
   })
 })

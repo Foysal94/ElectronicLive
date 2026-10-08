@@ -4,6 +4,10 @@ import { isValidEmail } from '../../utils/validation'
 import { mockDefaultEvents } from './fixtures'
 
 export const handlers = [
+  http.get('*/api/health', () => {
+    return HttpResponse.json({ status: 'healthy' }, { status: 200 })
+  }),
+
   http.get('*/api/events/search', ({ request }) => {
     const url = new URL(request.url)
     const query = url.searchParams.get('query')?.trim() || ''

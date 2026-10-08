@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { pingHealth } from '../api/client'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/search/SearchBar'
 import { DateFilterBar } from '../components/search/DateFilterBar'
@@ -10,6 +11,17 @@ import { useEventSearchState } from '../hooks/useEventSearchState'
 
 export default function App() {
   const [trackingArtist, setTrackingArtist] = useState<string | null>(null)
+
+  // Proactively trigger a health check on initial mount to wake up Azure Container Apps
+  // instances scaled to zero replicas while visitors read the interface and select presets.
+  // Wired with an AbortController to cleanly abort on unmount in React 19 Strict Mode.
+  useEffect(() => {
+    const controller = new AbortController()
+    void pingHealth(controller.signal)
+    return () => {
+      controller.abort()
+    }
+  }, [])
 
   const {
     searchTerm,
