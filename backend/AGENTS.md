@@ -1,45 +1,19 @@
 # Backend Directives: ElectronicLive .NET API
 
-## Tech Stack
-- .NET 10 Web API (`ElectronicLive.sln`, `src/ElectronicLive.Api`)
-- Pattern: Minimal APIs organized by resource extension classes (`Endpoints/`) returning `TypedResults`
-- Architecture: Aggregator / BFF with Relational Persistence for Watchlists (PostgreSQL + EF Core) & external EDM/gig provider aggregation
-- Persistence: PostgreSQL (Neon.tech), Entity Framework Core (`Npgsql.EntityFrameworkCore.PostgreSQL`)
-- Resilience & Networking: `IHttpClientFactory` with Polly standard resilience pipelines
-- Testing: xUnit, Shouldly, NSubstitute 
+## Commands
+- Dev Server: `dotnet run --project src/ElectronicLive.Api` (inside `/backend`)
+- Run Tests: `dotnet test`
+- Watchlist Scanner: `dotnet run --project src/ElectronicLive.Api -- --job scan-watchlist`
+- Database Migrations: `dotnet ef database update --project src/ElectronicLive.Api`
 
 ## Architecture & Code Boundaries
-- **Endpoints Over Controllers:** Map endpoints using static extension methods on `IEndpointRouteBuilder` inside `Endpoints/` (e.g., `Endpoints/EventEndpoints.cs`, `Endpoints/SubscriptionEndpoints.cs`). Never place full endpoint implementations in `Program.cs`.
-- **No Direct Persistence in Endpoints:** Endpoints are strictly HTTP transport adapters (routing, model binding, returning `TypedResults`). Never execute raw `DbContext` queries in `Endpoints/`. Delegate all database and domain orchestration to `Services/` so logic is isolated and reusable by background jobs (`Background/`).
-- **Unit-Testable Handlers:** Endpoint logic must reside in `internal static` handler methods so they can be unit-tested directly without spinning up HTTP test servers. `[InternalsVisibleTo]` must target `ElectronicLive.Api.UnitTests`.
-- **Encapsulated Clients:** Place external provider integrations under `src/ElectronicLive.Api/Clients/` (implementing domain abstractions like `IEventProvider`, `IArtistVerificationService`). Each external vendor gets its own typed client and resilience policies.
-- **Core Domain Services:** Synchronous business capabilities and aggregators reside under `src/ElectronicLive.Api/Services/` (e.g., `IEventSearchService`, `ISubscriptionService`, `IArtistVerificationService`).
-- **Pragmatic Return Types:** Return domain records or simple status flags directly; do not create artificial `Result<T>`, `StatusEnum`, or `Contracts/` wrapper layers for straightforward domain operations.
-- **Layered Validation & Guard Clauses:** Validate request syntax on DTOs (e.g., `TryValidate()`) returning `TypedResults.ValidationProblem()` immediately; keep semantic and business checks inside domain services using flat early-return guard clauses.
-- **Background & Notification Pipelines:** Background processing, scheduled jobs (ACA Jobs), and email dispatching reside under `src/ElectronicLive.Api/Background/` (e.g., `Background/Email/` for `IEmailDispatcher`, `ResendEmailDispatcher`, `LoggingEmailDispatcher`, `EmailTemplateBuilder` and `Background/Scanner/` for `WatchlistScannerService`).
-- **Embedded Resource Templates:** Email and HTML notification templates must be stored under `src/ElectronicLive.Api/Background/Email/Templates/` and compiled as an `<EmbeddedResource>` in the `.csproj` to prevent runtime `FileNotFoundException` path failures in containerized (Docker/ACA) environments.
-- **DTOs & Schema Separation:** Separate raw upstream third-party models (`Clients/*/Models.cs`) from exposed API contracts (`Models/`). Never expose raw third-party schemas directly to callers.
-- **One Type Per File (`SA1649`):** Never declare records, DTOs, or enums inside interface files or leak private loop types. Every public/internal type gets its own dedicated file named after the type.
-- **Feature-Scoped Models:** Root `Models/` is strictly for public HTTP API contracts across endpoint boundaries. Client and feature DTOs stay flat in their feature root (e.g., `Clients/*/Models.cs`, `ScanResult.cs`); no nested `Models/` folders unless 5+ DTOs.
-- **Records Over Tuples:** Use immutable `record` or `enum` types for method returns—never multi-element tuples (e.g., `(int, int, int)`).
-- **No Test-Driven Visibility Widening:** Never widen method access modifiers (e.g., making methods `public` or `public static`) purely to facilitate unit tests. Keep pure algorithmic helpers `internal static` (covered by `[InternalsVisibleTo]`), and test orchestration through public service interfaces.
-- **Async Execution:** Always accept and forward `CancellationToken`. Use `Task.WhenAll` when querying multiple independent gig providers concurrently.
-- **Testing Conventions:** All test methods must strictly follow the naming pattern `Should_....` Never duplicate manual entity or DTO construction across test files; maintain shared test factories in `TestHelpers/` (e.g., `EventTestFactory`) and assert observable state/side-effects rather than internal mock mechanics.
-- **Selective Named Arguments:** Use named arguments strictly to eliminate ambiguity—boolean/null literals (`isHighPriority: true`), adjacent same-type primitives (`fromId: a, toId: b`), skipping optional defaults (`cancellationToken: ct`), or multi-field records. Forbid them on self-evident calls (e.g., `GetByIdAsync(id: userId)`). Never use named arguments to mask methods with 4+ parameters; refactor them into command/options records.
+- **Endpoints Over Controllers:** Map endpoints via static extension methods in `Endpoints/` returning `TypedResults`. Route handlers are HTTP transport adapters only; delegate domain and database orchestration to `Services/`. Handlers use `internal static` methods testable directly via `[InternalsVisibleTo]`.
+- **External Clients:** Integrations (Ticketmaster, Skiddle, Resident Advisor) reside under `src/ElectronicLive.Api/Clients/` implementing domain abstractions (`IEventProvider`, `IArtistVerificationService`) with Polly resilience. Never expose raw upstream schemas to API callers.
+- **Background & Notifications:** Scheduled scanner and email dispatchers reside in `Background/` (`WatchlistScannerService`, `IEmailDispatcher`). Notification templates in `Background/Email/Templates/` must be compiled as `<EmbeddedResource>`.
+- **Persistence:** Dual SQLite (local development: `electroniclive.db`) and PostgreSQL (Neon cloud) via EF Core.
+- **Validation & Errors:** Validate request syntax on DTOs returning `TypedResults.ValidationProblem()`. Keep business checks in domain services using early returns.
 
-## Guardrails
-- Handle external upstream failures gracefully; a failure from one gig provider or email recipient must not crash the entire endpoint or abort processing for other subscribers.
-
-## Azure Safeguards
-- Always prompt for explicit user confirmation before executing destructive or state-altering Azure commands (e.g., `az * delete`, resource teardown, scale-down, or state-altering scripts).
-- Verify the active subscription and tenant context (`az account show`) before executing modifications if multiple subscriptions are configured.
-
-## Pragmatic SOLID Design
-- **Single Responsibility (SRP):** Classes and endpoints must have one clear reason to change (e.g., separate HTTP routing from background dispatching and external provider integration).
-- **Dependency Inversion (DIP):** Depend on abstractions (`IEventProvider`, `IArtistVerificationService`, `IEmailDispatcher`) for external boundaries rather than concrete implementations.
-- **Interface Segregation (ISP):** Keep service interfaces focused on specific capabilities rather than monolithic "catch-all" contracts.
-- **Pragmatic Methods:** Prefer clear, linear, top-to-bottom method flow that fits on a single screen over premature extraction of single-use private helpers. Only extract private methods for reused logic, deep nesting, or isolated, branch-heavy mappings.
-
-## Comment Policy (Why, Never What)
-- Write clean, self-documenting code with expressive naming so comments are rarely needed. Strictly forbid tautological comments (e.g., `// call api`, `// set variable`). Comments are only permitted to explain the "why"—such as workarounds for third-party API quirks, non-obvious framework traps (e.g., .NET URI path stripping), or regulatory/RFC specifications. Delete boilerplate framework comments immediately.
-- **No Blanket XML Comments (`CS1591`):** Never generate `/// <summary>` boilerplate for internal services, client implementations, or self-explanatory models (`CS1591` is suppressed by design). Document HTTP endpoints fluently on route mappings via `.WithSummary()`, `.WithDescription()`, and `.Produces<T>()`. Reserve XML doc comments strictly for public boundary schemas (`Models/`) where domain constraints or date/price formats are non-obvious to external consumers.
+## Testing Standards
+- Runner: xUnit with Shouldly and NSubstitute.
+- Test Naming: Every test case must follow the naming pattern `Should_...`.
+- Test Helpers: Maintain shared test fixtures in `TestHelpers/` (e.g. `EventTestFactory`). Assert observable state and side effects over mock internals.
