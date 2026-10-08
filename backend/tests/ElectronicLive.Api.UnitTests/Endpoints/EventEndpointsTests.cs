@@ -53,14 +53,14 @@ public class EventEndpointsTests
         var expectedEvents = new List<EventResponse>
         {
             new(
-                "ev-1",
-                "fabric Saturdays",
-                "fabric",
-                new DateOnly(2026, 11, 28),
-                new TimeOnly(23, 0, 0),
-                "https://fabriclondon.com/event1",
-                EventStatus.OnSale,
-                EventProvider.Ticketmaster
+                Id: "ev-1",
+                Name: "fabric Saturdays",
+                VenueName: "fabric",
+                Date: new DateOnly(2026, 11, 28),
+                Time: new TimeOnly(23, 0, 0),
+                TicketUrl: "https://fabriclondon.com/event1",
+                Status: EventStatus.OnSale,
+                Provider: EventProvider.Ticketmaster
             ),
         };
         _searchService
@@ -79,14 +79,14 @@ public class EventEndpointsTests
         var expectedEvents = new List<EventResponse>
         {
             new(
-                "ev-techno",
-                "KNTXT London",
-                "FOLD",
-                new DateOnly(2026, 12, 5),
-                new TimeOnly(23, 0, 0),
-                "https://ra.co/events/2001",
-                EventStatus.OnSale,
-                EventProvider.ResidentAdvisor
+                Id: "ev-techno",
+                Name: "KNTXT London",
+                VenueName: "FOLD",
+                Date: new DateOnly(2026, 12, 5),
+                Time: new TimeOnly(23, 0, 0),
+                TicketUrl: "https://ra.co/events/2001",
+                Status: EventStatus.OnSale,
+                Provider: EventProvider.ResidentAdvisor
             ),
         };
         _searchService
@@ -105,14 +105,14 @@ public class EventEndpointsTests
         var expectedEvents = new List<EventResponse>
         {
             new(
-                "ev-charlotte",
-                "Charlotte de Witte",
-                "FOLD",
-                new DateOnly(2026, 12, 5),
-                new TimeOnly(23, 0, 0),
-                "https://ra.co/events/2001",
-                EventStatus.OnSale,
-                EventProvider.ResidentAdvisor
+                Id: "ev-charlotte",
+                Name: "Charlotte de Witte",
+                VenueName: "FOLD",
+                Date: new DateOnly(2026, 12, 5),
+                Time: new TimeOnly(23, 0, 0),
+                TicketUrl: "https://ra.co/events/2001",
+                Status: EventStatus.OnSale,
+                Provider: EventProvider.ResidentAdvisor
             ),
         };
         _searchService

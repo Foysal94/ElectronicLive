@@ -61,7 +61,7 @@ public sealed class SubscriptionServiceTests : IDisposable
 
         using var context = CreateContext();
         var service = CreateService(context);
-        var request = new SubscribeRequest("fan@electroniclive.com", "FakeArtist", "London");
+        var request = new SubscribeRequest(Email: "fan@electroniclive.com", ArtistName: "FakeArtist", City: "London");
 
         var outcome = await service.SubscribeAsync(request);
 
@@ -75,7 +75,7 @@ public sealed class SubscriptionServiceTests : IDisposable
 
         using var context = CreateContext();
         var service = CreateService(context);
-        var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", null);
+        var request = new SubscribeRequest(Email: "fan@electroniclive.com", ArtistName: "Bicep", City: null);
 
         var outcome = await service.SubscribeAsync(request);
 
@@ -102,11 +102,15 @@ public sealed class SubscriptionServiceTests : IDisposable
     public async Task Should_HandleExistingSubscriptionLifecycle(bool initiallyActive)
     {
         _artistVerificationService.VerifyArtistExistsAsync("Bicep", Arg.Any<CancellationToken>()).Returns(true);
-        var (_, subIds) = await SeedUser("fan@electroniclive.com", "token123", ("bicep", "London", initiallyActive));
+        var (_, subIds) = await SeedUser(
+            "fan@electroniclive.com",
+            "token123",
+            (Artist: "bicep", City: "London", IsActive: initiallyActive)
+        );
 
         using var context = CreateContext();
         var service = CreateService(context);
-        var request = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
+        var request = new SubscribeRequest(Email: "fan@electroniclive.com", ArtistName: "Bicep", City: "London");
 
         var outcome = await service.SubscribeAsync(request);
 

@@ -219,7 +219,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         };
 
         _eventSearchService
-            .SearchEventsAsync("four tet", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("four tet", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(gigEvents);
 
         var service = CreateService();
@@ -360,7 +360,12 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         await SeedSubscriptionAsync(artist: "artist-two", token: "tok-2");
 
         _eventSearchService
-            .SearchEventsAsync(Arg.Any<string>(), null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync(
+                Arg.Any<string>(),
+                genre: null,
+                "London",
+                cancellationToken: Arg.Any<CancellationToken>()
+            )
             .Returns(new List<EventResponse>());
 
         var service = CreateService(delayMs: 50);
