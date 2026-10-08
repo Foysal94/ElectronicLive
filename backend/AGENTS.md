@@ -25,6 +25,7 @@
 - **No Test-Driven Visibility Widening:** Never widen method access modifiers (e.g., making methods `public` or `public static`) purely to facilitate unit tests. Keep pure algorithmic helpers `internal static` (covered by `[InternalsVisibleTo]`), and test orchestration through public service interfaces.
 - **Async Execution:** Always accept and forward `CancellationToken`. Use `Task.WhenAll` when querying multiple independent gig providers concurrently.
 - **Testing Conventions:** All test methods must strictly follow the naming pattern `Should_....` Never duplicate manual entity or DTO construction across test files; maintain shared test factories in `TestHelpers/` (e.g., `EventTestFactory`) and assert observable state/side-effects rather than internal mock mechanics.
+- **Selective Named Arguments:** Use named arguments strictly to eliminate ambiguity—boolean/null literals (`isHighPriority: true`), adjacent same-type primitives (`fromId: a, toId: b`), skipping optional defaults (`cancellationToken: ct`), or multi-field records. Forbid them on self-evident calls (e.g., `GetByIdAsync(id: userId)`). Never use named arguments to mask methods with 4+ parameters; refactor them into command/options records.
 
 ## Guardrails
 - Handle external upstream failures gracefully; a failure from one gig provider or email recipient must not crash the entire endpoint or abort processing for other subscribers.
@@ -41,3 +42,4 @@
 
 ## Comment Policy (Why, Never What)
 - Write clean, self-documenting code with expressive naming so comments are rarely needed. Strictly forbid tautological comments (e.g., `// call api`, `// set variable`). Comments are only permitted to explain the "why"—such as workarounds for third-party API quirks, non-obvious framework traps (e.g., .NET URI path stripping), or regulatory/RFC specifications. Delete boilerplate framework comments immediately.
+- **No Blanket XML Comments (`CS1591`):** Never generate `/// <summary>` boilerplate for internal services, client implementations, or self-explanatory models (`CS1591` is suppressed by design). Document HTTP endpoints fluently on route mappings via `.WithSummary()`, `.WithDescription()`, and `.Produces<T>()`. Reserve XML doc comments strictly for public boundary schemas (`Models/`) where domain constraints or date/price formats are non-obvious to external consumers.
