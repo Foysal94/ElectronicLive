@@ -86,10 +86,10 @@ public class SubscriptionEndpointsTests
     public async Task Should_ReturnBadRequestHtml_WhenUnsubscribeTokenIsMissing()
     {
         _subscriptionService
-            .UnsubscribeAsync(null, null, Arg.Any<CancellationToken>())
+            .UnsubscribeAsync(token: null, artist: null, cancellationToken: Arg.Any<CancellationToken>())
             .Returns(UnsubscribeOutcome.MissingToken);
 
-        var result = await SubscriptionEndpoints.Unsubscribe(null, null, _subscriptionService);
+        var result = await SubscriptionEndpoints.Unsubscribe(token: null, artist: null, _subscriptionService);
 
         AssertHtml(result, StatusCodes.Status400BadRequest, "An unsubscribe token is required.");
     }
@@ -98,10 +98,10 @@ public class SubscriptionEndpointsTests
     public async Task Should_ReturnNotFoundHtml_WhenUnsubscribeTokenIsInvalid()
     {
         _subscriptionService
-            .UnsubscribeAsync("bad-token", null, Arg.Any<CancellationToken>())
+            .UnsubscribeAsync("bad-token", artist: null, cancellationToken: Arg.Any<CancellationToken>())
             .Returns(UnsubscribeOutcome.InvalidToken);
 
-        var result = await SubscriptionEndpoints.Unsubscribe("bad-token", null, _subscriptionService);
+        var result = await SubscriptionEndpoints.Unsubscribe("bad-token", artist: null, _subscriptionService);
 
         AssertHtml(result, StatusCodes.Status404NotFound, "Invalid or expired unsubscribe link.");
     }

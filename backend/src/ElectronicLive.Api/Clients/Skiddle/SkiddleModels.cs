@@ -44,14 +44,14 @@ internal sealed record SkiddleEvent(
             : null;
 
         return new EventResponse(
-            Id ?? string.Empty,
-            EventName ?? string.Empty,
-            venueName,
-            date,
-            time,
-            Link,
-            status,
-            EventProvider.Skiddle
+            Id: Id ?? string.Empty,
+            Name: EventName ?? string.Empty,
+            VenueName: venueName,
+            Date: date,
+            Time: time,
+            TicketUrl: Link,
+            Status: status,
+            Provider: EventProvider.Skiddle
         );
     }
 

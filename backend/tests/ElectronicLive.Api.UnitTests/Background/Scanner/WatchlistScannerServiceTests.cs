@@ -119,7 +119,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         var gigEvents = new List<EventResponse> { CreateEvent() };
 
         _eventSearchService
-            .SearchEventsAsync("bicep", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("bicep", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(gigEvents);
 
         var service = CreateService();
@@ -174,7 +174,7 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         };
 
         _eventSearchService
-            .SearchEventsAsync("overmono", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("overmono", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(gigEvents);
 
         var service = CreateService();
@@ -275,11 +275,11 @@ public sealed class WatchlistScannerServiceTests : IDisposable
     [Fact]
     public async Task Should_IsolateSubscriberFailure_AndContinueProcessingOtherSubscribersAndArtists()
     {
-        await SeedSubscriptionAsync("failing@test.com", "fred again..", true, "tok-1");
-        var sub2 = await SeedSubscriptionAsync("success@test.com", "fred again..", true, "tok-2");
+        await SeedSubscriptionAsync("failing@test.com", "fred again..", isActive: true, token: "tok-1");
+        var sub2 = await SeedSubscriptionAsync("success@test.com", "fred again..", isActive: true, token: "tok-2");
 
         _eventSearchService
-            .SearchEventsAsync("fred again..", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fred again..", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(new List<EventResponse> { CreateEvent("evt-1", "Fred again.. Live", "Brixton Academy") });
 
         _emailDispatcher
@@ -323,11 +323,11 @@ public sealed class WatchlistScannerServiceTests : IDisposable
         await SeedSubscriptionAsync(artist: "working-artist", token: "tok-2");
 
         _eventSearchService
-            .SearchEventsAsync("broken-artist", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("broken-artist", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new InvalidOperationException("Provider timeout"));
 
         _eventSearchService
-            .SearchEventsAsync("working-artist", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("working-artist", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(
                 new List<EventResponse>
                 {

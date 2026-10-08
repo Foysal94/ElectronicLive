@@ -32,7 +32,7 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
     {
         _factory.ArtistVerificationService.VerifyArtistExistsAsync("Bicep", Arg.Any<CancellationToken>()).Returns(true);
 
-        var payload = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
+        var payload = new SubscribeRequest(Email: "fan@electroniclive.com", ArtistName: "Bicep", City: "London");
         var response = await _client.PostAsJsonAsync("/api/subscriptions", payload);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -74,7 +74,7 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
 
         _factory.ArtistVerificationService.VerifyArtistExistsAsync("Bicep", Arg.Any<CancellationToken>()).Returns(true);
 
-        var payload = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
+        var payload = new SubscribeRequest(Email: "fan@electroniclive.com", ArtistName: "Bicep", City: "London");
         var response = await _client.PostAsJsonAsync("/api/subscriptions", payload);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -106,7 +106,7 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
 
         _factory.ArtistVerificationService.VerifyArtistExistsAsync("Bicep", Arg.Any<CancellationToken>()).Returns(true);
 
-        var payload = new SubscribeRequest("fan@electroniclive.com", "Bicep", "London");
+        var payload = new SubscribeRequest(Email: "fan@electroniclive.com", ArtistName: "Bicep", City: "London");
         var response = await _client.PostAsJsonAsync("/api/subscriptions", payload);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -146,7 +146,11 @@ public class SubscriptionEndpointsIntegrationTests : IClassFixture<CustomWebAppl
             .ArtistVerificationService.VerifyArtistExistsAsync("FakeArtistXYZ", Arg.Any<CancellationToken>())
             .Returns(false);
 
-        var payload = new SubscribeRequest("fan@electroniclive.com", "FakeArtistXYZ", "London");
+        var payload = new SubscribeRequest(
+            Email: "fan@electroniclive.com",
+            ArtistName: "FakeArtistXYZ",
+            City: "London"
+        );
         var response = await _client.PostAsJsonAsync("/api/subscriptions", payload);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);

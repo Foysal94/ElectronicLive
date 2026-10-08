@@ -10,8 +10,27 @@ public static class SubscriptionEndpoints
     {
         var group = app.MapGroup("/api/subscriptions");
 
-        group.MapPost("/", Subscribe);
-        group.MapGet("/unsubscribe", Unsubscribe);
+        group
+            .MapPost("/", Subscribe)
+            .WithName("Subscribe")
+            .WithSummary("Subscribe to artist gig alerts")
+            .WithDescription(
+                "Subscribes an email address to upcoming live event notifications for a specific artist in a target city."
+            )
+            .Produces<SubscribeResponse>(StatusCodes.Status201Created)
+            .Produces<SubscribeResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem();
+
+        group
+            .MapGet("/unsubscribe", Unsubscribe)
+            .WithName("Unsubscribe")
+            .WithSummary("Unsubscribe from artist alerts")
+            .WithDescription(
+                "Unsubscribes a user from gig alerts for a specific artist or all tracked artists using a secure one-click token."
+            )
+            .Produces(StatusCodes.Status200OK, contentType: "text/html")
+            .Produces(StatusCodes.Status400BadRequest, contentType: "text/html")
+            .Produces(StatusCodes.Status404NotFound, contentType: "text/html");
 
         return group;
     }

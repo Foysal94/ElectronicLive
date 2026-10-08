@@ -88,7 +88,7 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         _factory
             .EventSearchService.SearchEventsAsync(
                 artist,
-                null,
+                genre: null,
                 "London",
                 cancellationToken: Arg.Any<CancellationToken>()
             )
@@ -175,7 +175,7 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         _factory
             .EventSearchService.SearchEventsAsync(
                 artist,
-                null,
+                genre: null,
                 "London",
                 cancellationToken: Arg.Any<CancellationToken>()
             )
@@ -385,7 +385,7 @@ public class WatchlistScannerIntegrationTests : IClassFixture<CustomWebApplicati
         _factory
             .EventSearchService.SearchEventsAsync(
                 "four tet",
-                null,
+                genre: null,
                 "London",
                 cancellationToken: Arg.Any<CancellationToken>()
             )

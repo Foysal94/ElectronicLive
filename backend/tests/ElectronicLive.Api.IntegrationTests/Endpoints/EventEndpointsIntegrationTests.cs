@@ -57,7 +57,7 @@ public class EventEndpointsIntegrationTests : IClassFixture<CustomWebApplication
         _factory
             .EventSearchService.SearchEventsAsync(
                 "Bicep",
-                null,
+                genre: null,
                 "London",
                 cancellationToken: Arg.Any<CancellationToken>()
             )
@@ -90,7 +90,7 @@ public class EventEndpointsIntegrationTests : IClassFixture<CustomWebApplication
         _factory
             .EventSearchService.SearchEventsAsync(
                 "Bicep",
-                null,
+                genre: null,
                 "London",
                 cancellationToken: Arg.Any<CancellationToken>()
             )
@@ -123,7 +123,14 @@ public class EventEndpointsIntegrationTests : IClassFixture<CustomWebApplication
         };
 
         _factory
-            .EventSearchService.SearchEventsAsync(null, null, "London", from, to, Arg.Any<CancellationToken>())
+            .EventSearchService.SearchEventsAsync(
+                query: null,
+                genre: null,
+                "London",
+                from,
+                to,
+                Arg.Any<CancellationToken>()
+            )
             .Returns(expectedEvents);
 
         var response = await _client.GetAsync($"/api/events/search?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");

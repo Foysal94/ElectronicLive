@@ -84,7 +84,12 @@ public sealed class WatchlistScannerService(
         IReadOnlyList<EventResponse> events;
         try
         {
-            events = await eventSearchService.SearchEventsAsync(artist, null, TargetCity, cancellationToken: ct);
+            events = await eventSearchService.SearchEventsAsync(
+                artist,
+                genre: null,
+                city: TargetCity,
+                cancellationToken: ct
+            );
         }
         catch (Exception ex)
         {
@@ -132,7 +137,11 @@ public sealed class WatchlistScannerService(
             }
         }
 
-        return new ArtistScanResult(processedCount, sentCount, errorCount);
+        return new ArtistScanResult(
+            SubscriptionsProcessed: processedCount,
+            DigestsSent: sentCount,
+            ErrorsCount: errorCount
+        );
     }
 
     private async Task<SubscriptionProcessOutcome> ProcessSubscriptionAsync(

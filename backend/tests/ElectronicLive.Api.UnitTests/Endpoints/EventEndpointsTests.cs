@@ -38,7 +38,7 @@ public class EventEndpointsTests
     [InlineData("123")]
     public async Task Should_ReturnValidationProblem_WhenGenreIsInvalid(string invalidGenre)
     {
-        var result = await EventEndpoints.SearchEvents(null, invalidGenre, _searchService);
+        var result = await EventEndpoints.SearchEvents(query: null, invalidGenre, _searchService);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
@@ -64,10 +64,10 @@ public class EventEndpointsTests
             ),
         };
         _searchService
-            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fabric", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService);
+        var result = await EventEndpoints.SearchEvents("fabric", genre: null, _searchService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -90,10 +90,10 @@ public class EventEndpointsTests
             ),
         };
         _searchService
-            .SearchEventsAsync(null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync(query: null, "techno", "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents(null, "techno", _searchService);
+        var result = await EventEndpoints.SearchEvents(query: null, "techno", _searchService);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -131,7 +131,7 @@ public class EventEndpointsTests
         var from = new DateOnly(2026, 10, 10);
         var to = new DateOnly(2026, 10, 5);
 
-        var result = await EventEndpoints.SearchEvents("Bicep", null, _searchService, from: from, to: to);
+        var result = await EventEndpoints.SearchEvents("Bicep", genre: null, _searchService, from: from, to: to);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
@@ -145,7 +145,7 @@ public class EventEndpointsTests
     {
         var from = new DateOnly(2026, 10, 10);
 
-        var result = await EventEndpoints.SearchEvents(null, null, _searchService, from: from, to: null);
+        var result = await EventEndpoints.SearchEvents(query: null, genre: null, _searchService, from: from, to: null);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
@@ -162,7 +162,7 @@ public class EventEndpointsTests
         var from = new DateOnly(2026, 10, 1);
         var to = new DateOnly(2026, 10, 9); // 8 days
 
-        var result = await EventEndpoints.SearchEvents(null, null, _searchService, from: from, to: to);
+        var result = await EventEndpoints.SearchEvents(query: null, genre: null, _searchService, from: from, to: to);
 
         var validationProblem = result.Result.ShouldBeOfType<ValidationProblem>();
         validationProblem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
@@ -179,10 +179,10 @@ public class EventEndpointsTests
         var expectedEvents = new List<EventResponse>();
 
         _searchService
-            .SearchEventsAsync(null, null, "London", from, to, Arg.Any<CancellationToken>())
+            .SearchEventsAsync(query: null, genre: null, "London", from, to, Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents(null, null, _searchService, from: from, to: to);
+        var result = await EventEndpoints.SearchEvents(query: null, genre: null, _searchService, from: from, to: to);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -196,10 +196,10 @@ public class EventEndpointsTests
         var expectedEvents = new List<EventResponse>();
 
         _searchService
-            .SearchEventsAsync("Bicep", null, "London", from, to, Arg.Any<CancellationToken>())
+            .SearchEventsAsync("Bicep", genre: null, "London", from, to, Arg.Any<CancellationToken>())
             .Returns(expectedEvents);
 
-        var result = await EventEndpoints.SearchEvents("Bicep", null, _searchService, from: from, to: to);
+        var result = await EventEndpoints.SearchEvents("Bicep", genre: null, _searchService, from: from, to: to);
 
         var okResult = result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         okResult.Value.ShouldBe(expectedEvents);
@@ -209,15 +209,15 @@ public class EventEndpointsTests
     public async Task Should_PassCustomCity_WhenSpecified()
     {
         _searchService
-            .SearchEventsAsync("fabric", null, "Manchester", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fabric", genre: null, "Manchester", cancellationToken: Arg.Any<CancellationToken>())
             .Returns([]);
 
-        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService, city: "Manchester");
+        var result = await EventEndpoints.SearchEvents("fabric", genre: null, _searchService, city: "Manchester");
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         await _searchService
             .Received(1)
-            .SearchEventsAsync("fabric", null, "Manchester", cancellationToken: Arg.Any<CancellationToken>());
+            .SearchEventsAsync("fabric", genre: null, "Manchester", cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -227,15 +227,15 @@ public class EventEndpointsTests
     public async Task Should_DefaultCityToLondon_WhenCityNullOrWhitespace(string? city)
     {
         _searchService
-            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fabric", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .Returns([]);
 
-        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService, city: city);
+        var result = await EventEndpoints.SearchEvents("fabric", genre: null, _searchService, city: city);
 
         result.Result.ShouldBeOfType<Ok<IReadOnlyList<EventResponse>>>();
         await _searchService
             .Received(1)
-            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>());
+            .SearchEventsAsync("fabric", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -256,21 +256,23 @@ public class EventEndpointsTests
     public async Task Should_PropagateCancellationToken()
     {
         using var cts = new CancellationTokenSource();
-        _searchService.SearchEventsAsync("fabric", null, "London", cancellationToken: cts.Token).Returns([]);
+        _searchService.SearchEventsAsync("fabric", genre: null, "London", cancellationToken: cts.Token).Returns([]);
 
-        await EventEndpoints.SearchEvents("fabric", null, _searchService, cancellationToken: cts.Token);
+        await EventEndpoints.SearchEvents("fabric", genre: null, _searchService, cancellationToken: cts.Token);
 
-        await _searchService.Received(1).SearchEventsAsync("fabric", null, "London", cancellationToken: cts.Token);
+        await _searchService
+            .Received(1)
+            .SearchEventsAsync("fabric", genre: null, "London", cancellationToken: cts.Token);
     }
 
     [Fact]
     public async Task Should_Return502BadGateway_WhenAllProvidersFail()
     {
         _searchService
-            .SearchEventsAsync("fabric", null, "London", cancellationToken: Arg.Any<CancellationToken>())
+            .SearchEventsAsync("fabric", genre: null, "London", cancellationToken: Arg.Any<CancellationToken>())
             .ThrowsAsync(new AllProvidersUnavailableException("fabric", 3));
 
-        var result = await EventEndpoints.SearchEvents("fabric", null, _searchService);
+        var result = await EventEndpoints.SearchEvents("fabric", genre: null, _searchService);
 
         var problemResult = result.Result.ShouldBeOfType<ProblemHttpResult>();
         problemResult.StatusCode.ShouldBe(StatusCodes.Status502BadGateway);

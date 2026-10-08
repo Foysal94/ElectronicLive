@@ -57,14 +57,14 @@ internal sealed record RaSearchItem(
         var ticketUrl = FormatTicketUrl(ContentUrl);
 
         return new EventResponse(
-            Id ?? string.Empty,
-            Value ?? string.Empty,
-            venueName,
-            date,
-            time,
-            ticketUrl,
-            status,
-            EventProvider.ResidentAdvisor
+            Id: Id ?? string.Empty,
+            Name: Value ?? string.Empty,
+            VenueName: venueName,
+            Date: date,
+            Time: time,
+            TicketUrl: ticketUrl,
+            Status: status,
+            Provider: EventProvider.ResidentAdvisor
         );
     }
 

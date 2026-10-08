@@ -36,14 +36,14 @@ internal sealed record TicketmasterEvent(
             : null;
 
         return new EventResponse(
-            Id ?? string.Empty,
-            Name ?? string.Empty,
-            venueName,
-            date,
-            time,
-            Url,
-            status,
-            EventProvider.Ticketmaster
+            Id: Id ?? string.Empty,
+            Name: Name ?? string.Empty,
+            VenueName: venueName,
+            Date: date,
+            Time: time,
+            TicketUrl: Url,
+            Status: status,
+            Provider: EventProvider.Ticketmaster
         );
     }
 

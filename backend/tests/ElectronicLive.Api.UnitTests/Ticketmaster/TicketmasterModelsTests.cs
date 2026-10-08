@@ -9,11 +9,14 @@ public class TicketmasterModelsTests
     public void Should_MapAllPropertiesCorrectly()
     {
         var ev = new TicketmasterEvent(
-            "event-1",
-            "Bicep Live",
-            "https://ticketmaster.co.uk/event1",
-            new TicketmasterDates(new TicketmasterStart("2026-11-26", "18:00:00"), new TicketmasterStatus("onsale")),
-            new TicketmasterEventEmbedded([new TicketmasterVenue("Royal Albert Hall")])
+            Id: "event-1",
+            Name: "Bicep Live",
+            Url: "https://ticketmaster.co.uk/event1",
+            Dates: new TicketmasterDates(
+                new TicketmasterStart(LocalDate: "2026-11-26", LocalTime: "18:00:00"),
+                new TicketmasterStatus("onsale")
+            ),
+            Embedded: new TicketmasterEventEmbedded([new TicketmasterVenue("Royal Albert Hall")])
         );
 
         var result = ev.ToEventResponse();
@@ -34,7 +37,7 @@ public class TicketmasterModelsTests
     public void Should_FallbackToUnknownVenue_WhenVenuesEmptyOrNull(bool includeEmptyList)
     {
         var embedded = includeEmptyList ? new TicketmasterEventEmbedded([]) : null;
-        var ev = new TicketmasterEvent("id", "name", null, null, embedded);
+        var ev = new TicketmasterEvent(Id: "id", Name: "name", Url: null, Dates: null, Embedded: embedded);
 
         var result = ev.ToEventResponse();
 
@@ -48,7 +51,7 @@ public class TicketmasterModelsTests
     public void Should_FallbackToUnknownVenue_WhenVenueNameIsEmptyOrWhitespace(string? venueName)
     {
         var embedded = new TicketmasterEventEmbedded([new TicketmasterVenue(venueName)]);
-        var ev = new TicketmasterEvent("id", "name", null, null, embedded);
+        var ev = new TicketmasterEvent(Id: "id", Name: "name", Url: null, Dates: null, Embedded: embedded);
 
         var result = ev.ToEventResponse();
 
@@ -58,7 +61,7 @@ public class TicketmasterModelsTests
     [Fact]
     public void Should_HandleNullFieldsGracefully()
     {
-        var ev = new TicketmasterEvent(null, null, null, null, null);
+        var ev = new TicketmasterEvent(Id: null, Name: null, Url: null, Dates: null, Embedded: null);
 
         var result = ev.ToEventResponse();
 
@@ -84,11 +87,11 @@ public class TicketmasterModelsTests
     public void Should_MapStatusCorrectly(string? statusCode, EventStatus expectedStatus)
     {
         var ev = new TicketmasterEvent(
-            "id",
-            "name",
-            null,
-            new TicketmasterDates(null, new TicketmasterStatus(statusCode)),
-            null
+            Id: "id",
+            Name: "name",
+            Url: null,
+            Dates: new TicketmasterDates(Start: null, Status: new TicketmasterStatus(statusCode)),
+            Embedded: null
         );
 
         var result = ev.ToEventResponse();
