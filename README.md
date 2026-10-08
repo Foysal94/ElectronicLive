@@ -16,7 +16,7 @@
 * **Web Client:** [https://proud-island-08131590f.1.azurestaticapps.net/](https://proud-island-08131590f.1.azurestaticapps.net/)
 * **API Health Check:** `https://electroniclive-api.calmglacier-47209930.westeurope.azurecontainerapps.io/api/health`
 
-> ℹ️ **Note on Initial Load:** The backend runs on Azure Container Apps with on-demand scaling (`min_replicas = 0`) to optimize cloud costs. The first search may take around 10 seconds to spin up the service; subsequent searches are instant.
+> ℹ️ **Note on Initial Load:** The backend runs on Azure Container Apps with on-demand scaling (`min_replicas = 0`) to optimize cloud costs. The first search may take around 10 seconds to spin up the service; subsequent searches are much quicker.
 
 ---
 
