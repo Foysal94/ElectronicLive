@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { pingHealth } from '../api/client'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/search/SearchBar'
 import { DateFilterBar } from '../components/search/DateFilterBar'
@@ -10,6 +11,16 @@ import { useEventSearchState } from '../hooks/useEventSearchState'
 
 export default function App() {
   const [trackingArtist, setTrackingArtist] = useState<string | null>(null)
+
+  // Pre-warms idle backend containers on page load to hide cold-start latency.
+  // Cancels cleanly on unmount to prevent duplicate in-flight requests.
+  useEffect(() => {
+    const controller = new AbortController()
+    void pingHealth(controller.signal)
+    return () => {
+      controller.abort()
+    }
+  }, [])
 
   const {
     searchTerm,

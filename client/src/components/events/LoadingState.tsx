@@ -1,10 +1,27 @@
+import { useEffect, useState } from 'react'
 import { EventSkeleton } from './EventSkeleton'
 
 interface LoadingStateProps {
   className?: string
+  delayMs?: number
 }
 
-export function LoadingState({ className = '' }: LoadingStateProps) {
+// Backend container cold-starts on Azure take ~8-12s when scaling up from zero replicas.
+// Normal queries return within 1-2s; after 4s, we update copy to explain the on-demand spin-up.
+const DEFAULT_DELAY_MS = 4000
+
+export function LoadingState({ className = '', delayMs = DEFAULT_DELAY_MS }: LoadingStateProps) {
+  const [isDelayed, setIsDelayed] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsDelayed(true)
+    }, delayMs)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [delayMs])
   return (
     <div
       role="status"
@@ -39,10 +56,14 @@ export function LoadingState({ className = '' }: LoadingStateProps) {
 
         <div className="flex-1 min-w-0">
           <h3 className="text-sm sm:text-base font-semibold text-white">
-            Connecting to live feeds...
+            {isDelayed
+              ? 'Starting backend services on demand (~10s)...'
+              : 'Connecting to live feeds...'}
           </h3>
           <p className="text-xs sm:text-sm text-emerald-400 font-medium truncate sm:whitespace-normal">
-            Aggregating shows from Resident Advisor, Ticketmaster & Skiddle
+            {isDelayed
+              ? 'Gathering data across Resident Advisor, Skiddle & Ticketmaster.'
+              : 'Aggregating shows from Resident Advisor, Ticketmaster & Skiddle'}
           </p>
         </div>
       </div>

@@ -114,3 +114,22 @@ export async function createSubscription(
   )
 }
 
+/**
+ * Dispatches a non-blocking health probe to wake up serverless backend instances.
+ * On cold starts (Azure Container Apps scaled to zero), this initiates replica provisioning
+ * while the visitor is reading initial page copy, mitigating perceived cold-start delay.
+ */
+export async function pingHealth(signal?: AbortSignal): Promise<void> {
+  const endpoint = `${API_BASE_URL}/api/health`
+  try {
+    await fetch(endpoint, {
+      headers: {
+        Accept: 'application/json',
+      },
+      signal,
+    })
+  } catch {
+    // Suppress network or abort exceptions: speculative pre-warming must never interrupt the UI
+  }
+}
+
