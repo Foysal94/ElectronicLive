@@ -1,19 +1,25 @@
 # Backend Directives: ElectronicLive .NET API
 
 ## Commands
-- Dev Server: `dotnet run --project src/ElectronicLive.Api` (inside `/backend`)
+- Dev Server: `dotnet run --project src/ElectronicLive.Api`
 - Run Tests: `dotnet test`
 - Watchlist Scanner: `dotnet run --project src/ElectronicLive.Api -- --job scan-watchlist`
-- Database Migrations: `dotnet ef database update --project src/ElectronicLive.Api`
+- Migrations: `dotnet ef database update --project src/ElectronicLive.Api`
 
-## Architecture & Code Boundaries
-- **Endpoints Over Controllers:** Map endpoints via static extension methods in `Endpoints/` returning `TypedResults`. Route handlers are HTTP transport adapters only; delegate domain and database orchestration to `Services/`. Handlers use `internal static` methods testable directly via `[InternalsVisibleTo]`.
-- **External Clients:** Integrations (Ticketmaster, Skiddle, Resident Advisor) reside under `src/ElectronicLive.Api/Clients/` implementing domain abstractions (`IEventProvider`, `IArtistVerificationService`) with Polly resilience. Never expose raw upstream schemas to API callers.
-- **Background & Notifications:** Scheduled scanner and email dispatchers reside in `Background/` (`WatchlistScannerService`, `IEmailDispatcher`). Notification templates in `Background/Email/Templates/` must be compiled as `<EmbeddedResource>`.
-- **Persistence:** Dual SQLite (local development: `electroniclive.db`) and PostgreSQL (Neon cloud) via EF Core.
-- **Validation & Errors:** Validate request syntax on DTOs returning `TypedResults.ValidationProblem()`. Keep business checks in domain services using early returns.
+## Architecture & Boundaries
+- **Endpoints Over Controllers:** Map Minimal APIs in `Endpoints/` returning `TypedResults`. Handlers are HTTP adapters only (`internal static` covered by `[InternalsVisibleTo]`); delegate domain and DB logic to `Services/`.
+- **External Clients:** External providers live under `Clients/` implementing domain abstractions (`IEventProvider`) with Polly resilience. Never expose raw upstream schemas to callers.
+- **Embedded Templates:** Email templates in `Background/Email/Templates/` must be compiled as `<EmbeddedResource>`.
+- **Persistence:** Dual SQLite (local `electroniclive.db`) and PostgreSQL (Neon cloud) via EF Core.
+- **Async & Cancellation:** Always accept and forward `CancellationToken`.
+
+## Style & Coding Standards
+- **Returns & Primitives:** Return records or enums; never multi-element tuples. No artificial `Result<T>` wrappers for simple CRUD.
+- **Named Arguments:** Use named arguments for booleans, nulls, and adjacent same-type primitives (`fromId: a, toId: b`); avoid on self-evident single-arg calls.
+- **Comments (Why, Never What):** Forbid tautological comments (`// call api`, `// set state`). Only comment the "why" (vendor API quirks, non-obvious URI bugs).
+- **XML Docs:** Never generate `/// <summary>` boilerplate for internal code (`CS1591` is suppressed). Document endpoints fluently on route mappings.
+- **No Test Visibility Widening:** Never make methods `public` purely to facilitate unit tests. Keep helpers `internal static`.
 
 ## Testing Standards
-- Runner: xUnit with Shouldly and NSubstitute.
-- Test Naming: Every test case must follow the naming pattern `Should_...`.
-- Test Helpers: Maintain shared test fixtures in `TestHelpers/` (e.g. `EventTestFactory`). Assert observable state and side effects over mock internals.
+- Runner: xUnit with Shouldly and NSubstitute. Test names must follow `Should_...`.
+- Maintain shared factories in `TestHelpers/` (e.g. `EventTestFactory`). Assert observable state/side effects over mock internals.
